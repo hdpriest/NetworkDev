@@ -71,8 +71,6 @@ public class NetworkCalculator {
 		double[][] DataFrame = new double[FileDimensions[0]][FileDimensions[1]];
 		DataFrame = loadData(file,FileDimensions);
 		
-		//ArrayList<ArrayList<Double>> DataFrame = loadData(file);
-		
 		System.err.println("Calculating Similarity\n");
 		double[][] Similarity = new double[FileDimensions[0]][FileDimensions[1]]; 
 		Similarity = calculateSimilarity(DataFrame,FileDimensions);
@@ -84,10 +82,9 @@ public class NetworkCalculator {
 		double[][] Adjacency = new double[FileDimensions[0]][FileDimensions[1]]; 
 		Adjacency = calculateSigmoidAdjacency(Similarity,0.8,15);
 		
-		/*
 		System.err.println("Printing Adjacency to file...\n");
-		printMatrixToFile(Adjacency,Loci,AdjOut);
-		*/		
+		printMatrixToFile(Adjacency,Loci,AdjOut,FileDimensions);
+				
 	}
 	
 	private static Options buildOptions (){
@@ -144,7 +141,6 @@ public class NetworkCalculator {
 				Row = DataFrame[i];
 				String row = StringUtils.join(Row,",");
 				writer.println(row+"\n");
-				//System.out.println(ArrayUtils.toString(Row)+"\n");
 			}
 			writer.close();
 		} catch (Exception e){
@@ -165,22 +161,11 @@ public class NetworkCalculator {
 	private static double[][] calculateSimilarity (double[][] DataFrame,int[] Dims){
 		double[][] Similarity = new double[Dims[0]][Dims[0]];
 		for(int i=0;i<Dims[0];i++){
-			//ArrayList<Double> Row = new ArrayList<Double>();
 			for(int j=i;j<Dims[0];j++){
 				double correlation=0.0;
 				if(i==j){
 					correlation = 1.0;
-				}else{/*
-					ArrayList<Double> I = DataFrame.get(i);
-					ArrayList<Double> J = DataFrame.get(j);
-					//Double[] I_data = new Double[I.size()];
-					//Double[] J_data = new Double[J.size()];
-					Double[] Id = new Double[I.size()];
-					Double[] Jd = new Double[J.size()];
-					Id = I.toArray(Id);
-					Jd = J.toArray(Jd);
-					double[] I_data = ArrayUtils.toPrimitive(Id);
-					double[] J_data = ArrayUtils.toPrimitive(Jd);*/
+				}else{
 					double[] I_data = new double[Dims[1]];
 					double[] J_data = new double[Dims[1]];
 					I_data = DataFrame[i];
@@ -194,52 +179,7 @@ public class NetworkCalculator {
 		}
 		return Similarity;
 	}
-	/*
-	private static ArrayList<String> loadLoci (File file) {
-		ArrayList<String> Loci = new ArrayList<String>();
-		try {
-			Scanner scanner = new Scanner(file);
-			String header[] = scanner.nextLine().split("\t");
-			while(scanner.hasNextLine()){
-				String line=scanner.nextLine();
-				String[] Line = line.split("\t");
-				Loci.add(Line[0]);
-			}
-			scanner.close();		
-		} catch (FileNotFoundException e){
-			e.printStackTrace();
-		}
-		return Loci;
-	}
 	
-	private static ArrayList<ArrayList<Double>> loadData (File file) {
-		ArrayList<ArrayList<Double>> DataFrame = new ArrayList<ArrayList<Double>>();
-		try {
-			Scanner scanner = new Scanner(file);
-			String header[] = scanner.nextLine().split("\t");
-			while(scanner.hasNextLine()){
-				String line=scanner.nextLine();
-				String[] Line = line.split("\t");
-				ArrayList<Double> Data = new ArrayList<Double>();
-				for(int i=1;i<Line.length;i++){
-					try {
-						double value = Double.parseDouble(Line[i]);
-						Data.add(value);
-					}catch(NumberFormatException e){
-						e.printStackTrace();
-					}
-				}
-				DataFrame.add(Data);
-			}
-			scanner.close();
-		} catch (FileNotFoundException e){
-			e.printStackTrace();
-		}
-		return DataFrame;
-	}
-
-}
-*/
 private static int[] getFileDimensions (File file) {
 	int[] dimensions = new int[2];
     try {
@@ -287,10 +227,8 @@ private static String[] loadLoci (File file,int Dim) {
 	return Loci;
 }
 
-//private static ArrayList<ArrayList<Double>> loadData (File file) {
 private static double[][] loadData (File file, int[] Dims) {
 	double[][] DataFrame = new double[Dims[0]][Dims[1]];
-//	ArrayList<ArrayList<Double>> DataFrame = new ArrayList<ArrayList<Double>>();
 	try {
 		Scanner scanner = new Scanner(file);
 		String header[] = scanner.nextLine().split("\t");
@@ -299,19 +237,16 @@ private static double[][] loadData (File file, int[] Dims) {
 			String line=scanner.nextLine();
 			String[] Line = line.split("\t");
 			double[] data = new double[Dims[1]];
-			//ArrayList<Double> Data = new ArrayList<Double>();
 			for(int i=1;i<Line.length;i++){
 				try {
 					int I=i-1;
 					double value = Double.parseDouble(Line[i]);
 					data[I]=value;
-					//Data.add(value);
 				}catch(NumberFormatException e){
 					e.printStackTrace();
 				}
 			}
 			DataFrame[it]=data;
-			//DataFrame.add(Data);
 		}
 		scanner.close();
 	} catch (FileNotFoundException e){
