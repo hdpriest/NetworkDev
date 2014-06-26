@@ -70,14 +70,21 @@ public class NetworkCalculator {
 		
 		double[][] DataFrame = new double[FileDimensions[0]][FileDimensions[1]];
 		DataFrame = loadData(file,FileDimensions);
-		/*
+		
 		//ArrayList<ArrayList<Double>> DataFrame = loadData(file);
+		
 		System.err.println("Calculating Similarity\n");
-		ArrayList<ArrayList<Double>> Similarity = calculateSimilarity(DataFrame);
+		double[][] Similarity = new double[FileDimensions[0]][FileDimensions[1]]; 
+		Similarity = calculateSimilarity(DataFrame,FileDimensions);
+		
 		System.err.println("Printing similarity to file...\n");
-		printMatrixToFile(Similarity,Loci,SimOut);			
+		printMatrixToFile(Similarity,Loci,SimOut,FileDimensions);
+		
 		System.err.println("Calculating Adjacency...\n");
-		ArrayList<ArrayList<Double>> Adjacency = calculateSigmoidAdjacency(Similarity,0.8,15);
+		double[][] Adjacency = new double[FileDimensions[0]][FileDimensions[1]]; 
+		Adjacency = calculateSigmoidAdjacency(Similarity,0.8,15);
+		
+		/*
 		System.err.println("Printing Adjacency to file...\n");
 		printMatrixToFile(Adjacency,Loci,AdjOut);
 		*/		
@@ -105,43 +112,36 @@ public class NetworkCalculator {
 		return options;
 	}
 	
-	private static ArrayList<ArrayList<Double>> calculateSigmoidAdjacency (ArrayList<ArrayList<Double>> DataFrame,double mu, double alpha){
+	private static double[][] calculateSigmoidAdjacency (double[][] DataFrame,double mu, double alpha){
 		/* Lifted shamelessly from WGCNA:
 			function (ss, mu = 0.8, alpha = 20){
 				1/(1 + exp(-alpha * (ss - mu)))
 			}
 		 */
-		ArrayList<ArrayList<Double>> Adjacency = new ArrayList<ArrayList<Double>>();
-		int S=DataFrame.size();
-		for(int i=0;i<S;i++){
-			ArrayList<Double> OldRow = DataFrame.get(i);
-			ArrayList<Double> NewRow = new ArrayList<Double>();
-			for(int j=0;j<S;j++){
+		int H = DataFrame.length;
+		int W = DataFrame[0].length;
+		double[][] Adjacency = new double[H][W];
+		for(int i=0;i<H;i++){
+			for(int j=i;j<H;j++){
 				double adjacency=0.0;
 				if(i==j){
 					adjacency = 1.0;
 				}else{
-					adjacency = 1/(1+Math.exp(alpha*-1*(OldRow.get(j)-mu)));
+					adjacency = 1/(1+Math.exp(alpha*-1*(DataFrame[i][j]-mu)));
 				}
-				NewRow.add(adjacency);
+				Adjacency[i][j] = adjacency;
+				Adjacency[j][i] = adjacency;
 			}
-			Adjacency.add(NewRow);
 		}
 		return Adjacency;
 	}
 	
-	private static void printMatrixToFile (ArrayList<ArrayList<Double>> DataFrame,ArrayList<String> Loci, String path){
-		int S=DataFrame.size();
-		int L=Loci.size();
-		if(L != S){
-			System.out.println("Loci and matrix are not the same size\n");
-			System.exit(0);
-		}
+	private static void printMatrixToFile (double[][] DataFrame,String[] Loci, String path,int[] Dims){
 		try {
 			PrintWriter writer = new PrintWriter(path,"UTF-8");
-			for(int i=0;i<S;i++){
-				ArrayList<Double> Row = new ArrayList<Double>();
-				Row=DataFrame.get(i);
+			for(int i=0;i<Dims[0];i++){
+				double[] Row = new double[Dims[1]];
+				Row = DataFrame[i];
 				String row = StringUtils.join(Row,",");
 				writer.println(row+"\n");
 				//System.out.println(ArrayUtils.toString(Row)+"\n");
@@ -162,16 +162,15 @@ public class NetworkCalculator {
 		}
 	}
 	
-	private static ArrayList<ArrayList<Double>> calculateSimilarity (ArrayList<ArrayList<Double>> DataFrame){
-		ArrayList<ArrayList<Double>> Similarity = new ArrayList<ArrayList<Double>>();
-		int S=DataFrame.size();
-		for(int i=0;i<S;i++){
-			ArrayList<Double> Row = new ArrayList<Double>();
-			for(int j=0;j<S;j++){
+	private static double[][] calculateSimilarity (double[][] DataFrame,int[] Dims){
+		double[][] Similarity = new double[Dims[0]][Dims[0]];
+		for(int i=0;i<Dims[0];i++){
+			//ArrayList<Double> Row = new ArrayList<Double>();
+			for(int j=i;j<Dims[0];j++){
 				double correlation=0.0;
 				if(i==j){
 					correlation = 1.0;
-				}else{
+				}else{/*
 					ArrayList<Double> I = DataFrame.get(i);
 					ArrayList<Double> J = DataFrame.get(j);
 					//Double[] I_data = new Double[I.size()];
@@ -181,13 +180,17 @@ public class NetworkCalculator {
 					Id = I.toArray(Id);
 					Jd = J.toArray(Jd);
 					double[] I_data = ArrayUtils.toPrimitive(Id);
-					double[] J_data = ArrayUtils.toPrimitive(Jd);
+					double[] J_data = ArrayUtils.toPrimitive(Jd);*/
+					double[] I_data = new double[Dims[1]];
+					double[] J_data = new double[Dims[1]];
+					I_data = DataFrame[i];
+					J_data = DataFrame[j];
 					PearsonsCorrelation corr = new PearsonsCorrelation(); 
 					correlation = corr.correlation(I_data,J_data);
 				}
-				Row.add(correlation);
+				Similarity[i][j]=correlation;
+				Similarity[j][i]=correlation;
 			}
-			Similarity.add(Row);
 		}
 		return Similarity;
 	}
