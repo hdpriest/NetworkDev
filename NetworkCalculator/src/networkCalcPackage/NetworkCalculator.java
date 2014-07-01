@@ -70,12 +70,10 @@ public class NetworkCalculator {
 		int[] FileDimensions = new int [2]; 
 		FileDimensions = getFileDimensions(file);
 		
-		String[] Loci = new String[FileDimensions[0]];
-		Loci = loadLoci(file,FileDimensions[0]);
-		
 		System.err.println("Loading Data File\n");
 		
-		double[][] DataFrame = new double[FileDimensions[0]][FileDimensions[1]];
+		GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
+
 		DataFrame = loadData(file,FileDimensions);
 		
 		/*System.err.println("Calculating Similarity\n");
@@ -97,20 +95,20 @@ public class NetworkCalculator {
 		*/
 		
 		System.err.println("Calculating Similarity\n");
-		double[][] CurrentMatrix  = new double[FileDimensions[0]][FileDimensions[0]]; 
-		CurrentMatrix = calculateSimilarity(DataFrame,FileDimensions);
+		GCNMatrix CurrentMatrix  = new GCNMatrix(FileDimensions[0],FileDimensions[0]); 
+		CurrentMatrix = calculateSimilarity(DataFrame);
 		
 		System.err.println("Calculating Adjacency...\n");
 		CurrentMatrix = calculateSigmoidAdjacency(CurrentMatrix,0.8,15);
 		
 		System.err.println("Masking Adjacency...\n");
-		CurrentMatrix = maskMatrix(CurrentMatrix,0.01);
+		CurrentMatrix.maskMatrix(0.01);
 		
 		System.err.println("Calculating TOM...\n");
 		CurrentMatrix = calculateTOM(CurrentMatrix);
 		
 		System.err.println("Printing TOM to file...\n");
-		printMatrixToFile(CurrentMatrix,Loci,TomOut,FileDimensions);
+		CurrentMatrix.printMatrixToFile(TomOut,",");
 	}
 	
 	private static Options buildOptions (){
@@ -140,62 +138,50 @@ public class NetworkCalculator {
 		return options;
 	}
 	
-	private static double[][] maskMatrix (double[][] DataFrame,double maskLevel){
-		int H = DataFrame.length;
-		int W = DataFrame[0].length;
-		//// By keeping the dimensions separate (not assuming square matrix), enables method to mask dataframes as well as network frames
-		for(int i=0;i<H;i++){
-			for(int j=0;j<W;j++){
-				if(DataFrame[i][j]<maskLevel){
-					DataFrame[i][j]=0;
-				}
-			}
-		}
-		return DataFrame;
-	}
-	private static int findK (double[] Row,int j){
-		int K=0;
-		for(int i=0;i<Row.length;i++){
-			if(i==j){
-			}else{
-				if(Row[i] != 0){
-					K++;
-				}
-			}
-		}
-		return K;
-	}
-	
-	private static double[][] calculateTOM (double[][] DataFrame){
-		int H = DataFrame.length;
-		int W = DataFrame[0].length;
-		if(H != W){
-			System.err.println("TOM cannot be calculated on non-square matricies\n"); // will not... 
-			System.exit(0);
-		}
-		double[][] ReturnFrame = new double[H][W];
-		for(int i=0;i<H;i++){
-			int i_k = findK(DataFrame[i],i);
-			for(int j=0;j<H;j++){
+
+	private static GCNMatrix calculateTOM (GCNMatrix InputFrame){
+		int D = InputFrame.getNumRows();
+		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
+		for(int i=0;i<D;i++){
+			int i_k = InputFrame.findK(i, i);
+			for(int j=0;j<D;j++){
 				double T=0;
 				if(i==j){
 					T=1;
 				}else{
 					double product=0;
-					int j_k = findK(DataFrame[j],j);
-					for(int u=0;u<H;u++){
-						if((u != i) && (u != j) && (DataFrame[i][u] != 0) && (DataFrame[j][u] != 0)){
-							product += DataFrame[i][u] * DataFrame [j][u];
+					int j_k = InputFrame.findK(j,j);
+					for(int u=0;u<D;u++){
+						if((u != i) && (u != j) && (InputFrame.testValue(i, u)) && (InputFrame.testValue(j, u))){
+							product += InputFrame.getValueByEntry(i,u) * InputFrame.getValueByEntry(j,u);
 						}
 					}
 					int k_min = Math.min(i_k, j_k);
-					double DFIJ=DataFrame[i][j];
+					double DFIJ=InputFrame.getValueByEntry(i,j);
 					T=(product+DFIJ)/(k_min + 1 - DFIJ);
 				}
-				ReturnFrame[i][j]=T;
+				ReturnFrame.setValueByEntry(T, i, j);
 			}
 		}
 		return ReturnFrame;
+	}
+
+	private static GCNMatrix calculateSigmoidAdjacency (GCNMatrix Similarity, double mu, double alpha){
+		int D = Similarity.getNumRows();
+		GCNMatrix Adjacency = new GCNMatrix(D,D);
+		for(int i=0;i<D;i++){
+			for(int j=i;j<D;j++){
+				double adjacency=0.0;
+				if(i==j){
+					adjacency = 1.0;
+				}else{
+					adjacency = 1/(1+Math.exp(alpha*-1*(Similarity.getValueByEntry(i,j)-mu)));
+				}
+				Adjacency.setValueByEntry(adjacency, i, j);
+				Adjacency.setValueByEntry(adjacency, j, i);
+			}
+		}
+		return Adjacency;
 	}
 	
 	private static double[][] calculateSigmoidAdjacency (double[][] DataFrame,double mu, double alpha){
@@ -223,31 +209,27 @@ public class NetworkCalculator {
 		// is DataFrame here automagically garbage collected by the JVM at the close of this method? Or does the block hang around?
 	}
 	
-	private static void printMatrixToFile (double[][] DataFrame,String[] Loci, String path,int[] Dims){
-		try {
-			PrintWriter writer = new PrintWriter(path,"UTF-8");
-			for(int i=0;i<Dims[0];i++){
-				double[] Row = new double[Dims[1]];
-				Row = DataFrame[i];
-				String row = StringUtils.join(Row,",");
-				writer.println(row+"\n");
+	private static GCNMatrix calculateSimilarity (GCNMatrix Expression){
+		int D = Expression.getNumRows();
+		GCNMatrix Similarity = new GCNMatrix(D,D);
+		for(int i=0;i<D;i++){
+			for(int j=i;j<D;j++){
+				double correlation=0.0;
+				if(i==j){
+					correlation = 1.0;
+				}else{
+					double[] I_data = Expression.getRowByIndex(i);
+					double[] J_data = Expression.getRowByIndex(j);
+					PearsonsCorrelation corr = new PearsonsCorrelation();
+					correlation = corr.correlation(I_data,J_data);
+				}
+				Similarity.setValueByEntry(correlation,i,j);
+				Similarity.setValueByEntry(correlation,j,i);
 			}
-			writer.close();
-		} catch (Exception e){
-			// 
 		}
-		
+		return Similarity;
 	}
-	/*
-	private static void printMatrix (ArrayList<ArrayList<Double>> DataFrame){
-		int S=DataFrame.size();
-		for(int i=0;i<S;i++){
-			ArrayList<Double> Row = new ArrayList<Double>();
-			Row=DataFrame.get(i);
-			System.out.println(ArrayUtils.toString(Row)+"\n");
-		}
-	}
-	*/
+	
 	private static double[][] calculateSimilarity (double[][] DataFrame,int[] Dims){
 		double[][] Similarity = new double[Dims[0]][Dims[0]];
 		for(int i=0;i<Dims[0];i++){
@@ -270,7 +252,7 @@ public class NetworkCalculator {
 		return Similarity;
 	}
 	
-private static int[] getFileDimensions (File file) {
+	private static int[] getFileDimensions (File file) {
 	int[] dimensions = new int[2];
 	// pre-declaring sizes allows use of non-dynamic double[][] instead of nested ArrayLists. 
 	// performance gain over ArrayList per-entry is very small, but with 7k gene#, we have 49 million entries - or at least (49 million * .5)ish
@@ -296,12 +278,12 @@ private static int[] getFileDimensions (File file) {
     return dimensions;
 }
 
-private static void fileDimErr () {
-	System.err.println("data file is not a square data file");
+	private static void fileDimErr () {
+	System.err.println("data file is not a rectilinear data file");
 	System.exit(0);
 }
 
-private static String[] loadLoci (File file,int Dim) {
+	private static String[] loadLoci (File file,int Dim) {
 	String[] Loci = new String[Dim];
 	try {
 		Scanner scanner = new Scanner(file);
@@ -320,15 +302,18 @@ private static String[] loadLoci (File file,int Dim) {
 	return Loci;
 }
 
-private static double[][] loadData (File file, int[] Dims) {
-	double[][] DataFrame = new double[Dims[0]][Dims[1]];
+private static GCNMatrix loadData (File file, int[] Dims) {
+	GCNMatrix Expression = new GCNMatrix(Dims[0],Dims[1]);
 	try {
 		Scanner scanner = new Scanner(file);
-		String header[] = scanner.nextLine().split("\t");
+		String[] header = scanner.nextLine().split("\t");
+		String[] loci = new String[Dims[0]];
+		Expression.setColumnNames(header);
 		int it=0;
 		while(scanner.hasNextLine()){
 			String line=scanner.nextLine();
 			String[] Line = line.split("\t");
+			loci[it]=Line[0];
 			double[] data = new double[Dims[1]];
 			for(int i=1;i<Line.length;i++){
 				try {
@@ -339,13 +324,15 @@ private static double[][] loadData (File file, int[] Dims) {
 					e.printStackTrace();
 				}
 			}
-			DataFrame[it]=data;
+			it++;
+			Expression.addRow(data);
 		}
+		Expression.setRowNames(loci);
 		scanner.close();
 	} catch (FileNotFoundException e){
 		e.printStackTrace();
 	}
-	return DataFrame;
+	return Expression;
 }
 
 }
