@@ -63,15 +63,15 @@ public class NetworkCalculator {
 			System.err.println("No file found to read.\n");
 			System.exit(0);
 		}
-		
+		String sep ="\t";
 		int[] FileDimensions = new int [2]; 
-		FileDimensions = getFileDimensions(file);
+		FileDimensions = getFileDimensions(file, sep);
 		
 		System.err.println("Loading Data File\n");
 		
 		GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
 
-		DataFrame = loadData(file,FileDimensions,",");
+		DataFrame = loadData(file,FileDimensions,sep);
 		
 		System.err.println("Calculating Similarity\n");
 		GCNMatrix CurrentMatrix  = new GCNMatrix(FileDimensions[0],FileDimensions[0]); 
@@ -128,6 +128,7 @@ public class NetworkCalculator {
 		
 		// *** TODO: make network construction method
 		File file = null;
+		String sep = "\t";
 		try{
 			file = new File(pathIn);
 		}
@@ -137,18 +138,18 @@ public class NetworkCalculator {
 		}
 		
 		int[] FileDimensions = new int [2]; 
-		FileDimensions = getFileDimensions(file);
+		FileDimensions = getFileDimensions(file,sep);
 		
 		System.err.println("Loading Data File\n");
 		
 		GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
 
-		DataFrame = loadData(file,FileDimensions,"\t");
+		DataFrame = loadData(file,FileDimensions,sep);
 		
 		System.err.println("Calculating Similarity\n");
 		GCNMatrix CurrentMatrix  = new GCNMatrix(FileDimensions[0],FileDimensions[0]); 
 		CurrentMatrix = calculateSimilarity(DataFrame);
-		
+		/*
 		System.err.println("Calculating Adjacency...\n");
 		CurrentMatrix = calculateSigmoidAdjacency(CurrentMatrix,mu,alpha);
 		
@@ -158,7 +159,8 @@ public class NetworkCalculator {
 		System.err.println("Calculating TOM...\n");
 		CurrentMatrix = calculateTOM(CurrentMatrix);
 		
-		System.err.println("Printing TOM to file...\n");
+		System.err.println("Printing TOM to file...\n");*/
+		System.err.println("Printing Matrix...\n");
 		CurrentMatrix.printMatrixToFile(Out,",");
 		System.exit(0);
 	}
@@ -205,6 +207,7 @@ public class NetworkCalculator {
 				System.err.println("Problem occurred creating chart.");
 			}*/
 			File file = null;
+			String sep = ",";
 			try{
 				file = new File(pathIn);
 			}
@@ -214,16 +217,16 @@ public class NetworkCalculator {
 			}
 			
 			int[] FileDimensions = new int [2]; 
-			FileDimensions = getFileDimensions(file);
+			FileDimensions = getFileDimensions(file, sep);
 			
 			System.err.println("Loading Data File\n");
 			
 			GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
 
-			DataFrame = loadData(file,FileDimensions,",");
-			System.out.println("Columns loaded... " + DataFrame.getNumColumns() +"\n");
-			System.out.println("Rows loaded... " + DataFrame.getNumRows() +"\n");
-			DataFrame.GenerateHistogram();
+			DataFrame = loadData(file,FileDimensions,sep);
+		//	System.out.println("Columns loaded... " + DataFrame.getNumColumns() +"\n");
+		//	System.out.println("Rows loaded... " + DataFrame.getNumRows() +"\n");
+			DataFrame.GenerateHistogram(Out);
 			System.exit(0);
 		}
 		catch(ParseException exp){
@@ -526,18 +529,18 @@ public class NetworkCalculator {
 		return Similarity;
 	}
 	
-	private static int[] getFileDimensions (File file) {
+	private static int[] getFileDimensions (File file, String sep) {
 	int[] dimensions = new int[2];
 	// pre-declaring sizes allows use of non-dynamic double[][] instead of nested ArrayLists. 
 	// performance gain over ArrayList per-entry is very small, but with 7k gene#, we have 49 million entries - or at least (49 million * .5)ish
     try {
     	Scanner scanner = new Scanner(file);
-		String header[] = scanner.nextLine().split("\t");
+		String header[] = scanner.nextLine().split(sep);
 		dimensions[0]=0; // Frame height (minus header)
 		dimensions[1]=header.length - 1;  // Frame width (minus rowID)
 		while(scanner.hasNextLine()){
 			String line=scanner.nextLine();
-			String[] Line = line.split("\t");
+			String[] Line = line.split(sep);
 			int this_width = Line.length - 1;
 			if(this_width != dimensions[1]){
 				fileDimErr();
@@ -559,6 +562,7 @@ public class NetworkCalculator {
 
 	private static GCNMatrix loadData (File file, int[] Dims,String sep) {
 		GCNMatrix Expression = new GCNMatrix(Dims[0],Dims[1]);
+		//System.err.println("Loading file of " + Dims[0] + " by " + Dims[1] + "\n");
 		try {
 			Scanner scanner = new Scanner(file);
 			String[] header = scanner.nextLine().split(sep);
