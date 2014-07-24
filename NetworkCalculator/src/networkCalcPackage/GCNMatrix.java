@@ -2,7 +2,8 @@ package networkCalcPackage;
 
 import java.io.PrintWriter;
 import java.lang.Math;
-
+import java.text.DecimalFormat;
+import java.math.RoundingMode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
@@ -18,6 +19,27 @@ public class GCNMatrix {
 		X_lab = new String[Dim1];
 		Y_lab = new String[Dim2];
 		X_iterator = -1;
+	}
+	
+	public double[] GenerateHistogram () {
+		int H = DataFrame.length;
+		int W = DataFrame[0].length;
+		double[] Histogram=new double[201];
+		DecimalFormat df = new DecimalFormat("#.##");
+		df.setRoundingMode(RoundingMode.HALF_UP);
+		for(int i=0;i<H;i++){
+			for(int j=0;j<W;j++){
+				System.out.println("Val: "+DataFrame[i][j]+"\n");
+				Double v= (Double.valueOf(df.format(DataFrame[i][j])))*100;
+				
+				int value = v.intValue();
+				Histogram[value]++;	
+			}
+		}
+		for(int x=0;x<201;x++){
+			//System.out.println("Value: "+ x +"\tObs: "+Histogram[x]+"\n");
+		}
+		return Histogram;
 	}
 	
 	public void resetIterator () {
@@ -115,7 +137,7 @@ public class GCNMatrix {
 	public void addRow (double[] Row){
 		int I=X_iterator;
 		for(int i=0;i<Row.length;i++){
-			DataFrame[I][i]=Row[i];
+			DataFrame[I+1][i]=Row[i];
 		}
 		X_iterator++;
 	}
@@ -132,7 +154,7 @@ public class GCNMatrix {
 			for(int i=0;i<DataFrame.length;i++){
 				double[] Row = new double[DataFrame[i].length];
 				Row = DataFrame[i];
-				String row = StringUtils.join(Row,Sep);
+				String row = StringUtils.join(Row);
 				writer.println(row+"\n");
 			}
 			writer.close();
