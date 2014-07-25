@@ -12,14 +12,6 @@ import org.apache.commons.cli.*;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
-import org.jfree.data.general.Dataset;
-import org.jfree.data.category.DefaultCategoryDataset;
-import org.jfree.data.category.CategoryDataset;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartPanel;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.ChartUtilities;
-import org.jfree.chart.plot.PlotOrientation;
 
 public class NetworkCalculator {
 
@@ -149,19 +141,21 @@ public class NetworkCalculator {
 		System.err.println("Calculating Similarity\n");
 		GCNMatrix CurrentMatrix  = new GCNMatrix(FileDimensions[0],FileDimensions[0]); 
 		CurrentMatrix = calculateSimilarity(DataFrame);
-		/*
+	
 		System.err.println("Calculating Adjacency...\n");
 		CurrentMatrix = calculateSigmoidAdjacency(CurrentMatrix,mu,alpha);
 		
 		System.err.println("Masking Adjacency...\n");
-		CurrentMatrix.maskMatrix(0.01);
+//		CurrentMatrix.maskMatrix(0.01);
 		
 		System.err.println("Calculating TOM...\n");
 		CurrentMatrix = calculateTOM(CurrentMatrix);
 		
-		System.err.println("Printing TOM to file...\n");*/
+		System.err.println("Printing TOM to file...\n");
 		System.err.println("Printing Matrix...\n");
-		CurrentMatrix.printMatrixToFile(Out,",");
+	//	CurrentMatrix.printMatrixToFile(Out,",");
+	//	CurrentMatrix.maskMatrix(0.009);
+		CurrentMatrix.generateHistogram(Out);
 		System.exit(0);
 	}
 	
@@ -445,11 +439,11 @@ public class NetworkCalculator {
 				.create("d");
 		Option alpha = OptionBuilder.withArgName("alpha")
 				.hasArg()
-				.withDescription("alpha parameter for sigmoid adjacency calculation")
+				.withDescription("alpha parameter for sigmoid adjacency calculation (i.e. 20)")
 				.create("a");
 		Option mu = OptionBuilder.withArgName("mu")
 				.hasArg()
-				.withDescription("mu parameter for sigmoid adjacency calculation")
+				.withDescription("mu parameter for sigmoid adjacency calculation (i.e. 0.8)")
 				.create("m");
 		Option output = OptionBuilder.withArgName("output")
 				.hasArg()

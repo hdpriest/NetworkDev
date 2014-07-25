@@ -39,7 +39,7 @@ public class GCNMatrix {
 		X_iterator = -1;
 	}
 	
-	public double[] GenerateHistogram (String pathOut) {
+	public double[] generateHistogram (String pathOut) {
 		int H = DataFrame.length;
 		int W = DataFrame[0].length;
 		double[] Histogram=new double[201];
