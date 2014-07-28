@@ -1,5 +1,6 @@
 package networkCalcPackage;
 
+import java.awt.Color;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -39,7 +40,7 @@ public class GCNMatrix {
 		X_iterator = -1;
 	}
 	
-	public double[] generateHistogram (String pathOut) {
+	public double[] generateHistogram (String pathOut, String Title,String Xlab, String Ylab) {
 		int H = DataFrame.length;
 		int W = DataFrame[0].length;
 		double[] Histogram=new double[201];
@@ -48,10 +49,11 @@ public class GCNMatrix {
 		for(int i=0;i<H;i++){
 			for(int j=0;j<W;j++){
 				//System.out.println("Val: "+DataFrame[i][j]+"\n");
-				Double v= ((Double.valueOf(df.format(DataFrame[i][j])))+1)*100;
-				
-				int value = v.intValue();
-				Histogram[value]++;	
+				if(DataFrame[i][j]>0){
+					Double v= ((Double.valueOf(df.format(DataFrame[i][j])))+1)*100;
+					int value = v.intValue();
+					Histogram[value]++;
+				}
 			}
 		}
 	//	DefaultCategoryDataset dataset = new DefaultCategoryDataset();
@@ -65,8 +67,10 @@ public class GCNMatrix {
 			series.add((double) A, (double) Histogram[x],true);			
 		}
 		dataset.addSeries(series);
-		JFreeChart chart = ChartFactory.createXYLineChart("Histogram of values","Value","Num Occ.",dataset, PlotOrientation.VERTICAL, 
+		JFreeChart chart = ChartFactory.createXYLineChart(Title,Xlab,Ylab,dataset, PlotOrientation.VERTICAL, 
 				 false, true, false);
+		chart.setBackgroundPaint(Color.white);
+		chart.setAntiAlias(true);
 		/*CategoryAxis xAxis = new CategoryAxis();
 		xAxis.setTickUnit(new NumberTickUnit(10));
 		chart.getCategoryPlot().setDomainAxis(xAxis);*/

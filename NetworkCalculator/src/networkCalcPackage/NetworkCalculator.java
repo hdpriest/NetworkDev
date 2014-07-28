@@ -80,6 +80,7 @@ public class NetworkCalculator {
 		String Out=null;
 		double alpha=0.0;
 		double mu=0.0;
+		double Mask=0.0;
 		try{
 			CommandLine cmd = parser.parse(options, args);
 			HelpFormatter formatter = new HelpFormatter();
@@ -107,10 +108,16 @@ public class NetworkCalculator {
 				formatter.printHelp( "java -jar jarfile.jar", options );
 				System.exit(0);
 			}
+			if(cmd.hasOption("M")){
+			}else{
+				formatter.printHelp( "java -jar jarfile.jar", options );
+				System.exit(0);
+			}
 			pathIn=cmd.getOptionValue("d");
 			Out=cmd.getOptionValue("o");
 			alpha=Double.parseDouble(cmd.getOptionValue("a"));
 			mu=Double.parseDouble(cmd.getOptionValue("m"));
+			Mask = Double.parseDouble(cmd.getOptionValue("M"));
 		}
 		catch(ParseException exp){
 			System.err.println("Problem parsing arguments:\n" + exp.getMessage());
@@ -129,6 +136,14 @@ public class NetworkCalculator {
 			System.exit(0);
 		}
 		
+		File dir = new File(Out);
+		try{
+			dir.mkdir();
+		} catch(SecurityException se){
+			System.out.println("Cannot create directory!");
+			System.exit(0);
+		}
+		
 		int[] FileDimensions = new int [2]; 
 		FileDimensions = getFileDimensions(file,sep);
 		
@@ -141,21 +156,26 @@ public class NetworkCalculator {
 		System.err.println("Calculating Similarity\n");
 		GCNMatrix CurrentMatrix  = new GCNMatrix(FileDimensions[0],FileDimensions[0]); 
 		CurrentMatrix = calculateSimilarity(DataFrame);
-	
+		String ThisOut = Out + "/Similarity.dist.jpeg";
+		CurrentMatrix.generateHistogram(ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Relationships");
+		
 		System.err.println("Calculating Adjacency...\n");
 		CurrentMatrix = calculateSigmoidAdjacency(CurrentMatrix,mu,alpha);
+		ThisOut = Out + "/Adjacency.dist.jpeg";
+		CurrentMatrix.generateHistogram(ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Relationships");
 		
-		System.err.println("Masking Adjacency...\n");
-//		CurrentMatrix.maskMatrix(0.01);
+//		System.err.println("Masking Adjacency...\n");
+		CurrentMatrix.maskMatrix(Mask);
 		
 		System.err.println("Calculating TOM...\n");
 		CurrentMatrix = calculateTOM(CurrentMatrix);
 		
-		System.err.println("Printing TOM to file...\n");
-		System.err.println("Printing Matrix...\n");
+	//	System.err.println("Printing TOM to file...\n");
+	//	System.err.println("Printing Matrix...\n");
 	//	CurrentMatrix.printMatrixToFile(Out,",");
-	//	CurrentMatrix.maskMatrix(0.009);
-		CurrentMatrix.generateHistogram(Out);
+		CurrentMatrix.maskMatrix(Mask);
+		ThisOut = Out + "/TOM.dist.jpeg";
+		CurrentMatrix.generateHistogram(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# of relationships");
 		System.exit(0);
 	}
 	
@@ -220,7 +240,7 @@ public class NetworkCalculator {
 			DataFrame = loadData(file,FileDimensions,sep);
 		//	System.out.println("Columns loaded... " + DataFrame.getNumColumns() +"\n");
 		//	System.out.println("Rows loaded... " + DataFrame.getNumRows() +"\n");
-			DataFrame.GenerateHistogram(Out);
+			DataFrame.generateHistogram(Out,"Title","X label","Y label");
 			System.exit(0);
 		}
 		catch(ParseException exp){
@@ -445,14 +465,19 @@ public class NetworkCalculator {
 				.hasArg()
 				.withDescription("mu parameter for sigmoid adjacency calculation (i.e. 0.8)")
 				.create("m");
+		Option Mask = OptionBuilder.withArgName("Mask")
+				.hasArg()
+				.withDescription("parameter for masking matricies - values below this will be set to zero")
+				.create("M");
 		Option output = OptionBuilder.withArgName("output")
 				.hasArg()
-				.withDescription("File for output of TOM matrix")
+				.withDescription("Temporary Directory")
 				.create("o");
 		options.addOption(help);
 		options.addOption(datafile);
 		options.addOption(alpha);
 		options.addOption(mu);
+		options.addOption(Mask);
 		options.addOption(output);
 		return options;
 	}
