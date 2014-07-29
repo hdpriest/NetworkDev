@@ -151,13 +151,13 @@ public class NetworkCalculator {
 		GCNMatrix CurrentMatrix  = new GCNMatrix(FileDimensions[0],FileDimensions[0]); 
 		CurrentMatrix = calculateSimilarity(DataFrame);
 		String ThisOut = Out + "/Similarity.dist.jpeg";
-		CurrentMatrix.generateHistogram(ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Relationships");
+		CurrentMatrix.generateHistogram(ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Edges");
 		
 		System.err.println("Calculating Adjacency...\n");
 		CurrentMatrix = calculateSigmoidAdjacency(CurrentMatrix,mu,alpha);
 		
 		ThisOut = Out + "/Adjacency.dist.jpeg";
-		CurrentMatrix.generateHistogram(ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Relationships");
+		CurrentMatrix.generateHistogram(ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Edges");
 		
 		CurrentMatrix.maskMatrix(Mask);
 		
@@ -166,7 +166,7 @@ public class NetworkCalculator {
 		
 		CurrentMatrix.maskMatrix(Mask);
 		ThisOut = Out + "/TOM.dist.jpeg";
-		CurrentMatrix.generateHistogram(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# of relationships");
+		CurrentMatrix.generateHistogram(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
 		
 		System.exit(0);
 	}
