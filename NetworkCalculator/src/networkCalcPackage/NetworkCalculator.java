@@ -1,16 +1,11 @@
 package networkCalcPackage;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Scanner;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
 import java.lang.Math;
 
 import org.apache.commons.cli.*;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
 public class NetworkCalculator {
@@ -46,7 +41,6 @@ public class NetworkCalculator {
 			System.exit(0);
 		}
 		
-		// *** TODO : MAKE SIMILARITY FUNC
 		File file = null;
 		try{
 			file = new File(pathIn);
@@ -161,21 +155,19 @@ public class NetworkCalculator {
 		
 		System.err.println("Calculating Adjacency...\n");
 		CurrentMatrix = calculateSigmoidAdjacency(CurrentMatrix,mu,alpha);
+		
 		ThisOut = Out + "/Adjacency.dist.jpeg";
 		CurrentMatrix.generateHistogram(ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Relationships");
 		
-//		System.err.println("Masking Adjacency...\n");
 		CurrentMatrix.maskMatrix(Mask);
 		
 		System.err.println("Calculating TOM...\n");
 		CurrentMatrix = calculateTOM(CurrentMatrix);
 		
-	//	System.err.println("Printing TOM to file...\n");
-	//	System.err.println("Printing Matrix...\n");
-	//	CurrentMatrix.printMatrixToFile(Out,",");
 		CurrentMatrix.maskMatrix(Mask);
 		ThisOut = Out + "/TOM.dist.jpeg";
 		CurrentMatrix.generateHistogram(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# of relationships");
+		
 		System.exit(0);
 	}
 	
@@ -204,22 +196,6 @@ public class NetworkCalculator {
 			}
 			pathIn=cmd.getOptionValue("d");
 			Out=cmd.getOptionValue("o");
-			/*
-			DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-			dataset.setValue(6, "Profit", "Jane");
-			dataset.setValue(7, "Profit", "Tom");
-			dataset.setValue(8, "Profit", "Jill");
-			dataset.setValue(5, "Profit", "John");
-			dataset.setValue(12, "Profit", "Fred");
-			JFreeChart chart = ChartFactory.createBarChart("Comparison between Salesman", 
-					 "Salesman", "Profit", dataset, PlotOrientation.VERTICAL, 
-					 false, true, false);
-					 
-			try {
-				ChartUtilities.saveChartAsJPEG(new File(Out), chart, 500, 300);
-			} catch (IOException e) {
-				System.err.println("Problem occurred creating chart.");
-			}*/
 			File file = null;
 			String sep = ",";
 			try{
@@ -238,9 +214,8 @@ public class NetworkCalculator {
 			GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
 
 			DataFrame = loadData(file,FileDimensions,sep);
-		//	System.out.println("Columns loaded... " + DataFrame.getNumColumns() +"\n");
-		//	System.out.println("Rows loaded... " + DataFrame.getNumRows() +"\n");
 			DataFrame.generateHistogram(Out,"Title","X label","Y label");
+			
 			System.exit(0);
 		}
 		catch(ParseException exp){
@@ -258,8 +233,6 @@ public class NetworkCalculator {
 		// **** TODO -- again, what is this for??
 		String pathIn=null;
 		String Out=null;
-		double alpha=0.0;
-		double mu=0.0;
 		try{
 			CommandLine cmd = parser.parse(options, args);
 			HelpFormatter formatter = new HelpFormatter();
@@ -289,14 +262,32 @@ public class NetworkCalculator {
 			}
 			pathIn=cmd.getOptionValue("n");
 			Out=cmd.getOptionValue("o");
-			alpha=Double.parseDouble(cmd.getOptionValue("a"));
-			mu=Double.parseDouble(cmd.getOptionValue("m"));
 		}
 		catch(ParseException exp){
 			System.err.println("Problem parsing arguments:\n" + exp.getMessage());
 			System.err.println("Exiting...\n");
 			System.exit(0);
 		}
+		File file = null;
+		String sep = ",";
+		try{
+			file = new File(pathIn);
+		}
+		catch (NullPointerException e){
+			System.err.println("No file found to read.\n");
+			System.exit(0);
+		}
+		
+		int[] FileDimensions = new int [2]; 
+		FileDimensions = getFileDimensions(file, sep);
+		
+		System.err.println("Loading Data File\n");
+		
+		GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
+
+		DataFrame = loadData(file,FileDimensions,sep);
+		DataFrame.generateHistogram(Out,"Title","X label","Y label");
+		System.exit(0);
 	}
 	
 	private static void baseOptions(String[] args){
@@ -365,71 +356,84 @@ public class NetworkCalculator {
 	private static Options buildOptions (){
 		Options options = new Options();
 		Option help = new Option( "h", "print this message" );
-		Option similarity = OptionBuilder.withArgName("similarity")
-				.hasArg()
-				.withDescription("construct a similarity matrix and print it to a file")
-				.create("similarity");
-		Option construct = OptionBuilder.withArgName("construct")
-				.hasArg()
-				.withDescription("construct a network via application of a topological overlap calculation")
-				.create("construct");
-		Option compare = OptionBuilder.withArgName("compare")
-				.hasArg()
-				.withDescription("compare several network matricies")
-				.create("compare");
-		Option view = OptionBuilder.withArgName("view")
-				.hasArg()
-				.withDescription("query a single network for node properties")
-				.create("view");
+	
+		OptionBuilder.withArgName("similarity");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("construct a similarity matrix and print it to a file");
+		Option similarity = OptionBuilder.create("similarity");
+		
+		OptionBuilder.withArgName("construct");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("construct a network via application of a topological overlap calculation");
+		Option construct = OptionBuilder.create("construct");
+		
+		OptionBuilder.withArgName("compare");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("compare several network matricies");
+		Option compare = OptionBuilder.create("compare");
+		
+		OptionBuilder.withArgName("view");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("query a single network for node properties");
+		Option view = OptionBuilder.create("view");
+		
 		options.addOption(help);
 		options.addOption(construct);
 		options.addOption(similarity);
 		options.addOption(compare);
 		options.addOption(view);
+		
 		return options;
 	}
 	private static Options buildCompareOptions (){
 		Options options = new Options();
 		Option help = new Option( "h", "print this message" );
-		Option datafile = OptionBuilder.withArgName("datafile")
-				.hasArg()
-				.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values")
-				.create("d");
-		Option output = OptionBuilder.withArgName("similarity")
-				.hasArg()
-				.withDescription("File for output of output")
-				.create("o");
+		
+		OptionBuilder.withArgName("datafile");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values");
+		Option datafile = OptionBuilder.create("d");
+		
+		OptionBuilder.withArgName("similarity");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("File for output of output");
+		Option output = OptionBuilder.create("o");
+		
 		options.addOption(help);
 		options.addOption(datafile);
 		options.addOption(output);
-		//System.out.println("This method is not yet implemented\n");
-		//System.exit(0);
 		return options;
 	}
 	private static Options buildViewOptions (){
 		Options options = new Options();
 		Option help = new Option( "h", "print this message" );
-		Option datafile = OptionBuilder.withArgName("datafile")
-				.hasArg()
-				.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values")
-				.create("d");
-		Option similarity = OptionBuilder.withArgName("similarity")
-				.hasArg()
-				.withDescription("File for output of similarity matrix")
-				.create("s");
-		Option adjacency = OptionBuilder.withArgName("adjacency")
-				.hasArg()
-				.withDescription("File for output of adjacency matrix")
-				.create("a");
-		Option tom = OptionBuilder.withArgName("tom")
-				.hasArg()
-				.withDescription("File for output of TOM matrix")
-				.create("t");
+		
+		OptionBuilder.withArgName("datafile");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values");
+		Option datafile = OptionBuilder.create("d");
+		
+		OptionBuilder.withArgName("similarity");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("File for output of similarity matrix");
+		Option similarity = OptionBuilder.create("s");
+		
+		OptionBuilder.withArgName("adjacency");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("File for output of adjacency matrix");
+		Option adjacency = OptionBuilder.create("a");
+		
+		OptionBuilder.withArgName("tom");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("File for output of TOM matrix");
+		Option tom = OptionBuilder.create("t");
+		
 		options.addOption(help);
 		options.addOption(datafile);
 		options.addOption(similarity);
 		options.addOption(adjacency);
 		options.addOption(tom);
+		
 		System.out.println("This method is not yet implemented\n");
 		System.exit(0);
 		return options;
@@ -437,48 +441,59 @@ public class NetworkCalculator {
 	private static Options buildSimilarityOptions (){
 		Options options = new Options();
 		Option help = new Option( "h", "print this message" );
-		Option datafile = OptionBuilder.withArgName("datafile")
-				.hasArg()
-				.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values")
-				.create("d");
-		Option output = OptionBuilder.withArgName("output")
-				.hasArg()
-				.withDescription("File for output of similarity matrix")
-				.create("o");
+		
+		OptionBuilder.withArgName("datafile");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values");
+		Option datafile = OptionBuilder.create("d");
+		
+		OptionBuilder.withArgName("output");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("File for output of similarity matrix");
+		Option output = OptionBuilder.create("o");
+		
 		options.addOption(help);
 		options.addOption(datafile);
 		options.addOption(output);
+		
 		return options;
 	}
 	private static Options buildConstructOptions (){
 		Options options = new Options();
 		Option help = new Option( "h", "print this message" );
-		Option datafile = OptionBuilder.withArgName("datafile")
-				.hasArg()
-				.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values")
-				.create("d");
-		Option alpha = OptionBuilder.withArgName("alpha")
-				.hasArg()
-				.withDescription("alpha parameter for sigmoid adjacency calculation (i.e. 20)")
-				.create("a");
-		Option mu = OptionBuilder.withArgName("mu")
-				.hasArg()
-				.withDescription("mu parameter for sigmoid adjacency calculation (i.e. 0.8)")
-				.create("m");
-		Option Mask = OptionBuilder.withArgName("Mask")
-				.hasArg()
-				.withDescription("parameter for masking matricies - values below this will be set to zero")
-				.create("M");
-		Option output = OptionBuilder.withArgName("output")
-				.hasArg()
-				.withDescription("Temporary Directory")
-				.create("o");
+		
+		OptionBuilder.withArgName("datafile");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values");
+		Option datafile = OptionBuilder.create("d");
+		
+		OptionBuilder.withArgName("alpha");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("alpha parameter for sigmoid adjacency calculation (i.e. 20)");
+		Option alpha = OptionBuilder.create("a");
+		
+		OptionBuilder.withArgName("mu");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("mu parameter for sigmoid adjacency calculation (i.e. 0.8)");
+		Option mu = OptionBuilder.create("m");
+		
+		OptionBuilder.withArgName("Mask");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("parameter for masking matricies - values below this will be set to zero");
+		Option Mask = OptionBuilder.create("M");
+		
+		OptionBuilder.withArgName("output");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("Temporary Directory");
+		Option output = OptionBuilder.create("o");
+		
 		options.addOption(help);
 		options.addOption(datafile);
 		options.addOption(alpha);
 		options.addOption(mu);
 		options.addOption(Mask);
 		options.addOption(output);
+		
 		return options;
 	}
 
@@ -518,7 +533,7 @@ public class NetworkCalculator {
 				if(i==j){
 					adjacency = 1.0;
 				}else{
-					adjacency = 1/(1+Math.exp(alpha*-1*(Similarity.getValueByEntry(i,j)-mu)));
+					adjacency = 1/(1+Math.exp(alpha*-1*(Math.abs(Similarity.getValueByEntry(i,j))-mu)));
 				}
 				Adjacency.setValueByEntry(adjacency, i, j);
 				Adjacency.setValueByEntry(adjacency, j, i);

@@ -2,28 +2,16 @@ package networkCalcPackage;
 
 import java.awt.Color;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.Math;
 import java.text.DecimalFormat;
 import java.math.RoundingMode;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
-import org.jfree.data.general.Dataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-//import org.jfree.data.category.DefaultCategoryDataset;
-//import org.jfree.data.category.CategoryDataset;
 import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.ChartUtilities;
-import org.jfree.chart.axis.CategoryAxis;
-import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.axis.NumberTickUnit;
-import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.PlotOrientation;
 
 public class GCNMatrix {
@@ -49,7 +37,7 @@ public class GCNMatrix {
 		for(int i=0;i<H;i++){
 			for(int j=0;j<W;j++){
 				//System.out.println("Val: "+DataFrame[i][j]+"\n");
-				if(DataFrame[i][j]>0){
+				if(DataFrame[i][j] != 0.0){
 					Double v= ((Double.valueOf(df.format(DataFrame[i][j])))+1)*100;
 					int value = v.intValue();
 					Histogram[value]++;
@@ -62,7 +50,7 @@ public class GCNMatrix {
 		for(int x=0;x<201;x++){
 			double a = ((double)x/100)-1.0;
 			Double A = Double.valueOf(df.format(a));
-			System.out.println("Index: " + x + " Value: "+ A +"\tObs: "+Histogram[x]+"\n");
+			System.out.println("Index: " + x + " Value: "+ A +"\tObs: "+Histogram[x]);
 			//dataset.setValue(Histogram[x],"Hist",A);
 			series.add((double) A, (double) Histogram[x],true);			
 		}
