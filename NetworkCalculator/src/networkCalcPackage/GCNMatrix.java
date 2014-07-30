@@ -14,7 +14,7 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.plot.PlotOrientation;
 
-public class GCNMatrix {
+class GCNMatrix {
 	
 	private double[][] DataFrame;
 	private String[] X_lab;
@@ -44,25 +44,19 @@ public class GCNMatrix {
 				}
 			}
 		}
-	//	DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 		XYSeriesCollection dataset = new XYSeriesCollection();
 		XYSeries series = new XYSeries("Values");
 		for(int x=0;x<201;x++){
 			double a = ((double)x/100)-1.0;
 			Double A = Double.valueOf(df.format(a));
 			System.out.println("Index: " + x + " Value: "+ A +"\tObs: "+Histogram[x]);
-			//dataset.setValue(Histogram[x],"Hist",A);
 			series.add((double) A, (double) Histogram[x],true);			
 		}
 		dataset.addSeries(series);
 		JFreeChart chart = ChartFactory.createXYLineChart(Title,Xlab,Ylab,dataset, PlotOrientation.VERTICAL, 
 				 false, true, false);
 		chart.setBackgroundPaint(Color.white);
-		chart.setAntiAlias(true);
-		/*CategoryAxis xAxis = new CategoryAxis();
-		xAxis.setTickUnit(new NumberTickUnit(10));
-		chart.getCategoryPlot().setDomainAxis(xAxis);*/
-		
+		chart.setAntiAlias(true);		
 		try {
 			ChartUtilities.saveChartAsJPEG(new File(pathOut), chart, 500, 300);
 		} catch (IOException e) {

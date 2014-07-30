@@ -3,11 +3,13 @@ package networkCalcPackage;
 import java.io.File;
 import java.util.Scanner;
 import java.io.FileNotFoundException;
-import java.lang.Math;
+
 
 import org.apache.commons.cli.*;
+/*
+import java.lang.Math;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
-
+*/
 public class NetworkCalculator {
 
 	private static void makeSimilarity(String[] args){
@@ -61,7 +63,7 @@ public class NetworkCalculator {
 		
 		System.err.println("Calculating Similarity\n");
 		GCNMatrix CurrentMatrix  = new GCNMatrix(FileDimensions[0],FileDimensions[0]); 
-		CurrentMatrix = calculateSimilarity(DataFrame);
+		CurrentMatrix = Operations.calculateSimilarity(DataFrame);
 		CurrentMatrix.printMatrixToFile(Out,",");
 		System.exit(0);
 		
@@ -75,6 +77,7 @@ public class NetworkCalculator {
 		double alpha=0.0;
 		double mu=0.0;
 		double Mask=0.0;
+		String corr=null;
 		try{
 			CommandLine cmd = parser.parse(options, args);
 			HelpFormatter formatter = new HelpFormatter();
@@ -83,6 +86,11 @@ public class NetworkCalculator {
 				System.exit(0);
 			}
 			if(cmd.hasOption("d")){
+			}else{
+				formatter.printHelp( "java -jar jarfile.jar", options );
+				System.exit(0);
+			}
+			if(cmd.hasOption("c")){
 			}else{
 				formatter.printHelp( "java -jar jarfile.jar", options );
 				System.exit(0);
@@ -109,6 +117,7 @@ public class NetworkCalculator {
 			}
 			pathIn=cmd.getOptionValue("d");
 			Out=cmd.getOptionValue("o");
+			corr=cmd.getOptionValue("c");
 			alpha=Double.parseDouble(cmd.getOptionValue("a"));
 			mu=Double.parseDouble(cmd.getOptionValue("m"));
 			Mask = Double.parseDouble(cmd.getOptionValue("M"));
@@ -147,27 +156,38 @@ public class NetworkCalculator {
 
 		DataFrame = loadData(file,FileDimensions,sep);
 		
-		System.err.println("Calculating Similarity\n");
-		GCNMatrix CurrentMatrix  = new GCNMatrix(FileDimensions[0],FileDimensions[0]); 
-		CurrentMatrix = calculateSimilarity(DataFrame);
-		String ThisOut = Out + "/Similarity.dist.jpeg";
-		CurrentMatrix.generateHistogram(ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Edges");
 		
+		GCNMatrix CurrentMatrix  = new GCNMatrix(FileDimensions[0],FileDimensions[0]); 
+		
+		System.err.println("Calculating Similarity\n");
+		switch (corr){
+			case "gini":	CurrentMatrix	= Operations.calculateGINIcoefficient(DataFrame);
+			break;
+			case "pcc": 	CurrentMatrix 	= Operations.calculateSimilarity(DataFrame);
+			break;
+			default: 		CurrentMatrix 	= Operations.calculateSimilarity(DataFrame);
+			break;
+		}
+		
+		//CurrentMatrix = Operations.calculateSimilarity(DataFrame);
+		String ThisOut = Out + "/Similarity.dist.jpeg";
+		//CurrentMatrix.generateHistogram(ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Edges");
+		Operations.generateHistogram(CurrentMatrix,ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Edges");
 		System.err.println("Calculating Adjacency...\n");
-		CurrentMatrix = calculateSigmoidAdjacency(CurrentMatrix,mu,alpha);
+		CurrentMatrix = Operations.calculateSigmoidAdjacency(CurrentMatrix,mu,alpha);
 		
 		ThisOut = Out + "/Adjacency.dist.jpeg";
-		CurrentMatrix.generateHistogram(ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Edges");
-		
+		//CurrentMatrix.generateHistogram(ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Edges");
+		Operations.generateHistogram(CurrentMatrix,ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Edges");
 		CurrentMatrix.maskMatrix(Mask);
 		
 		System.err.println("Calculating TOM...\n");
-		CurrentMatrix = calculateTOM(CurrentMatrix);
+		CurrentMatrix = Operations.calculateTOM(CurrentMatrix);
 		
 		CurrentMatrix.maskMatrix(Mask);
 		ThisOut = Out + "/TOM.dist.jpeg";
-		CurrentMatrix.generateHistogram(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
-		
+		//CurrentMatrix.generateHistogram(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
+		Operations.generateHistogram(CurrentMatrix,ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
 		System.exit(0);
 	}
 	
@@ -214,7 +234,7 @@ public class NetworkCalculator {
 			GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
 
 			DataFrame = loadData(file,FileDimensions,sep);
-			DataFrame.generateHistogram(Out,"Title","X label","Y label");
+			Operations.generateHistogram(DataFrame,Out,"Title","X label","Y label");
 			
 			System.exit(0);
 		}
@@ -286,7 +306,7 @@ public class NetworkCalculator {
 		GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
 
 		DataFrame = loadData(file,FileDimensions,sep);
-		DataFrame.generateHistogram(Out,"Title","X label","Y label");
+		Operations.generateHistogram(DataFrame,Out,"Title","X label","Y label");
 		System.exit(0);
 	}
 	
@@ -314,43 +334,6 @@ public class NetworkCalculator {
 				break;
 			}
 		}
-		/*
-		Options options = buildOptions();
-		
-		File file = null;
-		try{
-			file = new File(pathIn);
-		}
-		catch (NullPointerException e){
-			System.err.println("No file found to read.\n");
-			System.exit(0);
-		}
-		
-		int[] FileDimensions = new int [2]; 
-		FileDimensions = getFileDimensions(file);
-		
-		System.err.println("Loading Data File\n");
-		
-		GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
-
-		DataFrame = loadData(file,FileDimensions);
-		
-		System.err.println("Calculating Similarity\n");
-		GCNMatrix CurrentMatrix  = new GCNMatrix(FileDimensions[0],FileDimensions[0]); 
-		CurrentMatrix = calculateSimilarity(DataFrame);
-		
-		System.err.println("Calculating Adjacency...\n");
-		CurrentMatrix = calculateSigmoidAdjacency(CurrentMatrix,0.8,15);
-		
-		System.err.println("Masking Adjacency...\n");
-		CurrentMatrix.maskMatrix(0.01);
-		
-		System.err.println("Calculating TOM...\n");
-		CurrentMatrix = calculateTOM(CurrentMatrix);
-		
-		System.err.println("Printing TOM to file...\n");
-		CurrentMatrix.printMatrixToFile(TomOut,",");
-		*/
 	}
 	
 	private static Options buildOptions (){
@@ -467,6 +450,11 @@ public class NetworkCalculator {
 		OptionBuilder.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values");
 		Option datafile = OptionBuilder.create("d");
 		
+		OptionBuilder.withArgName("correlation");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("correlation metric to use ('gini' or 'pcc')");
+		Option corr = OptionBuilder.create("c");
+		
 		OptionBuilder.withArgName("alpha");
 		OptionBuilder.hasArg();
 		OptionBuilder.withDescription("alpha parameter for sigmoid adjacency calculation (i.e. 20)");
@@ -490,13 +478,14 @@ public class NetworkCalculator {
 		options.addOption(help);
 		options.addOption(datafile);
 		options.addOption(alpha);
+		options.addOption(corr);
 		options.addOption(mu);
 		options.addOption(Mask);
 		options.addOption(output);
 		
 		return options;
 	}
-
+/*
 	private static GCNMatrix calculateTOM (GCNMatrix InputFrame){
 		int D = InputFrame.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
@@ -562,7 +551,7 @@ public class NetworkCalculator {
 		}
 		return Similarity;
 	}
-	
+	*/
 	private static int[] getFileDimensions (File file, String sep) {
 	int[] dimensions = new int[2];
 	// pre-declaring sizes allows use of non-dynamic double[][] instead of nested ArrayLists. 
