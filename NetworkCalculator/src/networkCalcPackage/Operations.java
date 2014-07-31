@@ -5,7 +5,13 @@ import java.io.File;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.jfree.chart.ChartFactory;
@@ -16,28 +22,46 @@ import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
 public class Operations {
+	
 	private static double GINI (double[] array1,double[] array2){
 		double GINI_coeff;
 		double Numerator=0.0;
 		double Denominator=0.0;
-		Arrays.sort(array1);
-		Arrays.sort(array2);
+		int[] sortRanks1 = getIndicesInOrder(array1);
+		int[] sortRanks2 = getIndicesInOrder(array2);
 		for(int i=0;i<array1.length;i++){
-			double v1=((2*i)-array1.length-1) * array1[i];
-			//System.err.println("i: " +i);
-			//System.err.println("array 1 length: " + array1.length );
-			//System.err.println("array 1 value: " +array1[i]+"\n");
-			Numerator += v1;
-			double v2=((2*i)-array1.length-1) * array2[i];
-			//System.err.println("i: " +i);
-			//System.err.println("array 2 length: " + array2.length );
-			//System.err.println("array 2 value: " +array2[i] +"\n");
+			double v2=((2*(i+1))-array1.length-1) * array1[sortRanks1[i]];
+			double v1=((2*(i+1))-array1.length-1) * array1[sortRanks2[i]];
 			Denominator+=v2;
+			Numerator += v1;
 		}
 		GINI_coeff=Numerator/Denominator;
-		System.err.println("Obtained Num: "+ Numerator +"\nObtained Denom: " + Denominator + "\n" + "Gini: " + GINI_coeff);
+		//System.err.println("Obtained Num: "+ Numerator +"\nObtained Denom: " + Denominator + "\n" + "Gini: " + GINI_coeff);
 		return GINI_coeff;
 	}
+	
+	private static int[] getIndicesInOrder(double[] array) {
+	    Map<Integer, Double> map = new HashMap<Integer, Double>(array.length);
+	    for (int i = 0; i < array.length; i++)
+	        map.put(i, array[i]);
+
+	    List<Entry<Integer, Double>> l = 
+	                           new ArrayList<Entry<Integer, Double>>(map.entrySet());
+
+	    Collections.sort(l, new Comparator<Entry<?, Double>>() {
+	            @Override
+	            public int compare(Entry<?, Double> e1, Entry<?, Double> e2) {
+	                return e2.getValue().compareTo(e1.getValue());
+	            }
+	        });
+
+	    int[] result = new int[array.length];
+	    for (int i = 0; i < result.length; i++)
+	        result[i] = l.get(i).getKey();
+
+	    return result;
+	}
+	
 	public static GCNMatrix calculateGINIcoefficient (GCNMatrix InputFrame){
 		int D = InputFrame.getNumRows();
 		GCNMatrix Similarity = new GCNMatrix(D,D);
@@ -53,24 +77,20 @@ public class Operations {
 					double[] J_data = InputFrame.getRowByIndex(j);
 					GCC1 = GINI(I_data,J_data);
 					GCC2 = GINI(J_data,I_data);
+					//System.err.println();
 				}
-				if(GCC1>GCC2){
-					System.err.println(GCC1);
+				if(Math.abs(GCC1)<Math.abs(GCC2)){
 					Similarity.setValueByEntry(GCC1,i,j);
 					Similarity.setValueByEntry(GCC1,j,i);
-				}else if (GCC2>GCC1){
-					System.err.println(GCC2);
+				}else if (Math.abs(GCC2)<Math.abs(GCC1)){
 					Similarity.setValueByEntry(GCC2,i,j);
 					Similarity.setValueByEntry(GCC2,j,i);
 				}else{
-					System.err.println(GCC1);
 					Similarity.setValueByEntry(GCC1,i,j);
 					Similarity.setValueByEntry(GCC1,j,i);
 				}
-				
 			}
 		}
-		System.exit(0);
 		return Similarity;
 	}
 	public static GCNMatrix calculateTOM (GCNMatrix InputFrame){

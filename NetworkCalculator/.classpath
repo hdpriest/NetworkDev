@@ -10,5 +10,6 @@
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.USER_LIBRARY/jfreecharts"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Apache"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/JfreeCharts"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/jsc"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
