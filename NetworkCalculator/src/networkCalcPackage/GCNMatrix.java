@@ -49,7 +49,7 @@ class GCNMatrix {
 		for(int x=0;x<201;x++){
 			double a = ((double)x/100)-1.0;
 			Double A = Double.valueOf(df.format(a));
-			System.out.println("Index: " + x + " Value: "+ A +"\tObs: "+Histogram[x]);
+			//System.out.println("Index: " + x + " Value: "+ A +"\tObs: "+Histogram[x]);
 			series.add((double) A, (double) Histogram[x],true);			
 		}
 		dataset.addSeries(series);
