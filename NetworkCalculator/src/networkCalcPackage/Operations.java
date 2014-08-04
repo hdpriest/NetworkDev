@@ -93,6 +93,44 @@ public class Operations {
 		}
 		return Similarity;
 	}
+	
+	public static GCNMatrix compareNetworksViaTOM (GCNMatrix Net1, GCNMatrix Net2){
+		int D = Net1.getNumRows();
+		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
+		for(int i=0;i<D;i++){
+			int i_k = Net1.findK(i, i);
+			for(int j=0;j<D;j++){
+				double T=0;
+				if(i==j){
+					double product=0;
+					int j_k = Net2.findK(j,j);
+					for(int u=0;u<D;u++){
+						if((u != i) && (u != j) && (Net1.testValue(i, u)) && (Net2.testValue(j, u))){
+							product += Net1.getValueByEntry(i,u) * Net2.getValueByEntry(j,u);
+						}
+					}
+					int k_min = Math.min(i_k, j_k);
+					double DFIJ=1;
+					T=(product+DFIJ)/(k_min + 1 - DFIJ);
+					//T=(product+DFIJ)/(k_min + 1);
+				}else{
+				/*	double product=0;
+					int j_k = Net1.findK(j,j);
+					for(int u=0;u<D;u++){
+						if((u != i) && (u != j) && (Net1.testValue(i, u)) && (Net2.testValue(j, u))){
+							product += InputFrame.getValueByEntry(i,u) * InputFrame.getValueByEntry(j,u);
+						}
+					}
+					int k_min = Math.min(i_k, j_k);
+					double DFIJ=InputFrame.getValueByEntry(i,j);
+					T=(product+DFIJ)/(k_min + 1 - DFIJ);*/
+				}
+				ReturnFrame.setValueByEntry(T, i, j);
+			}
+		}
+		return ReturnFrame;
+	}
+	
 	public static GCNMatrix calculateTOM (GCNMatrix InputFrame){
 		int D = InputFrame.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
@@ -136,6 +174,25 @@ public class Operations {
 			}
 		}
 		return Adjacency;
+	}
+	
+	public static GCNMatrix calculateDifference (GCNMatrix mat1, GCNMatrix mat2){
+		int D = mat1.getNumRows();
+		GCNMatrix Difference = new GCNMatrix(D,D);
+		for(int i=0;i<D;i++){
+			for(int j=i;j<D;j++){
+				double v1=mat1.getValueByEntry(i, j);
+				double v2=mat2.getValueByEntry(i, j);
+				//if((v1 != 0) & (v2 != 0)){
+					double d1 =v1-v2;
+					double d2 =v1-v2;
+				//System.out.println("Val1: " + v1 +" Val2: " + v2 + " diff " + d);
+					Difference.setValueByEntry(d1,i,j);
+					Difference.setValueByEntry(d2,j,i);
+				//}
+			}
+		}
+		return Difference;
 	}
 	
 	public static GCNMatrix calculateSimilarity (GCNMatrix Expression){

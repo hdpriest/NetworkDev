@@ -43,23 +43,15 @@ public class NetworkCalculator {
 			System.exit(0);
 		}
 		
-		File file = null;
-		try{
-			file = new File(pathIn);
-		}
-		catch (NullPointerException e){
-			System.err.println("No file found to read.\n");
-			System.exit(0);
-		}
 		String sep ="\t";
 		int[] FileDimensions = new int [2]; 
-		FileDimensions = getFileDimensions(file, sep);
+		FileDimensions = getFileDimensions(pathIn, sep);
 		
 		System.err.println("Loading Data File\n");
 		
 		GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
 
-		DataFrame = loadData(file,FileDimensions,sep);
+		DataFrame = loadData(pathIn,FileDimensions,sep);
 		
 		System.err.println("Calculating Similarity\n");
 		GCNMatrix CurrentMatrix  = new GCNMatrix(FileDimensions[0],FileDimensions[0]); 
@@ -129,32 +121,17 @@ public class NetworkCalculator {
 		}
 		
 		// *** TODO: make network construction method
-		File file = null;
-		String sep = "\t";
-		try{
-			file = new File(pathIn);
-		}
-		catch (NullPointerException e){
-			System.err.println("No file found to read.\n");
-			System.exit(0);
-		}
 		
-		File dir = new File(Out);
-		try{
-			dir.mkdir();
-		} catch(SecurityException se){
-			System.out.println("Cannot create directory!");
-			System.exit(0);
-		}
+		String sep = "\t";
 		
 		int[] FileDimensions = new int [2]; 
-		FileDimensions = getFileDimensions(file,sep);
+		FileDimensions = getFileDimensions(pathIn,sep);
 		
 		System.err.println("Loading Data File\n");
 		
 		GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
 
-		DataFrame = loadData(file,FileDimensions,sep);
+		DataFrame = loadData(pathIn,FileDimensions,sep);
 		
 		
 		GCNMatrix CurrentMatrix  = new GCNMatrix(FileDimensions[0],FileDimensions[0]); 
@@ -197,8 +174,9 @@ public class NetworkCalculator {
 		CommandLineParser parser = new BasicParser();
 		Options options = buildCompareOptions();
 		/// **** TODO : need to even conceive of whats going on here
-		String pathIn=null;
-		String Out=null;
+		String dir1=null;
+		String dir2=null;
+		String out =null;
 		try{
 			CommandLine cmd = parser.parse(options, args);
 			HelpFormatter formatter = new HelpFormatter();
@@ -206,7 +184,12 @@ public class NetworkCalculator {
 				formatter.printHelp( "java -jar jarfile.jar", options );
 				System.exit(0);
 			}
-			if(cmd.hasOption("d")){
+			if(cmd.hasOption("d1")){
+			}else{
+				formatter.printHelp( "java -jar jarfile.jar", options );
+				System.exit(0);
+			}
+			if(cmd.hasOption("d2")){
 			}else{
 				formatter.printHelp( "java -jar jarfile.jar", options );
 				System.exit(0);
@@ -216,28 +199,40 @@ public class NetworkCalculator {
 				formatter.printHelp( "java -jar jarfile.jar", options );
 				System.exit(0);
 			}
-			pathIn=cmd.getOptionValue("d");
-			Out=cmd.getOptionValue("o");
-			File file = null;
-			String sep = ",";
-			try{
-				file = new File(pathIn);
-			}
-			catch (NullPointerException e){
-				System.err.println("No file found to read.\n");
+			dir1=cmd.getOptionValue("d1");
+			dir2=cmd.getOptionValue("d2");
+			String matrix1 = dir1 + "/TOM.matrix.tab";
+			String matrix2 = dir2 + "/TOM.matrix.tab";
+			out=cmd.getOptionValue("o");
+			String sep = "\t";
+			
+			int[] FD_1 = new int [2]; 
+			FD_1 = getFileDimensions(matrix1, sep);
+			int[] FD_2 = new int [2];
+			FD_2 = getFileDimensions(matrix2, sep);
+			
+			if((FD_1[0] == FD_2[0]) & (FD_1[1] == FD_2[1])){
+			}else{
+				System.err.println("Matrix files are not the same size");
 				System.exit(0);
 			}
 			
-			int[] FileDimensions = new int [2]; 
-			FileDimensions = getFileDimensions(file, sep);
-			
 			System.err.println("Loading Data File\n");
 			
-			GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
-
-			DataFrame = loadData(file,FileDimensions,sep);
-			Operations.generateHistogram(DataFrame,Out,"Title","X label","Y label");
-			
+			GCNMatrix NetworkA = new GCNMatrix(FD_1[0],FD_1[1]);
+			GCNMatrix NetworkB = new GCNMatrix(FD_1[0],FD_1[1]);
+			System.err.println("Loading Data File: " + matrix1 + "\n");
+			NetworkA = loadData(matrix1,FD_1,sep);
+			System.err.println("Loading Data File: " + matrix2 + "\n");
+			NetworkB = loadData(matrix2,FD_1,sep);
+			GCNMatrix Difference = new GCNMatrix(FD_1[0],FD_1[1]);
+			Difference = Operations.calculateDifference(NetworkA, NetworkB);
+			//DataFrame = loadData(pa,FileDimensions,sep);
+			String O1 = "Pairwise." + out;
+			String O2 = "Selfwise." + out;
+			Operations.generateHistogram(Difference,O1,"Pairwise Topological Overlap Differences Zm vs Sv","cross-pair Delta-TOM","Count");
+			Difference = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
+			Operations.generateHistogram(Difference,O2,"Cross-network Selfwise Topological Overlap Differences Zm vs Sv","selfwise Delta-TOM","Count");
 			System.exit(0);
 		}
 		catch(ParseException exp){
@@ -290,24 +285,16 @@ public class NetworkCalculator {
 			System.err.println("Exiting...\n");
 			System.exit(0);
 		}
-		File file = null;
-		String sep = ",";
-		try{
-			file = new File(pathIn);
-		}
-		catch (NullPointerException e){
-			System.err.println("No file found to read.\n");
-			System.exit(0);
-		}
 		
+		String sep = ",";
 		int[] FileDimensions = new int [2]; 
-		FileDimensions = getFileDimensions(file, sep);
+		FileDimensions = getFileDimensions(pathIn, sep);
 		
 		System.err.println("Loading Data File\n");
 		
 		GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
 
-		DataFrame = loadData(file,FileDimensions,sep);
+		DataFrame = loadData(pathIn,FileDimensions,sep);
 		Operations.generateHistogram(DataFrame,Out,"Title","X label","Y label");
 		System.exit(0);
 	}
@@ -374,19 +361,26 @@ public class NetworkCalculator {
 		Options options = new Options();
 		Option help = new Option( "h", "print this message" );
 		
-		OptionBuilder.withArgName("datafile");
+		OptionBuilder.withArgName("matrix1");
 		OptionBuilder.hasArg();
-		OptionBuilder.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values");
-		Option datafile = OptionBuilder.create("d");
+		OptionBuilder.withDescription("Directory containing run files for network 1");
+		Option dir1 = OptionBuilder.create("d1");
 		
-		OptionBuilder.withArgName("similarity");
+		OptionBuilder.withArgName("matrix2");
 		OptionBuilder.hasArg();
-		OptionBuilder.withDescription("File for output of output");
+		OptionBuilder.withDescription("Directory containing run files for network 2");
+		Option dir2 = OptionBuilder.create("d2");
+		
+		OptionBuilder.withArgName("output");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("output file");
 		Option output = OptionBuilder.create("o");
 		
 		options.addOption(help);
-		options.addOption(datafile);
+		options.addOption(dir1);
+		options.addOption(dir2);
 		options.addOption(output);
+		
 		return options;
 	}
 	private static Options buildViewOptions (){
@@ -554,11 +548,21 @@ public class NetworkCalculator {
 		return Similarity;
 	}
 	*/
-	private static int[] getFileDimensions (File file, String sep) {
+	private static int[] getFileDimensions (String pathIn, String sep) {
 	int[] dimensions = new int[2];
 	// pre-declaring sizes allows use of non-dynamic double[][] instead of nested ArrayLists. 
 	// performance gain over ArrayList per-entry is very small, but with 7k gene#, we have 49 million entries - or at least (49 million * .5)ish
     try {
+    	File file = null;
+		
+		try{
+			file = new File(pathIn);
+		}
+		catch (NullPointerException e){
+			System.err.println("No file found to read.\n");
+			System.exit(0);
+		}
+		
     	Scanner scanner = new Scanner(file);
 		String header[] = scanner.nextLine().split(sep);
 		dimensions[0]=0; // Frame height (minus header)
@@ -585,10 +589,19 @@ public class NetworkCalculator {
 	System.exit(0);
 }
 
-	private static GCNMatrix loadData (File file, int[] Dims,String sep) {
+	private static GCNMatrix loadData (String pathIn, int[] Dims,String sep) {
 		GCNMatrix Expression = new GCNMatrix(Dims[0],Dims[1]);
 		//System.err.println("Loading file of " + Dims[0] + " by " + Dims[1] + "\n");
 		try {
+			File file = null;
+						try{
+				file = new File(pathIn);
+			}
+			catch (NullPointerException e){
+				System.err.println("No file found to read.\n");
+				System.exit(0);
+			}
+			
 			Scanner scanner = new Scanner(file);
 			String[] header = scanner.nextLine().split(sep);
 			String[] loci = new String[Dims[0]];

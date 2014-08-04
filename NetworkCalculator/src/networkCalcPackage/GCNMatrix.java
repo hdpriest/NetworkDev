@@ -174,13 +174,23 @@ class GCNMatrix {
 	public void printMatrixToFile (String path,String Sep){
 		try {
 			PrintWriter writer = new PrintWriter(path,"UTF-8");
+			writer.print(Sep);
+			for(int y=0;y<Y_lab.length;y++){
+				writer.print(Y_lab[y]);
+				if(y != Y_lab.length-1){
+					writer.print(Sep);
+				}
+			}
+			writer.print("\n");
 			for(int i=0;i<DataFrame.length;i++){
 				double[] Row = new double[DataFrame[i].length];
 				Row = DataFrame[i];
+				writer.print(X_lab[i]);
+				writer.print(Sep);
 				for(int j=0;j<Row.length;j++){
 					writer.print(Row[j]);
 					if(j != Row.length-1){
-						writer.print(",");
+						writer.print(Sep);
 					}
 				}
 				writer.print("\n");
