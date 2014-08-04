@@ -12,6 +12,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.jfree.chart.ChartFactory;
@@ -23,7 +33,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 public class Operations {
 	
-	private static double GINI (double[] array1,double[] array2){
+	public static double GINI (double[] array1,double[] array2){
 		double GINI_coeff;
 		double Numerator=0.0;
 		double Denominator=0.0;
@@ -213,8 +223,83 @@ public class Operations {
 				Similarity.setValueByEntry(correlation,j,i);
 			}
 		}
-		System.exit(0);
+
 		return Similarity;
+	}
+	
+	public static GCNMatrix calculateSimilarity (GCNMatrix Expression,int Threads){
+		int D = Expression.getNumRows();
+		GCNMatrix Similarity = new GCNMatrix(D,D);
+		ExecutorService executor = Executors.newFixedThreadPool(Threads);
+		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
+		//BlockingQueue<String> queue = makeQueue(D);
+		BlockingQueue<String> queue = new ArrayBlockingQueue<String>(1000000);
+		for ( int i = 0; i < Threads; i++ ) {
+			Callable<HashMap<String,Double>> worker = new SimilarityConcurrent(Expression,queue,"pcc");
+			//SimilarityConcurrent worker = new SimilarityConcurrent(Expression,queue,"pcc");
+			//Thread thread = new Thread(worker);
+			Future<HashMap<String,Double>> submit = executor.submit(worker);
+			taskList.add(submit);
+		    //thread.start();
+		    //Work[i]=thread;	    
+		}
+		
+		for(int i=0;i<D;i++){
+			for(int j=i;j<D;j++){
+				String S = i+"-"+j;
+				queue.add(S);
+				if(queue.remainingCapacity() < 1000){
+					try {
+						TimeUnit.SECONDS.sleep(10);
+					}catch(InterruptedException e){
+						
+					}
+				}
+			}
+		}
+		
+		for(Future<HashMap<String,Double>> future : taskList){
+			try{
+				HashMap<String,Double> hm = future.get();
+				for(Map.Entry<String,Double> entry : hm.entrySet()){
+					String s = entry.getKey();
+					String[] S = s.split("-");
+					Double d = entry.getValue();
+					int i = Integer.parseInt(S[0]);
+					int j = Integer.parseInt(S[1]);
+					Similarity.setValueByEntry((double) d,i,j);
+					Similarity.setValueByEntry((double) d,j,i);
+				}
+			}catch (InterruptedException e) {
+		        e.printStackTrace();
+		    } catch (ExecutionException e) {
+		        e.printStackTrace();
+		    }
+		}
+		/*
+		for( int i = 0; i < Threads; i++ ) {
+			while(Work[i].isAlive() == true){
+				try{
+					TimeUnit.SECONDS.sleep(10);
+				}catch(InterruptedException e){
+					
+				}
+			}
+			Work[i].
+		}*/
+		
+		return Similarity;
+	}
+	
+	private static BlockingQueue<String> makeQueue (int D){ 
+		BlockingQueue<String> queue = new SynchronousQueue<String>();
+		for(int i=0;i<D;i++){
+			for(int j=i;j<D;j++){
+				String S = i+"-"+j;
+				queue.add(S);
+			}
+		}
+		return queue;
 	}
 	
 	public static void generateHistogram (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab) {
@@ -258,3 +343,5 @@ public class Operations {
 		}
 	}
 }
+
+

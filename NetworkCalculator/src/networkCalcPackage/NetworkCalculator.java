@@ -69,6 +69,7 @@ public class NetworkCalculator {
 		double alpha=0.0;
 		double mu=0.0;
 		double Mask=0.0;
+		int threads=0;
 		String corr=null;
 		try{
 			CommandLine cmd = parser.parse(options, args);
@@ -107,6 +108,12 @@ public class NetworkCalculator {
 				formatter.printHelp( "java -jar jarfile.jar", options );
 				System.exit(0);
 			}
+			if(cmd.hasOption("t")){
+			}else{
+				formatter.printHelp( "java -jar jarfile.jar", options );
+				System.exit(0);
+			}
+			threads=Integer.parseInt(cmd.getOptionValue("t"));
 			pathIn=cmd.getOptionValue("d");
 			Out=cmd.getOptionValue("o");
 			corr=cmd.getOptionValue("c");
@@ -140,12 +147,20 @@ public class NetworkCalculator {
 		switch (corr){
 			case "gini":	CurrentMatrix	= Operations.calculateGINIcoefficient(DataFrame);
 			break;
-			case "pcc": 	CurrentMatrix 	= Operations.calculateSimilarity(DataFrame);
+			case "pcc": 	CurrentMatrix 	= Operations.calculateSimilarity(DataFrame,threads);
 			break;
 			default: 		CurrentMatrix 	= Operations.calculateSimilarity(DataFrame);
 			break;
 		}
-		
+		File theDir = new File(Out);
+		if (!theDir.exists()) {
+		    System.out.println("creating directory: " + Out);
+		    try{
+		        theDir.mkdir();
+		     } catch(SecurityException se){
+		        //TODO handle it
+		     }        
+		  }
 		//CurrentMatrix = Operations.calculateSimilarity(DataFrame);
 		String ThisOut = Out + "/Similarity.dist.jpeg";
 		//CurrentMatrix.generateHistogram(ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Edges");
@@ -471,6 +486,11 @@ public class NetworkCalculator {
 		OptionBuilder.withDescription("Temporary Directory");
 		Option output = OptionBuilder.create("o");
 		
+		OptionBuilder.withArgName("threads");
+		OptionBuilder.hasArg();
+		OptionBuilder.withDescription("Number of Compute Threads");
+		Option threads = OptionBuilder.create("t");
+		
 		options.addOption(help);
 		options.addOption(datafile);
 		options.addOption(alpha);
@@ -478,6 +498,7 @@ public class NetworkCalculator {
 		options.addOption(mu);
 		options.addOption(Mask);
 		options.addOption(output);
+		options.addOption(threads);
 		
 		return options;
 	}
