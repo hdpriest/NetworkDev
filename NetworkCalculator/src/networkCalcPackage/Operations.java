@@ -15,7 +15,9 @@ import java.util.Map.Entry;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -104,6 +106,52 @@ public class Operations {
 		return Similarity;
 	}
 	
+	public static GCNMatrix calculateGINIcoefficient (GCNMatrix Expression,int Threads){ 
+		//// it really seems as though all these concurrent methods
+		//// could be condensed - the matrix handling is all fairly uniform, its the calls that differ.
+		int D = Expression.getNumRows();
+		GCNMatrix Similarity = new GCNMatrix(D,D);
+		ExecutorService pool = Executors.newFixedThreadPool(Threads);
+		ExecutorCompletionService<HashMap<String,Double>> completionService = new ExecutorCompletionService<>(pool);
+		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
+		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
+		for ( int i = 0; i < Threads; i++ ) {
+			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Expression,queue,"gini");
+			Future<HashMap<String,Double>> submit = completionService.submit(worker);
+			taskList.add(submit);  
+		}
+		
+		for(int i=0;i<D;i++){
+			for(int j=i;j<D;j++){
+				String S = i+"-"+j;
+				queue.add(S);
+			}
+		}
+		
+		for(int t=0;t<Threads;t++){
+			try{
+				HashMap<String,Double> hm = completionService.take().get();
+				for(Map.Entry<String,Double> entry : hm.entrySet()){
+					String s = entry.getKey();
+					String[] S = s.split("-");
+					Double d = entry.getValue();
+					int i = Integer.parseInt(S[0]);
+					int j = Integer.parseInt(S[1]);
+					//System.out.println(i+"\t"+j+"\t"+d);
+					Similarity.setValueByEntry((double) d,i,j);
+					Similarity.setValueByEntry((double) d,j,i);
+				}
+			}catch(InterruptedException e){
+				e.printStackTrace();
+			}catch (ExecutionException e){
+				e.printStackTrace();
+			}
+			
+		}
+		pool.shutdown();
+		return Similarity;
+	}
+	
 	public static GCNMatrix compareNetworksViaTOM (GCNMatrix Net1, GCNMatrix Net2){
 		int D = Net1.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
@@ -186,6 +234,52 @@ public class Operations {
 		return Adjacency;
 	}
 	
+	
+	
+	public static GCNMatrix calculateSigmoidAdjacency (GCNMatrix Similarity,double mu, double alpha, int Threads){
+		int D = Similarity.getNumRows();
+		GCNMatrix Adjacency = new GCNMatrix(D,D);
+		ExecutorService pool = Executors.newFixedThreadPool(Threads);
+		ExecutorCompletionService<HashMap<String,Double>> completionService = new ExecutorCompletionService<>(pool);
+		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
+		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
+		for ( int i = 0; i < Threads; i++ ) {
+			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Adjacency,queue,"sigmoid",mu,alpha);
+			Future<HashMap<String,Double>> submit = completionService.submit(worker);
+			taskList.add(submit);  
+		}
+		
+		for(int i=0;i<D;i++){
+			for(int j=i;j<D;j++){
+				String S = i+"-"+j;
+				queue.add(S);
+			}
+		}
+		
+		for(int t=0;t<Threads;t++){
+			try{
+				HashMap<String,Double> hm = completionService.take().get();
+				for(Map.Entry<String,Double> entry : hm.entrySet()){
+					String s = entry.getKey();
+					String[] S = s.split("-");
+					Double d = entry.getValue();
+					int i = Integer.parseInt(S[0]);
+					int j = Integer.parseInt(S[1]);
+					//System.out.println(i+"\t"+j+"\t"+d);
+					Adjacency.setValueByEntry((double) d,i,j);
+					Adjacency.setValueByEntry((double) d,j,i);
+				}
+			}catch(InterruptedException e){
+				e.printStackTrace();
+			}catch (ExecutionException e){
+				e.printStackTrace();
+			}
+			
+		}
+		pool.shutdown();
+		return Adjacency;
+	}
+	
 	public static GCNMatrix calculateDifference (GCNMatrix mat1, GCNMatrix mat2){
 		int D = mat1.getNumRows();
 		GCNMatrix Difference = new GCNMatrix(D,D);
@@ -230,64 +324,44 @@ public class Operations {
 	public static GCNMatrix calculateSimilarity (GCNMatrix Expression,int Threads){
 		int D = Expression.getNumRows();
 		GCNMatrix Similarity = new GCNMatrix(D,D);
-		ExecutorService executor = Executors.newFixedThreadPool(Threads);
+		ExecutorService pool = Executors.newFixedThreadPool(Threads);
+		ExecutorCompletionService<HashMap<String,Double>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
-		//BlockingQueue<String> queue = makeQueue(D);
-		BlockingQueue<String> queue = new ArrayBlockingQueue<String>(1000000);
+		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
 		for ( int i = 0; i < Threads; i++ ) {
-			Callable<HashMap<String,Double>> worker = new SimilarityConcurrent(Expression,queue,"pcc");
-			//SimilarityConcurrent worker = new SimilarityConcurrent(Expression,queue,"pcc");
-			//Thread thread = new Thread(worker);
-			Future<HashMap<String,Double>> submit = executor.submit(worker);
-			taskList.add(submit);
-		    //thread.start();
-		    //Work[i]=thread;	    
+			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Expression,queue,"pcc");
+			Future<HashMap<String,Double>> submit = completionService.submit(worker);
+			taskList.add(submit);  
 		}
 		
 		for(int i=0;i<D;i++){
 			for(int j=i;j<D;j++){
 				String S = i+"-"+j;
 				queue.add(S);
-				if(queue.remainingCapacity() < 1000){
-					try {
-						TimeUnit.SECONDS.sleep(10);
-					}catch(InterruptedException e){
-						
-					}
-				}
 			}
 		}
 		
-		for(Future<HashMap<String,Double>> future : taskList){
+		for(int t=0;t<Threads;t++){
 			try{
-				HashMap<String,Double> hm = future.get();
+				HashMap<String,Double> hm = completionService.take().get();
 				for(Map.Entry<String,Double> entry : hm.entrySet()){
 					String s = entry.getKey();
 					String[] S = s.split("-");
 					Double d = entry.getValue();
 					int i = Integer.parseInt(S[0]);
 					int j = Integer.parseInt(S[1]);
+					//System.out.println(i+"\t"+j+"\t"+d);
 					Similarity.setValueByEntry((double) d,i,j);
 					Similarity.setValueByEntry((double) d,j,i);
 				}
-			}catch (InterruptedException e) {
-		        e.printStackTrace();
-		    } catch (ExecutionException e) {
-		        e.printStackTrace();
-		    }
-		}
-		/*
-		for( int i = 0; i < Threads; i++ ) {
-			while(Work[i].isAlive() == true){
-				try{
-					TimeUnit.SECONDS.sleep(10);
-				}catch(InterruptedException e){
-					
-				}
+			}catch(InterruptedException e){
+				e.printStackTrace();
+			}catch (ExecutionException e){
+				e.printStackTrace();
 			}
-			Work[i].
-		}*/
-		
+			
+		}
+		pool.shutdown();
 		return Similarity;
 	}
 	

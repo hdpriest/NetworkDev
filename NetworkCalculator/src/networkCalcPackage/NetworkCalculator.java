@@ -145,7 +145,7 @@ public class NetworkCalculator {
 		
 		System.err.println("Calculating Similarity\n");
 		switch (corr){
-			case "gini":	CurrentMatrix	= Operations.calculateGINIcoefficient(DataFrame);
+			case "gini":	CurrentMatrix	= Operations.calculateGINIcoefficient(DataFrame,threads);
 			break;
 			case "pcc": 	CurrentMatrix 	= Operations.calculateSimilarity(DataFrame,threads);
 			break;
@@ -166,7 +166,7 @@ public class NetworkCalculator {
 		//CurrentMatrix.generateHistogram(ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Edges");
 		Operations.generateHistogram(CurrentMatrix,ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Edges");
 		System.err.println("Calculating Adjacency...\n");
-		CurrentMatrix = Operations.calculateSigmoidAdjacency(CurrentMatrix,mu,alpha);
+		CurrentMatrix = Operations.calculateSigmoidAdjacency(CurrentMatrix,mu,alpha,threads);
 		
 		ThisOut = Out + "/Adjacency.dist.jpeg";
 		//CurrentMatrix.generateHistogram(ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Edges");
