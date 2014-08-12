@@ -149,7 +149,7 @@ class GCNMatrix {
 		for(int i=0;i<DataFrame[R].length;i++){
 			if(i==j){
 			}else{
-				if(DataFrame[R][i] != 0){
+				if(DataFrame[R][i] > 0){
 					K++;
 				}
 			}
