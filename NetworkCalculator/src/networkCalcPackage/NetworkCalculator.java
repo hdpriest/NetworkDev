@@ -164,23 +164,23 @@ public class NetworkCalculator {
 		//CurrentMatrix = Operations.calculateSimilarity(DataFrame);
 		String ThisOut = Out + "/Similarity.dist.jpeg";
 		//CurrentMatrix.generateHistogram(ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Edges");
-		Operations.generateHistogram(CurrentMatrix,ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Edges");
+		Operations.generateHistogram(CurrentMatrix,ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Edges",false);
 		System.err.println("Calculating Adjacency...\n");
 		CurrentMatrix = Operations.calculateSigmoidAdjacency(CurrentMatrix,mu,alpha,threads);
 		
 		ThisOut = Out + "/Adjacency.dist.jpeg";
 		//CurrentMatrix.generateHistogram(ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Edges");
-		Operations.generateHistogram(CurrentMatrix,ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Edges");
+		Operations.generateHistogram(CurrentMatrix,ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Edges",true);
 		CurrentMatrix.maskMatrix(Mask);
 		
 		System.err.println("Calculating TOM...\n");
-		CurrentMatrix = Operations.calculateTOM(CurrentMatrix);
+		CurrentMatrix = Operations.calculateTOM(CurrentMatrix,threads);
 		
 		CurrentMatrix.maskMatrix(Mask);
 		ThisOut = Out + "/TOM.dist.jpeg";
 		String MatrixOut = Out + "/TOM.matrix.tab";
 		//CurrentMatrix.generateHistogram(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
-		Operations.generateHistogram(CurrentMatrix,ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
+		Operations.generateHistogram(CurrentMatrix,ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges",true);
 		CurrentMatrix.printMatrixToFile(MatrixOut,sep);
 		System.exit(0);
 	}
@@ -245,9 +245,9 @@ public class NetworkCalculator {
 			//DataFrame = loadData(pa,FileDimensions,sep);
 			String O1 = "Pairwise." + out;
 			String O2 = "Selfwise." + out;
-			Operations.generateHistogram(Difference,O1,"Pairwise Topological Overlap Differences Zm vs Sv","cross-pair Delta-TOM","Count");
+			Operations.generateHistogram(Difference,O1,"Pairwise Topological Overlap Differences Zm vs Sv","cross-pair Delta-TOM","Count",true);
 			Difference = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
-			Operations.generateHistogram(Difference,O2,"Cross-network Selfwise Topological Overlap Differences Zm vs Sv","selfwise Delta-TOM","Count");
+			Operations.generateHistogram(Difference,O2,"Cross-network Selfwise Topological Overlap Differences Zm vs Sv","selfwise Delta-TOM","Count",true);
 			System.exit(0);
 		}
 		catch(ParseException exp){
@@ -310,7 +310,7 @@ public class NetworkCalculator {
 		GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0],FileDimensions[1]);
 
 		DataFrame = loadData(pathIn,FileDimensions,sep);
-		Operations.generateHistogram(DataFrame,Out,"Title","X label","Y label");
+		Operations.generateHistogram(DataFrame,Out,"Title","X label","Y label",true);
 		System.exit(0);
 	}
 	

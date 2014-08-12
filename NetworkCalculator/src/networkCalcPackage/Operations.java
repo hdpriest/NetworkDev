@@ -216,6 +216,57 @@ public class Operations {
 		return ReturnFrame;
 	}
 	
+	public static GCNMatrix calculateTOM (GCNMatrix Adjacency, int Threads){
+		int D = Adjacency.getNumRows();
+		GCNMatrix ReturnMatrix = new GCNMatrix(D,D);
+		ExecutorService pool = Executors.newFixedThreadPool(Threads);
+		ExecutorCompletionService<HashMap<String,Double>> completionService = new ExecutorCompletionService<>(pool);
+		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
+		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
+		System.err.println("Processing topological overlap using " + Threads + " threads.");
+		for(int i=0;i<D;i++){
+			for(int j=i;j<D;j++){
+				String S = i+"-"+j;
+				queue.add(S);
+			}
+		}
+		for ( int i = 0; i < Threads; i++ ) {
+			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Adjacency,queue,"tom");
+			Future<HashMap<String,Double>> submit = completionService.submit(worker);
+			taskList.add(submit);  
+		}
+		
+		
+		
+		for(int t=0;t<Threads;t++){
+			try{
+				HashMap<String,Double> hm = completionService.take().get();
+				System.err.println("obtained result for thread " + t);
+				int r = 0;
+				for(Map.Entry<String,Double> entry : hm.entrySet()){
+					String s = entry.getKey();
+					String[] S = s.split("-");
+					Double d = entry.getValue();
+					int i = Integer.parseInt(S[0]);
+					int j = Integer.parseInt(S[1]);
+					//System.out.println(i+"\t"+j+"\t"+d);
+					ReturnMatrix.setValueByEntry((double) d,i,j);
+					ReturnMatrix.setValueByEntry((double) d,j,i);
+					r++;
+				}
+				System.err.println("Processed "+ r + " records");
+			}catch(InterruptedException e){
+				e.printStackTrace();
+			}catch (ExecutionException e){
+				e.printStackTrace();
+			}
+			System.err.println("Thread " + t + " complete.");
+		}
+		System.err.println("Done.");
+		pool.shutdownNow();
+		return ReturnMatrix;
+	}
+	
 	public static GCNMatrix calculateSigmoidAdjacency (GCNMatrix Similarity, double mu, double alpha){
 		int D = Similarity.getNumRows();
 		GCNMatrix Adjacency = new GCNMatrix(D,D);
@@ -243,8 +294,9 @@ public class Operations {
 		ExecutorCompletionService<HashMap<String,Double>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
 		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
+		System.err.println("Processing adjacency using " + Threads + " threads.");
 		for ( int i = 0; i < Threads; i++ ) {
-			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Adjacency,queue,"sigmoid",mu,alpha);
+			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Similarity,queue,"sigmoid",mu,alpha);
 			Future<HashMap<String,Double>> submit = completionService.submit(worker);
 			taskList.add(submit);  
 		}
@@ -259,6 +311,8 @@ public class Operations {
 		for(int t=0;t<Threads;t++){
 			try{
 				HashMap<String,Double> hm = completionService.take().get();
+				System.err.println("obtained result for thread " + t);
+				int r=0;
 				for(Map.Entry<String,Double> entry : hm.entrySet()){
 					String s = entry.getKey();
 					String[] S = s.split("-");
@@ -268,14 +322,17 @@ public class Operations {
 					//System.out.println(i+"\t"+j+"\t"+d);
 					Adjacency.setValueByEntry((double) d,i,j);
 					Adjacency.setValueByEntry((double) d,j,i);
+					r++;
 				}
+				System.err.println("Processed "+ r + " records");
 			}catch(InterruptedException e){
 				e.printStackTrace();
 			}catch (ExecutionException e){
 				e.printStackTrace();
 			}
-			
+			System.err.println("Thread " + t + " complete.");
 		}
+		System.err.println("Done.");
 		pool.shutdown();
 		return Adjacency;
 	}
@@ -328,6 +385,7 @@ public class Operations {
 		ExecutorCompletionService<HashMap<String,Double>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
 		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
+		System.err.println("Processing similarity using " + Threads + " threads.");
 		for ( int i = 0; i < Threads; i++ ) {
 			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Expression,queue,"pcc");
 			Future<HashMap<String,Double>> submit = completionService.submit(worker);
@@ -340,10 +398,11 @@ public class Operations {
 				queue.add(S);
 			}
 		}
-		
 		for(int t=0;t<Threads;t++){
 			try{
 				HashMap<String,Double> hm = completionService.take().get();
+				System.err.println("obtained result for thread " + t);
+				int r =0;
 				for(Map.Entry<String,Double> entry : hm.entrySet()){
 					String s = entry.getKey();
 					String[] S = s.split("-");
@@ -353,30 +412,22 @@ public class Operations {
 					//System.out.println(i+"\t"+j+"\t"+d);
 					Similarity.setValueByEntry((double) d,i,j);
 					Similarity.setValueByEntry((double) d,j,i);
+					r++;
 				}
+				System.err.println("Processed "+ r + " records");
 			}catch(InterruptedException e){
 				e.printStackTrace();
 			}catch (ExecutionException e){
 				e.printStackTrace();
 			}
-			
+			System.err.println("Thread " + t + " complete.");
 		}
+		System.err.println("Done.");
 		pool.shutdown();
 		return Similarity;
 	}
 	
-	private static BlockingQueue<String> makeQueue (int D){ 
-		BlockingQueue<String> queue = new SynchronousQueue<String>();
-		for(int i=0;i<D;i++){
-			for(int j=i;j<D;j++){
-				String S = i+"-"+j;
-				queue.add(S);
-			}
-		}
-		return queue;
-	}
-	
-	public static void generateHistogram (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab) {
+	public static void generateHistogram (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab,boolean log) {
 		int H = DataFrame.getNumRows();
 		int W = DataFrame.getNumColumns();
 		double[] Histogram=new double[201];
@@ -403,7 +454,12 @@ public class Operations {
 			double a = ((double)x/100)-1.0;
 			Double A = Double.valueOf(df.format(a));
 			System.out.println("Index: " + x + " Value: "+ A +"\tObs: "+Histogram[x]);
-			series.add((double) A, (double) Histogram[x],true);			
+			if(log == true){
+				double logv = Math.log10((double) Histogram[x]);
+				series.add((double) A, logv, true);
+			}else{
+				series.add((double) A, (double) Histogram[x],true);
+			}
 		}
 		dataset.addSeries(series);
 		JFreeChart chart = ChartFactory.createXYLineChart(Title,Xlab,Ylab,dataset, PlotOrientation.VERTICAL, 

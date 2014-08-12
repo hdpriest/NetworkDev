@@ -16,6 +16,11 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
 	private double A;
 	//private ThreadLocal<HashMap<String, Double>> hm = new ThreadLocal<HashMap<String, Double>>();
 	
+	private void noCall () {
+		System.err.println("Threading called with no method. Should not happen");
+		System.exit(1);
+	}
+	
 	public HashMap<String, Double> call() {
 			HashMap<String, Double> hm = new HashMap<String, Double>();
 		 	//try {
@@ -30,7 +35,9 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
 	                	break;
 	                	case "sigmoid" : value = doWork_sigmoid(s);
 	                	break;
-	                	default: value = doWork_pcc(s);
+	                	case "tom" : value = doWork_tom(s);
+	                	break;
+	                	default: noCall();
 	                	break;
 	                }
 	                hm.put(s, value);
@@ -50,14 +57,13 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
         this.A=0.0;
     }
 	
-	public ConcurrentProcessing (GCNMatrix Adjacency,ConcurrentLinkedQueue<String> queue, String Method,double mu, double a) {
+	public ConcurrentProcessing (GCNMatrix Similarity,ConcurrentLinkedQueue<String> queue, String Method,double mu, double a) {
         this.queue = queue;
         this.m = Method;
-        this.Exp = Adjacency;
+        this.Exp = Similarity;
         this.M = mu;
         this.A = a;
-        System.err.println("Got here. I think Mu is:" + M + " and I think Alpha is: " + A);
-        System.exit(0);
+       
     }
 	
 	public double doWork_gini (String s){
@@ -113,6 +119,30 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
 			adjacency = 1/(1+Math.exp(A*-1*(Math.abs(Exp.getValueByEntry(i,j))-M)));
 		}
 		return adjacency;
+	}
+	
+	public double doWork_tom (String s){
+		String[] S = s.split("-");
+		double tom = 0.0;
+		int i = Integer.parseInt(S[0]);
+		int j = Integer.parseInt(S[1]);
+		int D = Exp.getNumRows();
+		if(i==j){
+			tom = 1.0;
+		}else{
+			double product=0;
+			int i_k = Exp.findK(i, i);
+			int j_k = Exp.findK(j,j);
+			for(int u=0;u<D;u++){
+				if((u != i) && (u != j) && (Exp.testValue(i, u)) && (Exp.testValue(j, u))){
+					product += Exp.getValueByEntry(i,u) * Exp.getValueByEntry(j,u);
+				}
+			}
+			int k_min = Math.min(i_k, j_k);
+			double DFIJ=Exp.getValueByEntry(i,j);
+			tom=(product+DFIJ)/(k_min + 1 - DFIJ);
+		}
+		return tom;
 	}
 	
 }
