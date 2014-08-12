@@ -115,18 +115,19 @@ public class Operations {
 		ExecutorCompletionService<HashMap<String,Double>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
 		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
-		for ( int i = 0; i < Threads; i++ ) {
-			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Expression,queue,"gini");
-			Future<HashMap<String,Double>> submit = completionService.submit(worker);
-			taskList.add(submit);  
-		}
-		
 		for(int i=0;i<D;i++){
 			for(int j=i;j<D;j++){
 				String S = i+"-"+j;
 				queue.add(S);
 			}
 		}
+		for ( int i = 0; i < Threads; i++ ) {
+			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Expression,queue,"gini");
+			Future<HashMap<String,Double>> submit = completionService.submit(worker);
+			taskList.add(submit);  
+		}
+		
+		
 		
 		for(int t=0;t<Threads;t++){
 			try{
@@ -295,11 +296,6 @@ public class Operations {
 		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
 		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
 		System.err.println("Processing adjacency using " + Threads + " threads.");
-		for ( int i = 0; i < Threads; i++ ) {
-			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Similarity,queue,"sigmoid",mu,alpha);
-			Future<HashMap<String,Double>> submit = completionService.submit(worker);
-			taskList.add(submit);  
-		}
 		
 		for(int i=0;i<D;i++){
 			for(int j=i;j<D;j++){
@@ -308,6 +304,13 @@ public class Operations {
 			}
 		}
 		
+		for ( int i = 0; i < Threads; i++ ) {
+			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Similarity,queue,"sigmoid",mu,alpha);
+			Future<HashMap<String,Double>> submit = completionService.submit(worker);
+			taskList.add(submit);  
+		}
+		
+	
 		for(int t=0;t<Threads;t++){
 			try{
 				HashMap<String,Double> hm = completionService.take().get();
@@ -386,11 +389,6 @@ public class Operations {
 		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
 		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
 		System.err.println("Processing similarity using " + Threads + " threads.");
-		for ( int i = 0; i < Threads; i++ ) {
-			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Expression,queue,"pcc");
-			Future<HashMap<String,Double>> submit = completionService.submit(worker);
-			taskList.add(submit);  
-		}
 		
 		for(int i=0;i<D;i++){
 			for(int j=i;j<D;j++){
@@ -398,6 +396,13 @@ public class Operations {
 				queue.add(S);
 			}
 		}
+		for ( int i = 0; i < Threads; i++ ) {
+			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Expression,queue,"pcc");
+			Future<HashMap<String,Double>> submit = completionService.submit(worker);
+			taskList.add(submit);  
+		}
+		
+
 		for(int t=0;t<Threads;t++){
 			try{
 				HashMap<String,Double> hm = completionService.take().get();
@@ -455,8 +460,9 @@ public class Operations {
 			Double A = Double.valueOf(df.format(a));
 			System.out.println("Index: " + x + " Value: "+ A +"\tObs: "+Histogram[x]);
 			if(log == true){
-				double logv = Math.log10((double) Histogram[x]);
-				series.add((double) A, logv, true);
+				//double logv = Math.log10((double) Histogram[x]);
+				//series.add((double) A, logv, true);
+				series.add((double) A, (double) Histogram[x],true);
 			}else{
 				series.add((double) A, (double) Histogram[x],true);
 			}

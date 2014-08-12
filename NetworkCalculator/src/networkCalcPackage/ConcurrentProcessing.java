@@ -24,10 +24,11 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
 	public HashMap<String, Double> call() {
 			HashMap<String, Double> hm = new HashMap<String, Double>();
 		 	//try {
-	        	while ( queue.peek() != null ) {
+			String s = null;
+	        	while ( ( s=queue.poll() ) != null ) {
 	            //while ( true ) {
 	        		double value = 0.0;
-	                String s = queue.remove();
+	                //String s = queue.remove();
 	                switch (m) {
 	                	case "gini": value = doWork_gini(s);
 	                	break;
@@ -82,9 +83,9 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
 			GCC1 = Operations.GINI(I_data,J_data);
 			GCC2 = Operations.GINI(J_data,I_data);
 		}
-		if(Math.abs(GCC1)<Math.abs(GCC2)){
+		if(Math.abs(GCC1)>Math.abs(GCC2)){
 			gcc=GCC1;
-		}else if (Math.abs(GCC2)<Math.abs(GCC1)){
+		}else if (Math.abs(GCC2)>Math.abs(GCC1)){
 			gcc=GCC2;
 		}else{
 			gcc=GCC1;
