@@ -171,6 +171,8 @@ public class NetworkCalculator {
 		ThisOut = Out + "/Adjacency.dist.jpeg";
 		//CurrentMatrix.generateHistogram(ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Edges");
 		Operations.generateHistogram(CurrentMatrix,ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Edges",true);
+		String MatrixOut = Out + "/Adj.matrix.tab";
+		CurrentMatrix.printMatrixToFile(MatrixOut,sep);
 		CurrentMatrix.maskMatrix(Mask);
 		
 		System.err.println("Calculating TOM...\n");
@@ -178,10 +180,10 @@ public class NetworkCalculator {
 		
 		CurrentMatrix.maskMatrix(Mask);
 		ThisOut = Out + "/TOM.dist.jpeg";
-		String MatrixOut = Out + "/TOM.matrix.tab";
+		
 		//CurrentMatrix.generateHistogram(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
 		Operations.generateHistogram(CurrentMatrix,ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges",true);
-		//CurrentMatrix.printMatrixToFile(MatrixOut,sep);
+		
 		System.exit(0);
 	}
 	
@@ -216,8 +218,8 @@ public class NetworkCalculator {
 			}
 			dir1=cmd.getOptionValue("d1");
 			dir2=cmd.getOptionValue("d2");
-			String matrix1 = dir1 + "/TOM.matrix.tab";
-			String matrix2 = dir2 + "/TOM.matrix.tab";
+			String matrix1 = dir1 + "/Adj.matrix.tab";
+			String matrix2 = dir2 + "/Adj.matrix.tab";
 			out=cmd.getOptionValue("o");
 			String sep = "\t";
 			
@@ -245,7 +247,7 @@ public class NetworkCalculator {
 			//DataFrame = loadData(pa,FileDimensions,sep);
 			String O1 = "Pairwise." + out;
 			String O2 = "Selfwise." + out;
-			Operations.generateHistogram(Difference,O1,"Pairwise Topological Overlap Differences Zm vs Sv","cross-pair Delta-TOM","Count",true);
+			Operations.generateHistogram(Difference,O1,"Pairwise Adjacency Differences Zm vs Sv","cross-pair Delta-Adj","Count",true);
 			Difference = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
 			Operations.generateHistogram(Difference,O2,"Cross-network Selfwise Topological Overlap Differences Zm vs Sv","selfwise Delta-TOM","Count",true);
 			System.exit(0);
