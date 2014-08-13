@@ -157,18 +157,18 @@ public class Operations {
 		int D = Net1.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
 		for(int i=0;i<D;i++){
-			int i_k = Net1.findK(i, i);
+			double i_k = Net1.findK(i, i);
 			for(int j=0;j<D;j++){
 				double T=0;
 				if(i==j){
 					double product=0;
-					int j_k = Net2.findK(j,j);
+					double j_k = Net2.findK(j,j);
 					for(int u=0;u<D;u++){
 						if((u != i) && (u != j) && (Net1.testValue(i, u)) && (Net2.testValue(j, u))){
 							product += Net1.getValueByEntry(i,u) * Net2.getValueByEntry(j,u);
 						}
 					}
-					int k_min = Math.min(i_k, j_k);
+					double k_min = Math.min(i_k, j_k);
 					double DFIJ=1;
 					T=(product+DFIJ)/(k_min + 1 - DFIJ);
 					//T=(product+DFIJ)/(k_min + 1);
@@ -194,20 +194,20 @@ public class Operations {
 		int D = InputFrame.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
 		for(int i=0;i<D;i++){
-			int i_k = InputFrame.findK(i, i);
+			double i_k = InputFrame.findK(i, i);
 			for(int j=0;j<D;j++){
 				double T=0;
 				if(i==j){
 					T=1;
 				}else{
 					double product=0;
-					int j_k = InputFrame.findK(j,j);
+					double j_k = InputFrame.findK(j,j);
 					for(int u=0;u<D;u++){
 						if((u != i) && (u != j) && (InputFrame.testValue(i, u)) && (InputFrame.testValue(j, u))){
 							product += InputFrame.getValueByEntry(i,u) * InputFrame.getValueByEntry(j,u);
 						}
 					}
-					int k_min = Math.min(i_k, j_k);
+					double k_min = Math.min(i_k, j_k);
 					double DFIJ=InputFrame.getValueByEntry(i,j);
 					T=(product+DFIJ)/(k_min + 1 - DFIJ);
 				}

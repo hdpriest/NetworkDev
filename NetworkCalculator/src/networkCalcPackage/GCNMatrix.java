@@ -144,14 +144,12 @@ class GCNMatrix {
 		return res;
 	}
 	
-	public int findK (int R,int j){
-		int K=0;
+	public double findK (int R,int j){
+		double K=0;
 		for(int i=0;i<DataFrame[R].length;i++){
 			if(i==j){
 			}else{
-				if(DataFrame[R][i] > 0){
-					K++;
-				}
+				K+=DataFrame[R][i];
 			}
 		}
 		return K;

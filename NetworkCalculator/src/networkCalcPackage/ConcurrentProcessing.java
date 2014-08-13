@@ -132,14 +132,14 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
 			tom = 1.0;
 		}else{
 			double product=0;
-			int i_k = Exp.findK(i, i);
-			int j_k = Exp.findK(j,j);
+			double i_k = Exp.findK(i, i);
+			double j_k = Exp.findK(j,j);
 			for(int u=0;u<D;u++){
 				if((u != i) && (u != j) && (Exp.testValue(i, u)) && (Exp.testValue(j, u))){
 					product += Exp.getValueByEntry(i,u) * Exp.getValueByEntry(j,u);
 				}
 			}
-			int k_min = Math.min(i_k, j_k);
+			double k_min = Math.min(i_k, j_k);
 			double DFIJ=Exp.getValueByEntry(i,j);
 			tom=(product+DFIJ)/(k_min + 1 - DFIJ);
 		}
