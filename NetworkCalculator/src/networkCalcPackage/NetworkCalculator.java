@@ -181,7 +181,7 @@ public class NetworkCalculator {
 		String MatrixOut = Out + "/TOM.matrix.tab";
 		//CurrentMatrix.generateHistogram(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
 		Operations.generateHistogram(CurrentMatrix,ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges",true);
-		CurrentMatrix.printMatrixToFile(MatrixOut,sep);
+		//CurrentMatrix.printMatrixToFile(MatrixOut,sep);
 		System.exit(0);
 	}
 	
