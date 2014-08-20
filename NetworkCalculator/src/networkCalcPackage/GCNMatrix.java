@@ -1,6 +1,7 @@
 package networkCalcPackage;
 
 import java.awt.Color;
+import java.awt.Paint;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -10,9 +11,14 @@ import java.math.RoundingMode;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartTheme;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.StandardChartTheme;
+import org.jfree.chart.plot.DrawingSupplier;
+import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
 
 class GCNMatrix {
 	
@@ -35,7 +41,7 @@ class GCNMatrix {
 		DecimalFormat df = new DecimalFormat("#.####");
 		df.setRoundingMode(RoundingMode.HALF_UP);
 		for(int i=0;i<H;i++){
-			for(int j=0;j<W;j++){
+			for(int j=i;j<W;j++){
 				//System.out.println("Val: "+DataFrame[i][j]+"\n");
 				if(DataFrame[i][j] != 0.0){
 					Double v= ((Double.valueOf(df.format(DataFrame[i][j])))+1)*100;
@@ -55,8 +61,11 @@ class GCNMatrix {
 		dataset.addSeries(series);
 		JFreeChart chart = ChartFactory.createXYLineChart(Title,Xlab,Ylab,dataset, PlotOrientation.VERTICAL, 
 				 false, true, false);
+		final Plot plot = chart.getPlot();
+		plot.setBackgroundPaint(Color.white);
+		plot.setOutlinePaint(Color.black);
 		chart.setBackgroundPaint(Color.white);
-		chart.setAntiAlias(true);		
+		chart.setAntiAlias(true);
 		try {
 			ChartUtilities.saveChartAsJPEG(new File(pathOut), chart, 500, 300);
 		} catch (IOException e) {

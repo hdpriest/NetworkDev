@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -29,6 +30,7 @@ import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -157,11 +159,12 @@ public class Operations {
 		int D = Net1.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
 		for(int i=0;i<D;i++){
-			double i_k = Net1.findK(i, i);
+			
 			for(int j=0;j<D;j++){
 				double T=0;
 				if(i==j){
 					double product=0;
+					double i_k = Net1.findK(i, i);
 					double j_k = Net2.findK(j,j);
 					for(int u=0;u<D;u++){
 						if((u != i) && (u != j) && (Net1.testValue(i, u)) && (Net2.testValue(j, u))){
@@ -169,7 +172,7 @@ public class Operations {
 						}
 					}
 					double k_min = Math.min(i_k, j_k);
-					double DFIJ=1;
+					double DFIJ=0;
 					T=(product+DFIJ)/(k_min + 1 - DFIJ);
 					//T=(product+DFIJ)/(k_min + 1);
 				}else{
@@ -438,14 +441,17 @@ public class Operations {
 		double[] Histogram=new double[201];
 		DecimalFormat df = new DecimalFormat("#.####");
 		df.setRoundingMode(RoundingMode.HALF_UP);
+		
 		for(int i=0;i<H;i++){
 			for(int j=0;j<W;j++){
 				//System.out.println("Val: "+DataFrame[i][j]+"\n");
 				if(DataFrame.getValueByEntry(i,j) != 0){
 					try{
 						Double v= ((Double.valueOf(df.format(DataFrame.getValueByEntry(i,j))))+1)*100;
+						
 						int value = v.intValue();
 						Histogram[value]++;
+						
 					}catch(NumberFormatException ex){
 						System.out.println("Obtain " + DataFrame.getValueByEntry(i,j) +" from matrix.");
 						System.exit(1);
@@ -458,7 +464,7 @@ public class Operations {
 		for(int x=0;x<201;x++){
 			double a = ((double)x/100)-1.0;
 			Double A = Double.valueOf(df.format(a));
-			System.out.println("Index: " + x + " Value: "+ A +"\tObs: "+Histogram[x]);
+			System.out.println(A +","+Histogram[x]);
 			if(log == true){
 				//double logv = Math.log10((double) Histogram[x]);
 				//series.add((double) A, logv, true);
@@ -471,13 +477,67 @@ public class Operations {
 		JFreeChart chart = ChartFactory.createXYLineChart(Title,Xlab,Ylab,dataset, PlotOrientation.VERTICAL, 
 				 false, true, false);
 		chart.setBackgroundPaint(Color.white);
-		chart.setAntiAlias(true);		
+		chart.setAntiAlias(true);	
+		final Plot plot = chart.getPlot();
+		plot.setBackgroundPaint(Color.white);
+		plot.setOutlinePaint(Color.black);
 		try {
 			ChartUtilities.saveChartAsJPEG(new File(pathOut), chart, 500, 300);
 		} catch (IOException e) {
 			System.err.println("Problem occurred creating chart.");
 		}
 	}
+
+public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab,boolean log) {
+	int H = DataFrame.getNumRows();
+	int W = DataFrame.getNumColumns();
+	DecimalFormat df = new DecimalFormat("#.##");
+	df.setRoundingMode(RoundingMode.HALF_UP);
+	TreeMap<Double,Integer> HMHistogram = new TreeMap<Double,Integer>();
+	for(int i=0;i<H;i++){
+		for(int j=0;j<W;j++){
+			//System.out.println("Val: "+DataFrame[i][j]+"\n");
+			if(DataFrame.getValueByEntry(i,j) != 0){
+				try{
+					Double V = (Double.valueOf(df.format(DataFrame.getValueByEntry(i,j))));
+					if(HMHistogram.containsKey(V)){
+						Integer I = HMHistogram.get(V);
+						HMHistogram.put(V,I+1);
+					}else{
+						HMHistogram.put(V,1);
+					}
+				}catch(NumberFormatException ex){
+					System.out.println("Obtain " + DataFrame.getValueByEntry(i,j) +" from matrix.");
+					System.exit(1);
+				}
+			}
+		}
+	}
+	XYSeriesCollection dataset = new XYSeriesCollection();
+	XYSeries series = new XYSeries("Values");
+	for(Map.Entry<Double,Integer> entry : HMHistogram.entrySet()) {
+			  Double A = entry.getKey();
+			  Integer value = entry.getValue();
+			  System.out.println(A +","+value);
+			  series.add((double) A, (double) value,true);
+	}
+	dataset.addSeries(series);
+	JFreeChart chart = ChartFactory.createXYLineChart(Title,Xlab,Ylab,dataset, PlotOrientation.VERTICAL, 
+			 false, true, false);
+	chart.setBackgroundPaint(Color.white);
+	chart.setAntiAlias(true);	
+	final Plot plot = chart.getPlot();
+	plot.setBackgroundPaint(Color.white);
+	plot.setOutlinePaint(Color.black);
+	try {
+		ChartUtilities.saveChartAsJPEG(new File(pathOut), chart, 500, 300);
+	} catch (IOException e) {
+		System.err.println("Problem occurred creating chart.");
+	}
+
 }
+
+}
+
 
 
