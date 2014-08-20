@@ -168,7 +168,10 @@ public class Operations {
 					double j_k = Net2.findK(j,j);
 					for(int u=0;u<D;u++){
 						if((u != i) && (u != j) && (Net1.testValue(i, u)) && (Net2.testValue(j, u))){
-							product += Net1.getValueByEntry(i,u) * Net2.getValueByEntry(j,u);
+							double j_v = Net2.getValueByEntry(j,u);
+							double i_v = Net1.getValueByEntry(i,u);
+							//product += Net1.getValueByEntry(i,u) * Net2.getValueByEntry(j,u) ;
+							product += i_v * j_v / (Math.max(i_v, j_v));
 						}
 					}
 					double k_min = Math.min(i_k, j_k);
