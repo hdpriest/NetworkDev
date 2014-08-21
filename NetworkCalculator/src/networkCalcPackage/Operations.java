@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -165,12 +166,20 @@ public class Operations {
 					double j_k = Net2.findK(j,j);
 					for(int u=0;u<D;u++){
 						if((u != i) && (u != j) && (Net1.testValue(i, u)) && (Net2.testValue(j, u))){
-							product += Net1.getValueByEntry(i,u) * Net2.getValueByEntry(j,u);
+							double i_v = Net1.getValueByEntry(i,u);
+							double j_v = Net2.getValueByEntry(j,u);
+							double max = Math.max(i_v,j_v);
+							product += i_v * j_v / max;
+							//product += i_v * j_v;
+							/// if node is not connected to anything, all products are zero
 						}
 					}
+					//System.err.println("I: " + i_k + " J: " + j_k);
 					double k_min = Math.min(i_k, j_k);
-					double DFIJ=1;
-					T=(product+DFIJ)/(k_min + 1 - DFIJ);
+					double DFIJ=0;
+					//System.err.println(product + "\t" + k_min);
+					T=(product+DFIJ)/(k_min + 1 - DFIJ); // if one node unconnected, = 0+0/0+1-0
+					// if IJ are totally connected, all products > 0, but < kmin
 					//T=(product+DFIJ)/(k_min + 1);
 				}else{
 				/*	double product=0;
@@ -465,6 +474,63 @@ public class Operations {
 				series.add((double) A, (double) Histogram[x],true);
 			}else{
 				series.add((double) A, (double) Histogram[x],true);
+			}
+		}
+		dataset.addSeries(series);
+		JFreeChart chart = ChartFactory.createXYLineChart(Title,Xlab,Ylab,dataset, PlotOrientation.VERTICAL, 
+				 false, true, false);
+		chart.setBackgroundPaint(Color.white);
+		chart.setAntiAlias(true);		
+		try {
+			ChartUtilities.saveChartAsJPEG(new File(pathOut), chart, 500, 300);
+		} catch (IOException e) {
+			System.err.println("Problem occurred creating chart.");
+		}
+	}
+	
+	public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab,boolean log) {
+		int H = DataFrame.getNumRows();
+		int W = DataFrame.getNumColumns();
+		TreeMap<Double,Integer> HM = new TreeMap<Double,Integer>();
+		DecimalFormat df = new DecimalFormat("#.##");
+		df.setRoundingMode(RoundingMode.HALF_UP);
+		for(int i=0;i<H;i++){
+			for(int j=0;j<W;j++){
+				//System.out.println("Val: "+DataFrame[i][j]+"\n");
+				if(DataFrame.getValueByEntry(i,j) != 0){
+					try{
+						Double v= (Double.valueOf(df.format(DataFrame.getValueByEntry(i,j))));
+						//System.err.println("HM method value: " + v);
+						if(v == -0.0){
+							v=0.0;
+						}
+						if(HM.containsKey(v)){
+							int X=HM.get(v) + 1;
+							HM.put(v,X);
+						}else{
+							HM.put(v, 1);
+						}
+					}catch(NumberFormatException ex){
+						System.out.println("Obtain " + DataFrame.getValueByEntry(i,j) +" from matrix.");
+						System.exit(1);
+					}
+				}
+			}
+		}
+		XYSeriesCollection dataset = new XYSeriesCollection();
+		XYSeries series = new XYSeries("Values");
+		for(Map.Entry<Double,Integer> entry : HM.entrySet()) {
+		//for(int x=0;x<201;x++){
+			double A = entry.getKey();
+			double x = entry.getValue();
+			//Double A = Double.valueOf(df.format(a));
+			System.out.println("Value: "+ A +"\tObs: "+x);
+			if(log == true){
+				//double logv = Math.log10((double) Histogram[x]);
+				//series.add((double) A, logv, true);
+				series.add((double) A, (double) x,true);
+			}else{
+				series.add((double) A, (double) x,true);
 			}
 		}
 		dataset.addSeries(series);

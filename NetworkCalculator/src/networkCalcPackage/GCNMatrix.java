@@ -17,12 +17,14 @@ import org.jfree.chart.plot.PlotOrientation;
 class GCNMatrix {
 	
 	private double[][] DataFrame;
+	private double[] k;
 	private String[] X_lab;
 	private String[] Y_lab;
 	private int X_iterator;
 	
 	public GCNMatrix (int Dim1, int Dim2) {
 		DataFrame = new double[Dim1][Dim2];
+		k = new double[Dim1];
 		X_lab = new String[Dim1];
 		Y_lab = new String[Dim2];
 		X_iterator = -1;
@@ -144,14 +146,31 @@ class GCNMatrix {
 		return res;
 	}
 	
+	public void calculateKs (){
+		int H = DataFrame.length;
+		for(int i=0;i<H;i++){
+			double thisK=0;
+			for(int j=0;j<DataFrame[i].length;j++){
+				if(i==j){
+					
+				}else{
+					thisK+=DataFrame[i][j];
+				}
+			}
+			k[i]=thisK;
+		}	
+	}
+	
 	public double findK (int R,int j){
-		double K=0;
-		for(int i=0;i<DataFrame[R].length;i++){
+		/*for(int i=0;i<DataFrame[R].length;i++){
 			if(i==j){
+				/// do not add DataFrame[R][j] to the k of R
 			}else{
 				K+=DataFrame[R][i];
 			}
 		}
+		return K;*/
+		double K=k[R];
 		return K;
 	}
 	
