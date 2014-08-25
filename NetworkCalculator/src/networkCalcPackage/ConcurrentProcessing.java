@@ -12,6 +12,7 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
 	private ConcurrentLinkedQueue<String> queue;
 	private String m;
 	private GCNMatrix Exp;
+	private int D;
 	private double M;
 	private double A;
 	//private ThreadLocal<HashMap<String, Double>> hm = new ThreadLocal<HashMap<String, Double>>();
@@ -56,6 +57,7 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
         this.Exp = Expression;
         this.M=0.0; // little hackery
         this.A=0.0;
+        this.D=Exp.getNumRows();
     }
 	
 	public ConcurrentProcessing (GCNMatrix Similarity,ConcurrentLinkedQueue<String> queue, String Method,double mu, double a) {
@@ -64,6 +66,7 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
         this.Exp = Similarity;
         this.M = mu;
         this.A = a;
+        this.D=Exp.getNumRows();
        
     }
 	
@@ -127,7 +130,6 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
 		double tom = 0.0;
 		int i = Integer.parseInt(S[0]);
 		int j = Integer.parseInt(S[1]);
-		int D = Exp.getNumRows();
 		if(i==j){
 			tom = 1.0;
 		}else{

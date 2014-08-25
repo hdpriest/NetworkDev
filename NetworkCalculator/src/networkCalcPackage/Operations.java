@@ -50,7 +50,6 @@ public class Operations {
 			Numerator += v1;
 		}
 		GINI_coeff=Numerator/Denominator;
-		//System.err.println("Obtained Num: "+ Numerator +"\nObtained Denom: " + Denominator + "\n" + "Gini: " + GINI_coeff);
 		return GINI_coeff;
 	}
 	
@@ -140,7 +139,6 @@ public class Operations {
 					Double d = entry.getValue();
 					int i = Integer.parseInt(S[0]);
 					int j = Integer.parseInt(S[1]);
-					//System.out.println(i+"\t"+j+"\t"+d);
 					Similarity.setValueByEntry((double) d,i,j);
 					Similarity.setValueByEntry((double) d,j,i);
 				}
@@ -168,27 +166,19 @@ public class Operations {
 					double j_k = Net2.findK(j,j);
 					for(int u=0;u<D;u++){
 						if((u != i) && (u != j) && (Net1.testValue(i, u)) && (Net2.testValue(j, u))){
-							double j_v = Net2.getValueByEntry(j,u);
 							double i_v = Net1.getValueByEntry(i,u);
-							//product += Net1.getValueByEntry(i,u) * Net2.getValueByEntry(j,u) ;
-							product += i_v * j_v / (Math.max(i_v, j_v));
+							double j_v = Net2.getValueByEntry(j,u);
+							double max = Math.max(i_v,j_v);
+							product += i_v * j_v / max;
+							/// if node is not connected to anything, all products are zero
 						}
 					}
 					double k_min = Math.min(i_k, j_k);
 					double DFIJ=0;
-					T=(product+DFIJ)/(k_min + 1 - DFIJ);
+					T=(product+DFIJ)/(k_min + 1 - DFIJ); // if one node unconnected, = 0+0/0+1-0
+					// if IJ are totally connected, all products > 0, but < kmin
 					//T=(product+DFIJ)/(k_min + 1);
 				}else{
-				/*	double product=0;
-					int j_k = Net1.findK(j,j);
-					for(int u=0;u<D;u++){
-						if((u != i) && (u != j) && (Net1.testValue(i, u)) && (Net2.testValue(j, u))){
-							product += InputFrame.getValueByEntry(i,u) * InputFrame.getValueByEntry(j,u);
-						}
-					}
-					int k_min = Math.min(i_k, j_k);
-					double DFIJ=InputFrame.getValueByEntry(i,j);
-					T=(product+DFIJ)/(k_min + 1 - DFIJ);*/
 				}
 				ReturnFrame.setValueByEntry(T, i, j);
 			}
@@ -537,7 +527,6 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 	} catch (IOException e) {
 		System.err.println("Problem occurred creating chart.");
 	}
-
 }
 
 }
