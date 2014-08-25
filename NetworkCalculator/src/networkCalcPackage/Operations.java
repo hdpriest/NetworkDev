@@ -1,9 +1,5 @@
 package networkCalcPackage;
 
-import com.apporiented.algorithm.clustering.AverageLinkageStrategy;
-import com.apporiented.algorithm.clustering.Cluster;
-import com.apporiented.algorithm.clustering.ClusteringAlgorithm;
-import com.apporiented.algorithm.clustering.DefaultClusteringAlgorithm;
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
@@ -52,6 +48,13 @@ public class Operations {
 		return GINI_coeff;
 	}
 	
+        private static GCNMatrix copyNames (GCNMatrix NetA, GCNMatrix NetB){
+            /// if you always copy Rows->rows and columns, you can't go wrong
+            NetB.setRowNames(NetA.getRowNames());
+            NetB.setColumnNames(NetA.getRowNames());
+            return NetB;
+        }
+        
 	private static int[] getIndicesInOrder(double[] array) {
 	    Map<Integer, Double> map = new HashMap<Integer, Double>(array.length);
 	    for (int i = 0; i < array.length; i++)
@@ -77,6 +80,7 @@ public class Operations {
 	public static GCNMatrix calculateGINIcoefficient (GCNMatrix InputFrame){
 		int D = InputFrame.getNumRows();
 		GCNMatrix Similarity = new GCNMatrix(D,D);
+                Similarity = Operations.copyNames(InputFrame, Similarity);
 		for(int i=0;i<D;i++){
 			for(int j=i;j<D;j++){
 				double GCC1=0.0;
@@ -111,6 +115,7 @@ public class Operations {
 		//// could be condensed - the matrix handling is all fairly uniform, its the calls that differ.
 		int D = Expression.getNumRows();
 		GCNMatrix Similarity = new GCNMatrix(D,D);
+                Similarity = Operations.copyNames(Expression, Similarity);
 		ExecutorService pool = Executors.newFixedThreadPool(Threads);
 		ExecutorCompletionService<HashMap<String,Double>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
@@ -155,6 +160,7 @@ public class Operations {
 	public static GCNMatrix compareNetworksViaTOM (GCNMatrix Net1, GCNMatrix Net2){
 		int D = Net1.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
+                ReturnFrame = Operations.copyNames(Net1, ReturnFrame);
 		for(int i=0;i<D;i++){
 			
 			for(int j=0;j<D;j++){
@@ -188,6 +194,7 @@ public class Operations {
 	public static GCNMatrix calculateTOM (GCNMatrix InputFrame){
 		int D = InputFrame.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
+                ReturnFrame = Operations.copyNames(InputFrame, ReturnFrame);
 		for(int i=0;i<D;i++){
 			double i_k = InputFrame.findK(i, i);
 			for(int j=0;j<D;j++){
@@ -215,6 +222,7 @@ public class Operations {
 	public static GCNMatrix calculateTOM (GCNMatrix Adjacency, int Threads){
 		int D = Adjacency.getNumRows();
 		GCNMatrix ReturnMatrix = new GCNMatrix(D,D);
+                ReturnMatrix = Operations.copyNames(Adjacency, ReturnMatrix);
 		ExecutorService pool = Executors.newFixedThreadPool(Threads);
 		ExecutorCompletionService<HashMap<String,Double>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
@@ -267,6 +275,7 @@ public class Operations {
 	public static GCNMatrix calculateSigmoidAdjacency (GCNMatrix Similarity, double mu, double alpha){
 		int D = Similarity.getNumRows();
 		GCNMatrix Adjacency = new GCNMatrix(D,D);
+                Adjacency = Operations.copyNames(Similarity, Adjacency);
 		for(int i=0;i<D;i++){
 			for(int j=i;j<D;j++){
 				double adjacency=0.0;
@@ -287,6 +296,7 @@ public class Operations {
 	public static GCNMatrix calculateSigmoidAdjacency (GCNMatrix Similarity,double mu, double alpha, int Threads){
 		int D = Similarity.getNumRows();
 		GCNMatrix Adjacency = new GCNMatrix(D,D);
+                Adjacency = Operations.copyNames(Similarity, Adjacency);
 		ExecutorService pool = Executors.newFixedThreadPool(Threads);
 		ExecutorCompletionService<HashMap<String,Double>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
@@ -339,6 +349,7 @@ public class Operations {
 	public static GCNMatrix calculateDifference (GCNMatrix mat1, GCNMatrix mat2){
 		int D = mat1.getNumRows();
 		GCNMatrix Difference = new GCNMatrix(D,D);
+                Difference = Operations.copyNames(mat1, Difference);
 		for(int i=0;i<D;i++){
 			for(int j=i;j<D;j++){
 				double v1=mat1.getValueByEntry(i, j);
@@ -358,6 +369,7 @@ public class Operations {
 	public static GCNMatrix calculateSimilarity (GCNMatrix Expression){
 		int D = Expression.getNumRows();
 		GCNMatrix Similarity = new GCNMatrix(D,D);
+                Similarity = Operations.copyNames(Expression, Similarity);
 		for(int i=0;i<D;i++){
 			for(int j=i;j<D;j++){
 				double correlation=0.0;
@@ -380,6 +392,7 @@ public class Operations {
 	public static GCNMatrix calculateSimilarity (GCNMatrix Expression,int Threads){
 		int D = Expression.getNumRows();
 		GCNMatrix Similarity = new GCNMatrix(D,D);
+                Similarity = Operations.copyNames(Expression, Similarity);
 		ExecutorService pool = Executors.newFixedThreadPool(Threads);
 		ExecutorCompletionService<HashMap<String,Double>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,Double>>> taskList = new ArrayList<Future<HashMap<String,Double>>>();
@@ -481,7 +494,7 @@ public class Operations {
 		}
 	}
 
-public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab,boolean log) {
+public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab,boolean print) {
 	int H = DataFrame.getNumRows();
 	int W = DataFrame.getNumColumns();
 	DecimalFormat df = new DecimalFormat("#.##");
@@ -511,7 +524,9 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 	for(Map.Entry<Double,Integer> entry : HMHistogram.entrySet()) {
 			  Double A = entry.getKey();
 			  Integer value = entry.getValue();
-			  System.out.println(A +","+value);
+                          if(print == true){
+                            System.out.println(A +","+value);
+                          }
 			  series.add((double) A, (double) value,true);
 	}
 	dataset.addSeries(series);

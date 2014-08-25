@@ -1,24 +1,19 @@
 package networkCalcPackage;
 
 import java.awt.Color;
-import java.awt.Paint;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.math.RoundingMode;
-
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartTheme;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.ChartUtilities;
-import org.jfree.chart.StandardChartTheme;
-import org.jfree.chart.plot.DrawingSupplier;
 import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.XYPlot;
+
 
 class GCNMatrix {
 	
@@ -121,7 +116,7 @@ class GCNMatrix {
             return X_lab;
         }
 	public void setRowNames (String[] Rows) {
-		X_lab = Rows;
+            X_lab = Rows;
 	}
 	
 	public void setColumnNames (String[] Cols){
