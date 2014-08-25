@@ -231,6 +231,8 @@ public class Operations {
 			Callable<HashMap<String,Double>> worker = new ConcurrentProcessing(Adjacency,queue,"tom");
 			Future<HashMap<String,Double>> submit = completionService.submit(worker);
 			taskList.add(submit);  
+                        
+                        /// TEST COMMIT CHANGE FOR NETBEANS
 		}
 		
 		
