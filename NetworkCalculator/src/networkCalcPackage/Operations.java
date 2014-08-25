@@ -1,5 +1,9 @@
 package networkCalcPackage;
 
+import com.apporiented.algorithm.clustering.AverageLinkageStrategy;
+import com.apporiented.algorithm.clustering.Cluster;
+import com.apporiented.algorithm.clustering.ClusteringAlgorithm;
+import com.apporiented.algorithm.clustering.DefaultClusteringAlgorithm;
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
@@ -13,8 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -22,10 +24,6 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtilities;
@@ -34,6 +32,7 @@ import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
+
 
 public class Operations {
 	

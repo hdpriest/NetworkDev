@@ -3,13 +3,9 @@ package networkCalcPackage;
 import java.io.File;
 import java.util.Scanner;
 import java.io.FileNotFoundException;
-
-
 import org.apache.commons.cli.*;
-/*
-import java.lang.Math;
-import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
-*/
+
+
 public class NetworkCalculator {
 
 	private static void makeSimilarity(String[] args){

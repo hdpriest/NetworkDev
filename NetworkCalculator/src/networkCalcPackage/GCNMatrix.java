@@ -117,7 +117,9 @@ class GCNMatrix {
 	public void setValueByEntry (double Value,int I, int J){
 		DataFrame[I][J]=Value;
 	}
-	
+	public String[] getRowNames (){
+            return X_lab;
+        }
 	public void setRowNames (String[] Rows) {
 		X_lab = Rows;
 	}
@@ -125,7 +127,10 @@ class GCNMatrix {
 	public void setColumnNames (String[] Cols){
 		Y_lab = Cols;
 	}
-	
+	public double[][] getDataFrame () {
+            return DataFrame;
+        }
+        
 	public double[] getNextRow () {
 		double[] thisRow = new double[DataFrame[0].length];
 		thisRow=DataFrame[X_iterator+1];
