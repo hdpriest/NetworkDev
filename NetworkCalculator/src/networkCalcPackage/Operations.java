@@ -232,7 +232,6 @@ public class Operations {
 			Future<HashMap<String,Double>> submit = completionService.submit(worker);
 			taskList.add(submit);  
                         
-                        /// TEST COMMIT CHANGE FOR NETBEANS
 		}
 		
 		
