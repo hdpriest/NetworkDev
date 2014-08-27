@@ -292,11 +292,10 @@ public class NetworkCalculator {
     private static void compareNetworks(String[] args) {
         CommandLineParser parser = new BasicParser();
         Options options = buildCompareOptions();
-        /// **** TODO : need to even conceive of whats going on here
-        String dir1 = null;
-        String dir2 = null;
-        String out = null;
-        int threads = 0;
+        String dir1;
+        String dir2;
+        String out;
+        int threads;
         try {
             CommandLine cmd = parser.parse(options, args);
             HelpFormatter formatter = new HelpFormatter();
