@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
 //public class SimilarityConcurrent implements Runnable {
-public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
+public class ConcurrentProcessing implements Callable<HashMap<String,Float>> {
 	private ConcurrentLinkedQueue<String> queue;
 	private String m;
 	private GCNMatrix Exp;
@@ -22,13 +22,13 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
 		System.exit(1);
 	}
 	
-	public HashMap<String, Double> call() {
-			HashMap<String, Double> hm = new HashMap<String, Double>();
+	public HashMap<String, Float> call() {
+			HashMap<String, Float> hm = new HashMap<String, Float>();
 		 	//try {
 			String s = null;
 	        	while ( ( s=queue.poll() ) != null ) {
 	            //while ( true ) {
-	        		double value = 0.0;
+	        	float value = 0.0f;
 	                //String s = queue.remove();
 	                switch (m) {
 	                	case "gini": value = doWork_gini(s);
@@ -70,19 +70,19 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
        
     }
 	
-	public double doWork_gini (String s){
+	public float doWork_gini (String s){
 		String[] S = s.split("-");
 		int i = Integer.parseInt(S[0]);
 		int j = Integer.parseInt(S[1]);
-		double GCC1=0.0;
-		double GCC2=0.0;
-		double gcc=0.0;
+		float GCC1=(float) 0.0;
+		float GCC2=(float) 0.0;
+		float gcc=(float) 0.0;
 		if(i==j){
-			GCC1 = 1.0;
-			GCC2 = 0.0;
+			GCC1 = (float) 1.0;
+			GCC2 = (float) 0.0;
 		}else{
-			double[] I_data = Exp.getRowByIndex(i);
-			double[] J_data = Exp.getRowByIndex(j);
+			float[] I_data = Exp.getRowByIndex(i);
+			float[] J_data = Exp.getRowByIndex(j);
 			GCC1 = Operations.GINI(I_data,J_data);
 			GCC2 = Operations.GINI(J_data,I_data);
 		}
@@ -96,54 +96,54 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Double>> {
 		return gcc;
 	}
 	
-	public double doWork_pcc (String s){
+	public float doWork_pcc (String s){
 		String[] S = s.split("-");
-		double correlation = 0.0;
+		float correlation = (float) 0.0;
 		int i = Integer.parseInt(S[0]);
 		int j = Integer.parseInt(S[1]);
-		double[] I_data = Exp.getRowByIndex(i);
-		double[] J_data = Exp.getRowByIndex(j);
+		double[] I_data = Exp.getRowByIndexDbl(i);
+		double[] J_data = Exp.getRowByIndexDbl(j);
 		if(i==j){
-			correlation = 1.0;
+			correlation = 1.0f;
 		}else{
 			PearsonsCorrelation corr = new PearsonsCorrelation();
-			correlation = corr.correlation(I_data,J_data);
+			correlation = (float) corr.correlation(I_data, J_data);
 		}
 		return correlation;
 	}
 	
-	public double doWork_sigmoid (String s){
+	public float doWork_sigmoid (String s){
 		String[] S = s.split("-");
-		double adjacency = 0.0;
+		float adjacency = (float) 0.0;
 		int i = Integer.parseInt(S[0]);
 		int j = Integer.parseInt(S[1]);
 		if(i==j){
-			adjacency = 1.0;
+			adjacency = (float) 1.0;
 		}else{
-			adjacency = 1/(1+Math.exp(A*-1*(Math.abs(Exp.getValueByEntry(i,j))-M)));
+			adjacency = (float) (1/(1+Math.exp(A*-1*(Math.abs(Exp.getValueByEntry(i,j))-M))));
 		}
 		return adjacency;
 	}
 	
-	public double doWork_tom (String s){
+	public float doWork_tom (String s){
 		String[] S = s.split("-");
-		double tom = 0.0;
+		float tom = 0.0f;
 		int i = Integer.parseInt(S[0]);
 		int j = Integer.parseInt(S[1]);
 		if(i==j){
-			tom = 1.0;
+			tom = 1.0f;
 		}else{
-			double product=0;
-			double i_k = Exp.findK(i, i);
-			double j_k = Exp.findK(j,j);
+			float product=0;
+			float i_k = Exp.findK(i, i);
+			float j_k = Exp.findK(j,j);
 			for(int u=0;u<D;u++){
 				if((u != i) && (u != j) && (Exp.testValue(i, u)) && (Exp.testValue(j, u))){
 					product += Exp.getValueByEntry(i,u) * Exp.getValueByEntry(j,u);
 				}
 			}
-			double k_min = Math.min(i_k, j_k);
-			double DFIJ=Exp.getValueByEntry(i,j);
-			tom=(product+DFIJ)/(k_min + 1 - DFIJ);
+			float k_min = Math.min(i_k, j_k);
+			float DFIJ=Exp.getValueByEntry(i,j);
+			tom = ((product+DFIJ)/(k_min + 1 - DFIJ));
 		}
 		return tom;
 	}

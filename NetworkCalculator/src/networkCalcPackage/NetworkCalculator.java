@@ -60,8 +60,8 @@ public class NetworkCalculator {
         Options options = buildConstructOptions();
         String pathIn = null;
         String Out = null;
-        double alpha = 0.0;
-        double mu = 0.0;
+        float alpha = 0.0f;
+        float mu = 0.0f;
         double Mask = 0.0;
         int threads = 0;
         String corr = null;
@@ -111,8 +111,8 @@ public class NetworkCalculator {
             pathIn = cmd.getOptionValue("d");
             Out = cmd.getOptionValue("o");
             corr = cmd.getOptionValue("c");
-            alpha = Double.parseDouble(cmd.getOptionValue("a"));
-            mu = Double.parseDouble(cmd.getOptionValue("m"));
+            alpha = Float.parseFloat(cmd.getOptionValue("a"));
+            mu = Float.parseFloat(cmd.getOptionValue("m"));
             Mask = Double.parseDouble(cmd.getOptionValue("M"));
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
@@ -167,9 +167,9 @@ public class NetworkCalculator {
         Options options = buildConstructOptions();
         String pathIn = null;
         String Out = null;
-        double alpha = 0.0;
-        double mu = 0.0;
-        double Mask = 0.0;
+        float alpha = 0.0f;
+        float mu = 0.0f;
+        float Mask = 0.0f;
         int threads = 0;
         String corr = null;
         try {
@@ -219,9 +219,9 @@ public class NetworkCalculator {
             pathIn = cmd.getOptionValue("d");
             Out = cmd.getOptionValue("o");
             corr = cmd.getOptionValue("c");
-            alpha = Double.parseDouble(cmd.getOptionValue("a"));
-            mu = Double.parseDouble(cmd.getOptionValue("m"));
-            Mask = Double.parseDouble(cmd.getOptionValue("M"));
+            alpha = Float.parseFloat(cmd.getOptionValue("a"));
+            mu = Float.parseFloat(cmd.getOptionValue("m"));
+            Mask = Float.parseFloat(cmd.getOptionValue("M"));
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
             System.err.println("Exiting...\n");
@@ -379,12 +379,11 @@ public class NetworkCalculator {
         // *** TODO: make network construction method
     }
 
-    private static void viewNetwork(String[] args) {
+    private static void clusterNetwork (String[] args) {
         CommandLineParser parser = new BasicParser();
-        Options options = buildViewOptions();
+        Options options = buildClusterOptions();
         // **** TODO -- again, what is this for??
-        String pathIn = null;
-        String Out = null;
+        String directory=null;
         try {
             CommandLine cmd = parser.parse(options, args);
             HelpFormatter formatter = new HelpFormatter();
@@ -392,34 +391,18 @@ public class NetworkCalculator {
                 formatter.printHelp("java -jar jarfile.jar", options);
                 System.exit(0);
             }
-            if (cmd.hasOption("n")) {
+            if (cmd.hasOption("d")) {
             } else {
                 formatter.printHelp("java -jar jarfile.jar", options);
                 System.exit(0);
             }
-            if (cmd.hasOption("o")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("a")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("m")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            pathIn = cmd.getOptionValue("n");
-            Out = cmd.getOptionValue("o");
+            directory = cmd.getOptionValue("d");
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
             System.err.println("Exiting...\n");
             System.exit(0);
         }
-
+        String pathIn = directory + "/tom.matrix";
         String sep = ",";
         int[] FileDimensions = new int[2];
         FileDimensions = getFileDimensions(pathIn, sep);
@@ -427,9 +410,8 @@ public class NetworkCalculator {
         System.err.println("Loading Data File\n");
 
         GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0], FileDimensions[1]);
-
         DataFrame = loadData(pathIn, FileDimensions, sep);
-        Operations.generateHistogramHM(DataFrame, Out, "Title", "X label", "Y label", true);
+
         System.exit(0);
     }
 
@@ -458,7 +440,7 @@ public class NetworkCalculator {
                     compareNetworks(args);
                     break;
                 case "view":
-                    viewNetwork(args);
+                    clusterNetwork(args);
                     break;
                 default:
                     baseOptions(args);
@@ -532,35 +514,17 @@ public class NetworkCalculator {
         return options;
     }
 
-    private static Options buildViewOptions() {
+    private static Options buildClusterOptions() {
         Options options = new Options();
         Option help = new Option("h", "print this message");
 
-        OptionBuilder.withArgName("datafile");
+        OptionBuilder.withArgName("Analysis Directory");
         OptionBuilder.hasArg();
-        OptionBuilder.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values");
-        Option datafile = OptionBuilder.create("d");
-
-        OptionBuilder.withArgName("similarity");
-        OptionBuilder.hasArg();
-        OptionBuilder.withDescription("File for output of similarity matrix");
-        Option similarity = OptionBuilder.create("s");
-
-        OptionBuilder.withArgName("adjacency");
-        OptionBuilder.hasArg();
-        OptionBuilder.withDescription("File for output of adjacency matrix");
-        Option adjacency = OptionBuilder.create("a");
-
-        OptionBuilder.withArgName("tom");
-        OptionBuilder.hasArg();
-        OptionBuilder.withDescription("File for output of TOM matrix");
-        Option tom = OptionBuilder.create("t");
+        OptionBuilder.withDescription("Directory containing the outputs of the Construct command");
+        Option directory = OptionBuilder.create("d");
 
         options.addOption(help);
-        options.addOption(datafile);
-        options.addOption(similarity);
-        options.addOption(adjacency);
-        options.addOption(tom);
+        options.addOption(directory);
 
         System.out.println("This method is not yet implemented\n");
         System.exit(0);
@@ -767,11 +731,11 @@ public class NetworkCalculator {
                 String line = scanner.nextLine();
                 String[] Line = line.split(sep);
                 loci[it] = Line[0];
-                double[] data = new double[Dims[1]];
+                float[] data = new float[Dims[1]];
                 for (int i = 1; i < Line.length; i++) {
                     try {
                         int I = i - 1;
-                        double value = Double.parseDouble(Line[i]);
+                        float value = Float.parseFloat(Line[i]);
                         data[I] = value;
                     } catch (NumberFormatException e) {
                         e.printStackTrace();

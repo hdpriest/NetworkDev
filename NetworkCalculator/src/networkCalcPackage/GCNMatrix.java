@@ -17,15 +17,32 @@ import org.jfree.chart.plot.PlotOrientation;
 
 class GCNMatrix {
 	
-	private double[][] DataFrame;
-	private double[] k;
+	private float[][] DataFrame;
+	private float[] k;
 	private String[] X_lab;
 	private String[] Y_lab;
 	private int X_iterator;
 	
+        /* 
+        We need to do some matrix-fu to make this memory-slimmer. 
+        represent our matrix as a 1-d array of upper triangle matrix
+        For a 1000x1000 matrix, number of elements that precedes row i is:
+        1000+999+998 ... + (1000*(i-1)
+        
+        NumElementsPreceding ROW i, where N = scalar(DIM(matrix)), I is the 0-index row index:
+        i( N-((i-1)/2) )
+        
+        And the number of elements that precede [i,j] in an upper-diagonal matrix is: 
+        i( N-((i-1)/2) ) + 1) + (j-1) WHERE j>=i
+        
+        N=100, i = 0, j = 1 (first off-diagonal value)
+        100(1) - 0 + 0 
+        
+        */
+        
 	public GCNMatrix (int Dim1, int Dim2) {
-		DataFrame = new double[Dim1][Dim2];
-		k = new double[Dim1];
+		DataFrame = new float[Dim1][Dim2];
+		k = new float[Dim1];
 		X_lab = new String[Dim1];
 		Y_lab = new String[Dim2];
 		X_iterator = -1;
@@ -92,9 +109,24 @@ class GCNMatrix {
 			return false;			
 		}
 	}
-	
-	public double[] getRowByIndex (int I){
-		double[] Row = new double[DataFrame[0].length];
+	public double[] getRowByIndexDbl (int I){
+		float[] Row = new float[DataFrame[0].length];
+                double[] dRow = new double[DataFrame[0].length];
+		if(DataFrame[I] != null){
+			Row =  DataFrame[I];
+                        for(int i=0;i<DataFrame[0].length;i++){
+                            dRow[i] = (double) Row[i];
+                        }
+			return dRow;
+		}else{
+			System.err.println("Cannot get row "+I+" from matrix.\n\n");
+			System.exit(0);
+		}
+		return dRow;
+	}
+        
+	public float[] getRowByIndex (int I){
+		float[] Row = new float[DataFrame[0].length];
 		if(DataFrame[I] != null){
 			Row = DataFrame[I];
 			return Row;
@@ -105,11 +137,11 @@ class GCNMatrix {
 		return Row;
 	}
 	
-	public double getValueByEntry (int I,int J){
+	public float getValueByEntry (int I,int J){
 		return DataFrame[I][J];
 	}
 	
-	public void setValueByEntry (double Value,int I, int J){
+	public void setValueByEntry (float Value,int I, int J){
 		DataFrame[I][J]=Value;
 	}
 	public String[] getRowNames (){
@@ -122,18 +154,18 @@ class GCNMatrix {
 	public void setColumnNames (String[] Cols){
 		Y_lab = Cols;
 	}
-	public double[][] getDataFrame () {
+	public float[][] getDataFrame () {
             return DataFrame;
         }
         
-	public double[] getNextRow () {
-		double[] thisRow = new double[DataFrame[0].length];
+	public float[] getNextRow () {
+		float[] thisRow = new float[DataFrame[0].length];
 		thisRow=DataFrame[X_iterator+1];
 		X_iterator++;
 		return thisRow;
 	}
 	
-	public void maskMatrix (double maskLevel) {
+	public void maskMatrix (float maskLevel) {
 		int H = DataFrame.length;
 		int W = DataFrame[0].length;
 		for(int i=0;i<H;i++){
@@ -158,7 +190,7 @@ class GCNMatrix {
 	public void calculateKs (){
 		int H = DataFrame.length;
 		for(int i=0;i<H;i++){
-			double thisK=0;
+			float thisK=0f;
 			for(int j=0;j<DataFrame[i].length;j++){
 				if(i==j){
 					
@@ -170,7 +202,7 @@ class GCNMatrix {
 		}	
 	}
 	
-	public double findK (int R,int j){
+	public float findK (int R,int j){
 		/*for(int i=0;i<DataFrame[R].length;i++){
 			if(i==j){
 				/// do not add DataFrame[R][j] to the k of R
@@ -179,22 +211,18 @@ class GCNMatrix {
 			}
 		}
 		return K;*/
-		double K=k[R];
+		float K=k[R];
 		return K;
 	}
 	
-	public void addRow (double[] Row){
+	public void addRow (float[] Row){
 		int I=X_iterator;
-		for(int i=0;i<Row.length;i++){
-			DataFrame[I+1][i]=Row[i];
-		}
+                System.arraycopy(Row, 0, DataFrame[I+1], 0, Row.length);
 		X_iterator++;
 	}
 	
-	public void changeRow (int I,double[] Row){
-		for(int i=0;i<Row.length;i++){
-			DataFrame[I][i]=Row[i];
-		}
+	public void changeRow (int I,float[] Row){
+                System.arraycopy(Row, 0, DataFrame[I], 0, Row.length);
 	}
 	
 	public void printMatrixToFile (String path,String Sep){
@@ -209,7 +237,7 @@ class GCNMatrix {
 			}
 			writer.print("\n");
 			for(int i=0;i<DataFrame.length;i++){
-				double[] Row = new double[DataFrame[i].length];
+				float[] Row = new float[DataFrame[i].length];
 				Row = DataFrame[i];
 				writer.print(X_lab[i]);
 				writer.print(Sep);
