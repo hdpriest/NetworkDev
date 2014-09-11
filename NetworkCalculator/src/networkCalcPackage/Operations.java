@@ -48,14 +48,14 @@ public class Operations {
 		return GINI_coeff;
 	}
 	
-        private static GCNMatrix copyNames (GCNMatrix NetA, GCNMatrix NetB){
+        private static GCNMatrix copyNames (String[] names, GCNMatrix NetB){
             /// if you always copy Rows->rows and columns, you can't go wrong
-            NetB.setRowNames(NetA.getRowNames());
-            NetB.setColumnNames(NetA.getRowNames());
+            NetB.setRowNames(names);
+            NetB.setColumnNames(names);
             return NetB;
         }
         
-	private static int[] getIndicesInOrder(float[] array) {
+	public static int[] getIndicesInOrder(float[] array) {
 	    Map<Integer, Float> map = new HashMap<Integer, Float>(array.length);
 	    for (int i = 0; i < array.length; i++)
 	        map.put(i, array[i]);
@@ -76,7 +76,7 @@ public class Operations {
 
 	    return result;
 	}
-	
+	/*
 	public static GCNMatrix calculateGINIcoefficient (GCNMatrix InputFrame){
 		int D = InputFrame.getNumRows();
 		GCNMatrix Similarity = new GCNMatrix(D,D);
@@ -156,11 +156,11 @@ public class Operations {
 		pool.shutdown();
 		return Similarity;
 	}
-	
+	*/
 	public static GCNMatrix compareNetworksViaTOM (GCNMatrix Net1, GCNMatrix Net2){
 		int D = Net1.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
-                ReturnFrame = Operations.copyNames(Net1, ReturnFrame);
+        ReturnFrame = Operations.copyNames(Net1.getRowNames(), ReturnFrame);
 		for(int i=0;i<D;i++){
 			
 			for(int j=0;j<D;j++){
@@ -190,7 +190,7 @@ public class Operations {
 		}
 		return ReturnFrame;
 	}
-	
+	/*
 	public static GCNMatrix calculateTOM (GCNMatrix InputFrame){
 		int D = InputFrame.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
@@ -218,21 +218,19 @@ public class Operations {
 		}
 		return ReturnFrame;
 	}
-	
+	*/
 	public static GCNMatrix calculateTOM (GCNMatrix Adjacency, int Threads){
 		int D = Adjacency.getNumRows();
 		GCNMatrix ReturnMatrix = new GCNMatrix(D,D);
-                ReturnMatrix = Operations.copyNames(Adjacency, ReturnMatrix);
+        ReturnMatrix = Operations.copyNames(Adjacency.getRowNames(), ReturnMatrix);
 		ExecutorService pool = Executors.newFixedThreadPool(Threads);
 		ExecutorCompletionService<HashMap<String,Float>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,Float>>> taskList = new ArrayList<Future<HashMap<String,Float>>>();
 		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
 		System.err.println("Processing topological overlap using " + Threads + " threads.");
 		for(int i=0;i<D;i++){
-			for(int j=i;j<D;j++){
-				String S = i+"-"+j;
-				queue.add(S);
-			}
+			String S = String.valueOf(i);
+			queue.add(S);
 		}
 		for ( int i = 0; i < Threads; i++ ) {
 			Callable<HashMap<String,Float>> worker = new ConcurrentProcessing(Adjacency,queue,"tom");
@@ -271,7 +269,7 @@ public class Operations {
 		pool.shutdownNow();
 		return ReturnMatrix;
 	}
-	
+	/*
 	public static GCNMatrix calculateSigmoidAdjacency (GCNMatrix Similarity, float mu, float alpha){
 		int D = Similarity.getNumRows();
 		GCNMatrix Adjacency = new GCNMatrix(D,D);
@@ -290,9 +288,78 @@ public class Operations {
 		}
 		return Adjacency;
 	}
+	*/
+	private static void explode (){
+		System.err.println("No correlation got to this point!?");
+		System.exit(0);
+	}
 	
+	public static GCNMatrix calculateAdjacency (ExpressionFrame Expression,String corr, String adj, float mu, float alpha, int Threads){
+		
+		// prepwork
+		int D = Expression.getNumRows();
+		GCNMatrix Adjacency = new GCNMatrix(D,D);
+        Adjacency = Operations.copyNames(Expression.getRowNames(), Adjacency);
+        switch (corr) {
+    		case "gini": Expression.calculateGiniSums(); // half of every gini coeff is a pre-calculable value
+    		break;
+    		case "pcc": Expression.calculateMeans(); // most of a pcc is pre-calculateable;
+    		break;
+    		default: explode();
+    		break;
+        }
+        
+        // thread prep
+		ExecutorService pool = Executors.newFixedThreadPool(Threads);
+		ExecutorCompletionService<HashMap<String,Float>> completionService = new ExecutorCompletionService<>(pool);
+		List<Future<HashMap<String,Float>>> taskList = new ArrayList<Future<HashMap<String,Float>>>();
+		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
+		System.err.println("Processing adjacency using " + Threads + " threads.");
+		
+		//queue prep
+		for(int i=0;i<D;i++){
+			String S = String.valueOf(i);
+			queue.add(S);
+		}
+		
+		//add the tasks
+		for ( int i = 0; i < Threads; i++ ) {
+			Callable<HashMap<String,Float>> worker = new ConcurrentProcessing(Expression,queue,corr,"sigmoid",mu,alpha);
+			Future<HashMap<String,Float>> submit = completionService.submit(worker);
+			taskList.add(submit);  
+		}
+		
+		// collect results
+		for(int t=0;t<Threads;t++){
+			try{
+				HashMap<String,Float> hm = completionService.take().get();
+				System.err.println("obtained result for thread " + t);
+				int r=0;
+				for(Map.Entry<String,Float> entry : hm.entrySet()){
+					String s = entry.getKey();
+					String[] S = s.split("-");
+					Float d = entry.getValue();
+					int i = Integer.parseInt(S[0]);
+					int j = Integer.parseInt(S[1]);
+					//System.out.println(i+"\t"+j+"\t"+d);
+					Adjacency.setValueByEntry( d,i,j);
+					//Adjacency.setValueByEntry( d,j,i);
+					r++;
+				}
+				System.err.println("Processed "+ r + " records");
+			}catch(InterruptedException e){
+				e.printStackTrace();
+			}catch (ExecutionException e){
+				e.printStackTrace();
+			}
+			System.err.println("Thread " + t + " complete.");
+		}
+		System.err.println("Done.");
+		pool.shutdown();
+		return Adjacency;
+	}
 	
-	
+	/*
 	public static GCNMatrix calculateSigmoidAdjacency (GCNMatrix Similarity,float mu, float alpha, int Threads){
 		int D = Similarity.getNumRows();
 		GCNMatrix Adjacency = new GCNMatrix(D,D);
@@ -345,11 +412,11 @@ public class Operations {
 		pool.shutdown();
 		return Adjacency;
 	}
-	
+	*/
 	public static GCNMatrix calculateDifference (GCNMatrix mat1, GCNMatrix mat2){
 		int D = mat1.getNumRows();
 		GCNMatrix Difference = new GCNMatrix(D,D);
-                Difference = Operations.copyNames(mat1, Difference);
+        Difference = Operations.copyNames(mat1.getRowNames(), Difference);
 		for(int i=0;i<D;i++){
 			for(int j=i;j<D;j++){
 				float v1=mat1.getValueByEntry(i, j);
@@ -365,7 +432,7 @@ public class Operations {
 		}
 		return Difference;
 	}
-	
+	/*
 	public static GCNMatrix calculateSimilarity (GCNMatrix Expression){
 		int D = Expression.getNumRows();
 		GCNMatrix Similarity = new GCNMatrix(D,D);
@@ -440,7 +507,8 @@ public class Operations {
 		pool.shutdown();
 		return Similarity;
 	}
-	
+	*/
+	/*
 	public static void generateHistogram (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab,boolean log) {
 		int H = DataFrame.getNumRows();
 		int W = DataFrame.getNumColumns();
@@ -493,7 +561,7 @@ public class Operations {
 			System.err.println("Problem occurred creating chart.");
 		}
 	}
-
+*/
 public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab,boolean print) {
 	int H = DataFrame.getNumRows();
 	int W = DataFrame.getNumColumns();

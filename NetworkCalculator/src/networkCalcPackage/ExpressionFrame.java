@@ -15,8 +15,9 @@ import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.PlotOrientation;
 
 
-class GCNMatrix {
+class ExpressionFrame {
 	private int N;
+	private int M;
 	private float[][] DataFrame;
 	private float[] k;
 	private float[] means;
@@ -24,30 +25,11 @@ class GCNMatrix {
 	private String[] X_lab;
 	private String[] Y_lab;
 	private int X_iterator;
-	
-        /* 
-        We need to do some matrix-fu to make this memory-slimmer. 
-        represent our matrix as a 1-d array of upper triangle matrix
-        For a 1000x1000 matrix, number of elements that precedes row i is:
-        1000+999+998 ... + (1000*(i-1)
-        
-        NumElementsPreceding ROW i, where N = scalar(DIM(matrix)), I is the 0-index row index:
-        i( N-((i-1)/2) )
-        
-        And the number of elements that precede [i,j] in an upper-diagonal matrix is: 
-        i( N-((i-1)/2) ) + 1) + (j-1) WHERE j>=i
-        
-        N=100, i = 0, j = 1 (first off-diagonal value)
-        100(1) - 0 + 0 
-       
-        PROBLEM is that calculating the coordinates appears to negate any speed increase... 
-        and im not sure how the memory works, but it doesn't seem to make a difference (which is multiply counterintuitive)
-        
-        */
-        
-	public GCNMatrix (int Dim1, int Dim2) {
+	    
+	public ExpressionFrame (int Dim1, int Dim2) {
 		DataFrame = new float[Dim1][Dim2];
 		N = Dim1;
+		M = Dim2;
 		k = new float[Dim1];
 		means = new float[Dim1];
 		gccSums= new float[Dim1];
@@ -55,47 +37,6 @@ class GCNMatrix {
 		Y_lab = new String[Dim2];
 		X_iterator = -1;
 	}
-	
-	public double[] generateHistogram (String pathOut, String Title,String Xlab, String Ylab) {
-		int H = DataFrame.length;
-		int W = DataFrame[0].length;
-		double[] Histogram=new double[201];
-		DecimalFormat df = new DecimalFormat("#.####");
-		df.setRoundingMode(RoundingMode.HALF_UP);
-		for(int i=0;i<H;i++){
-			for(int j=i;j<W;j++){
-				//System.out.println("Val: "+DataFrame[i][j]+"\n");
-				if(DataFrame[i][j] != 0.0){
-					Double v= ((Double.valueOf(df.format(DataFrame[i][j])))+1)*100;
-					int value = v.intValue();
-					Histogram[value]++;
-				}
-			}
-		}
-		XYSeriesCollection dataset = new XYSeriesCollection();
-		XYSeries series = new XYSeries("Values");
-		for(int x=0;x<201;x++){
-			double a = ((double)x/100)-1.0;
-			Double A = Double.valueOf(df.format(a));
-			//System.out.println("Index: " + x + " Value: "+ A +"\tObs: "+Histogram[x]);
-			series.add((double) A, (double) Histogram[x],true);			
-		}
-		dataset.addSeries(series);
-		JFreeChart chart = ChartFactory.createXYLineChart(Title,Xlab,Ylab,dataset, PlotOrientation.VERTICAL, 
-				 false, true, false);
-		final Plot plot = chart.getPlot();
-		plot.setBackgroundPaint(Color.white);
-		plot.setOutlinePaint(Color.black);
-		chart.setBackgroundPaint(Color.white);
-		chart.setAntiAlias(true);
-		try {
-			ChartUtilities.saveChartAsJPEG(new File(pathOut), chart, 500, 300);
-		} catch (IOException e) {
-			System.err.println("Problem occurred creating chart.");
-		}
-		return Histogram;
-	}
-	
 	public void resetIterator () {
 		X_iterator=-1;
 	}
@@ -117,18 +58,19 @@ class GCNMatrix {
 			return false;			
 		}
 	}
+	
 	public double[] getRowByIndexDbl (int I){
 		float[] Row = _getRow(I);
-		double[] dRow = new double[N];
-		for(int i=0;i<Row.length;i++){
+		double[] dRow = new double[M];
+		for(int i=0;i<M;i++){
 			dRow[i] = (double) Row[i];
 		}
 		return dRow;
 	}
         
 	private float[] _getRow(int I){
-		float[] Row = new float[N];
-		for(int j=0;j<N;j++){
+		float[] Row = new float[M];
+		for(int j=0;j<M;j++){
 			Row[j]=_getValueByEntry(I,j);
 		}
 		return Row;
@@ -145,11 +87,7 @@ class GCNMatrix {
 	}
 	
 	private float _getValueByEntry (int I,int J){
-		if(I<=J){
-			return DataFrame[I][J];
-		}else{
-			return DataFrame[J][I];
-		}
+		return DataFrame[I][J];
 	}
 	
 	public float getValueByEntry (int I,int J){
@@ -161,16 +99,13 @@ class GCNMatrix {
 	}
 	
 	private void _setValueByEntry (float Value,int I, int J){
-		if(I<=J){
-			DataFrame[I][J]=Value;
-		}else{
-			DataFrame[J][I]=Value;
-		}
+		DataFrame[I][J]=Value;
 	}
 	
 	public String[] getRowNames (){
             return X_lab;
-        }
+    }
+	
 	public void setRowNames (String[] Rows) {
             X_lab = Rows;
 	}
@@ -180,7 +115,7 @@ class GCNMatrix {
 	}
 	public float[][] getDataFrame () {
             return DataFrame;
-        }
+    }
         
 	public float[] getNextRow () {
 		float[] thisRow = new float[DataFrame[0].length];
@@ -241,7 +176,7 @@ class GCNMatrix {
 	
 	public void addRow (float[] Row){
 		int I=X_iterator;
-                System.arraycopy(Row, 0, DataFrame[I+1], 0, Row.length);
+        System.arraycopy(Row, 0, DataFrame[I+1], 0, Row.length);
 		X_iterator++;
 	}
 	

@@ -43,14 +43,9 @@ public class NetworkCalculator {
 
         System.err.println("Loading Data File\n");
 
-        GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0], FileDimensions[1]);
+        ExpressionFrame DataFrame = loadData(pathIn, FileDimensions, sep);
 
-        DataFrame = loadData(pathIn, FileDimensions, sep);
-
-        System.err.println("Calculating Similarity\n");
-        GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
-        CurrentMatrix = Operations.calculateSimilarity(DataFrame);
-        CurrentMatrix.printMatrixToFile(Out, ",");
+        System.err.println("This is not an active path\n");
         System.exit(0);
 
     }
@@ -126,24 +121,12 @@ public class NetworkCalculator {
 
         System.err.println("Loading Data File\n");
 
-        GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0], FileDimensions[1]);
-
-        DataFrame = loadData(pathIn, FileDimensions, sep);
+        ExpressionFrame DataFrame = loadData(pathIn, FileDimensions, sep);
 
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
 
         System.err.println("Calculating Similarity\n");
-        switch (corr) {
-            case "gini":
-                CurrentMatrix = Operations.calculateGINIcoefficient(DataFrame, threads);
-                break;
-            case "pcc":
-                CurrentMatrix = Operations.calculateSimilarity(DataFrame, threads);
-                break;
-            default:
-                CurrentMatrix = Operations.calculateSimilarity(DataFrame);
-                break;
-        }
+        CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", mu, alpha, threads);
         File theDir = new File(Out);
         if (!theDir.exists()) {
             System.out.println("creating directory: " + Out);
@@ -154,7 +137,6 @@ public class NetworkCalculator {
             }
         }
         System.err.println("Calculating Adjacency...\n");
-        CurrentMatrix = Operations.calculateSigmoidAdjacency(CurrentMatrix, mu, alpha, threads);
         CurrentMatrix.calculateKs();
         System.err.println("Calculating TOM...\n");
         CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
@@ -227,8 +209,7 @@ public class NetworkCalculator {
             System.err.println("Exiting...\n");
             System.exit(0);
         }
-
-		// *** TODO: make network construction method
+        
         String sep = "\t";
 
         int[] FileDimensions = new int[2];
@@ -236,24 +217,11 @@ public class NetworkCalculator {
 
         System.err.println("Loading Data File\n");
 
-        GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0], FileDimensions[1]);
-
-        DataFrame = loadData(pathIn, FileDimensions, sep);
+        ExpressionFrame DataFrame = loadData(pathIn, FileDimensions, sep);
 
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
-
-        System.err.println("Calculating Similarity\n");
-        switch (corr) {
-            case "gini":
-                CurrentMatrix = Operations.calculateGINIcoefficient(DataFrame, threads);
-                break;
-            case "pcc":
-                CurrentMatrix = Operations.calculateSimilarity(DataFrame, threads);
-                break;
-            default:
-                CurrentMatrix = Operations.calculateSimilarity(DataFrame);
-                break;
-        }
+        System.err.println("Calculating Similarity & Adjacency...\n");
+        CurrentMatrix = Operations.calculateAdjacency(DataFrame,corr,"sigmoid",alpha,mu,threads);
         File theDir = new File(Out);
         if (!theDir.exists()) {
             System.out.println("creating directory: " + Out);
@@ -263,19 +231,16 @@ public class NetworkCalculator {
                 //TODO handle it
             }
         }
-        String ThisOut = Out + "/Similarity.dist.jpeg";
-        Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Similarity Distribution", "Pearsons Correlation", "# Edges", false);
         
-        
-        System.err.println("Calculating Adjacency...\n");
-        CurrentMatrix = Operations.calculateSigmoidAdjacency(CurrentMatrix, mu, alpha, threads);
-        ThisOut = Out + "/Adjacency.dist.jpeg";
+        //CurrentMatrix = Operations.calculateSigmoidAdjacency(CurrentMatrix, mu, alpha, threads);
+        String ThisOut = Out + "/Adjacency.dist.jpeg";
         CurrentMatrix.maskMatrix(Mask);
         Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Edges", false);
         String MatrixOut = Out + "/Adj.matrix.tab";
         CurrentMatrix.printMatrixToFile(MatrixOut, sep);
 
         System.err.println("Calculating TOM...\n");
+        CurrentMatrix.calculateKs();
         CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
         CurrentMatrix.maskMatrix(Mask);
         ThisOut = Out + "/TOM.dist.jpeg";
@@ -284,7 +249,6 @@ public class NetworkCalculator {
         Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
         
         System.err.println("Clustering...\n");
-        Clustering.getClusters(CurrentMatrix, "Average");
 
         System.exit(0);
     }
@@ -352,9 +316,9 @@ public class NetworkCalculator {
             GCNMatrix NetworkA = new GCNMatrix(FD_1[0], FD_1[1]);
             GCNMatrix NetworkB = new GCNMatrix(FD_1[0], FD_1[1]);
             System.err.println("Loading Data File: " + matrix1 + "\n");
-            NetworkA = loadData(matrix1, FD_1, sep);
+            NetworkA = loadNetwork(matrix1, FD_1, sep);
             System.err.println("Loading Data File: " + matrix2 + "\n");
-            NetworkB = loadData(matrix2, FD_1, sep);
+            NetworkB = loadNetwork(matrix2, FD_1, sep);
             NetworkA.calculateKs();
             NetworkB.calculateKs();
 
@@ -410,7 +374,7 @@ public class NetworkCalculator {
         System.err.println("Loading Data File\n");
 
         GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0], FileDimensions[1]);
-        DataFrame = loadData(pathIn, FileDimensions, sep);
+        DataFrame = loadNetwork(pathIn, FileDimensions, sep);
 
         System.exit(0);
     }
@@ -710,8 +674,10 @@ public class NetworkCalculator {
         System.exit(0);
     }
 
-    private static GCNMatrix loadData(String pathIn, int[] Dims, String sep) {
-        GCNMatrix Expression = new GCNMatrix(Dims[0], Dims[1]);
+    private static ExpressionFrame loadData(String pathIn, int[] Dims, String sep) {
+        ExpressionFrame Expression = new ExpressionFrame(Dims[0], Dims[1]);
+        // TODO : Completely change this datatype:
+        // GCNMatricies and Expression Frames are not at all the same
         //System.err.println("Loading file of " + Dims[0] + " by " + Dims[1] + "\n");
         try {
             File file = null;
@@ -751,5 +717,47 @@ public class NetworkCalculator {
         }
         return Expression;
     }
+    private static GCNMatrix loadNetwork(String pathIn, int[] Dims, String sep) {
+        GCNMatrix Matrix = new GCNMatrix(Dims[0], Dims[1]);
+        // TODO : Completely change this datatype:
+        // GCNMatricies and Expression Frames are not at all the same
+        //System.err.println("Loading file of " + Dims[0] + " by " + Dims[1] + "\n");
+        try {
+            File file = null;
+            try {
+                file = new File(pathIn);
+            } catch (NullPointerException e) {
+                System.err.println("No file found to read.\n");
+                System.exit(0);
+            }
 
+            Scanner scanner = new Scanner(file);
+            String[] header = scanner.nextLine().split(sep);
+            String[] loci = new String[Dims[0]];
+            Matrix.setColumnNames(header);
+            int it = 0;
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                String[] Line = line.split(sep);
+                loci[it] = Line[0];
+                float[] data = new float[Dims[1]];
+                for (int i = 1; i < Line.length; i++) {
+                    try {
+                        int I = i - 1;
+                        float value = Float.parseFloat(Line[i]);
+                        data[I] = value;
+                    } catch (NumberFormatException e) {
+                        e.printStackTrace();
+                    }
+                }
+                it++;
+                Matrix.addRow(data);
+            }
+            Matrix.setRowNames(loci);
+            scanner.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return Matrix;
+    }
 }

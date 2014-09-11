@@ -10,11 +10,13 @@ import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 //public class SimilarityConcurrent implements Runnable {
 public class ConcurrentProcessing implements Callable<HashMap<String,Float>> {
 	private ConcurrentLinkedQueue<String> queue;
-	private String m;
-	private GCNMatrix Exp;
+	private String smethod;
+	private String amethod;
+	private ExpressionFrame Exp;
+	private GCNMatrix Adj;
 	private int D;
-	private double M;
-	private double A;
+	private float M;
+	private float A;
 	//private ThreadLocal<HashMap<String, Double>> hm = new ThreadLocal<HashMap<String, Double>>();
 	
 	private void noCall () {
@@ -28,9 +30,11 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Float>> {
 			String s = null;
 	        	while ( ( s=queue.poll() ) != null ) {
 	            //while ( true ) {
-	        	float value = 0.0f;
+	        	int L = Integer.valueOf(s);
+	        	int Size=Exp.getNumRows() - L;
+	        	float value[] = new float[Size];
 	                //String s = queue.remove();
-	                switch (m) {
+	                switch (smethod) {
 	                	case "gini": value = doWork_gini(s);
 	                	break;
 	                	case "pcc": value = doWork_pcc(s);
@@ -42,7 +46,11 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Float>> {
 	                	default: noCall();
 	                	break;
 	                }
-	                hm.put(s, value);
+	                for(int j=0;j<Size;j++){
+	                	int coord = j+L;
+	                	String k = L + "-" + coord;
+	                	hm.put(k,value[j]);
+	                }
 	            }
 	       // }
 	        /*catch ( InterruptedException ie ) { 
@@ -50,102 +58,162 @@ public class ConcurrentProcessing implements Callable<HashMap<String,Float>> {
 	        }*/
 		 	return hm;
 	}
-	
-	public ConcurrentProcessing (GCNMatrix Expression,ConcurrentLinkedQueue<String> queue, String Method) {
+	public ConcurrentProcessing (GCNMatrix Adjacency,ConcurrentLinkedQueue<String> queue, String corr) {
         this.queue = queue;
-        this.m = Method;
-        this.Exp = Expression;
-        this.M=0.0; // little hackery
-        this.A=0.0;
-        this.D=Exp.getNumRows();
+        this.smethod = corr;
+        this.Adj = Adjacency;
+        this.D=Adj.getNumRows();
     }
 	
-	public ConcurrentProcessing (GCNMatrix Similarity,ConcurrentLinkedQueue<String> queue, String Method,double mu, double a) {
+	public ConcurrentProcessing (ExpressionFrame expression,ConcurrentLinkedQueue<String> queue, String corr,String adj, float mu, float a) {
         this.queue = queue;
-        this.m = Method;
-        this.Exp = Similarity;
+        this.smethod = corr;
+        this.amethod = adj;
+        this.Exp = expression;
         this.M = mu;
         this.A = a;
         this.D=Exp.getNumRows();
+    }
+	
+	public ConcurrentProcessing (GCNMatrix Similarity,ConcurrentLinkedQueue<String> queue, String Method,float mu, float a) {
+        this.queue = queue;
+        this.smethod = Method;
+        this.Adj = Similarity;
+        this.D=Adj.getNumRows();
        
     }
 	
-	public float doWork_gini (String s){
-		String[] S = s.split("-");
-		int i = Integer.parseInt(S[0]);
-		int j = Integer.parseInt(S[1]);
-		float GCC1=(float) 0.0;
-		float GCC2=(float) 0.0;
-		float gcc=(float) 0.0;
-		if(i==j){
-			GCC1 = (float) 1.0;
-			GCC2 = (float) 0.0;
-		}else{
-			float[] I_data = Exp.getRowByIndex(i);
-			float[] J_data = Exp.getRowByIndex(j);
-			GCC1 = Operations.GINI(I_data,J_data);
-			GCC2 = Operations.GINI(J_data,I_data);
+	public float[] doWork_gini (String s){
+		int i = Integer.parseInt(s);
+		int size = Exp.getNumRows() - i;
+		float[] GINIS = new float[size];
+		float[] I_data = Exp.getRowByIndex(i);
+		int[] I_ranks = Operations.getIndicesInOrder(I_data);
+		for(int j=i;j<Exp.getNumRows();j++){
+			
+			float gcc=(float) 0.0;
+			int coord = j-i;
+			
+			if(i==j){
+				gcc=1.0f;
+			}else{
+				float[] J_data = Exp.getRowByIndex(j);
+				int[] J_ranks = Operations.getIndicesInOrder(J_data);
+				float I_num=0.0f;
+				float J_num=0.0f;
+				float GCC1=(float) 0.0;
+				float GCC2=(float) 0.0;
+				for(int x=0;x<J_data.length;x++){
+					I_num += ((2*(i+1))-I_data.length-1) * I_data[J_ranks[i]];
+					J_num += ((2*(i+1))-J_data.length-1) * J_data[I_ranks[i]];
+				}
+				GCC1=I_num/Exp.getGiniDenom(j);
+				GCC2=J_num/Exp.getGiniDenom(i);
+				if(Math.abs(GCC1)>Math.abs(GCC2)){
+					gcc=GCC1;
+				}else if (Math.abs(GCC2)>Math.abs(GCC1)){
+					gcc=GCC2;
+				}else{
+					gcc=GCC1;
+				}
+				
+			}
+			GINIS[coord]=_getSigmoid(gcc);
+			
 		}
-		if(Math.abs(GCC1)>Math.abs(GCC2)){
-			gcc=GCC1;
-		}else if (Math.abs(GCC2)>Math.abs(GCC1)){
-			gcc=GCC2;
-		}else{
-			gcc=GCC1;
-		}
-		return gcc;
+		return GINIS;
 	}
 	
-	public float doWork_pcc (String s){
-		String[] S = s.split("-");
-		float correlation = (float) 0.0;
-		int i = Integer.parseInt(S[0]);
-		int j = Integer.parseInt(S[1]);
-		double[] I_data = Exp.getRowByIndexDbl(i);
-		double[] J_data = Exp.getRowByIndexDbl(j);
-		if(i==j){
-			correlation = 1.0f;
-		}else{
-			PearsonsCorrelation corr = new PearsonsCorrelation();
-			correlation = (float) corr.correlation(I_data, J_data);
+	public float[] doWork_pcc (String s){
+		int i = Integer.parseInt(s);
+		int size = Exp.getNumRows() - i;
+		float[] means = new float[size];
+		float[] I_data = Exp.getRowByIndex(i);
+		float I_mean = Exp.getMean(i);
+/*
+ 698       my ($N,$SQR1,$SQR2)=(0,0,0);
+ 699       for(my $i=0;$i<=$#arr1;$i++){
+ 700             my $a1=$arr1[$i];
+ 701             my $a2=$arr2[$i];
+ 702             my $v1=($a1-$mean1);
+ 703             my $v2=($a2-$mean2);
+ 704             $N+=($v1*$v2);
+ 705             $SQR1+=$v1**2;
+ 706             $SQR2+=$v2**2;
+ 707       }
+ 708       my $D=(sqrt($SQR1))*(sqrt($SQR2))+1e-6;
+ 709       my $r=$N/$D;
+		
+ */
+		for(int j=i;j<Exp.getNumRows();j++){
+			float correlation = 0.0f;
+			int coord = j-i;
+			if(i==j){
+				correlation = 1.0f;
+			}else{
+				float[] J_data = Exp.getRowByIndex(j);
+				float J_mean = Exp.getMean(j);
+				double SQR1=0.0;
+				double SQR2=0.0;
+				double Na=0.0;
+				for(int n=0;n<J_data.length;n++){
+					double v1 = (double) I_data[n]-I_mean;
+					double v2 = (double) J_data[n]-J_mean;
+					Na += (v1 * v2);
+					SQR1 += (v1 * v1);
+					SQR2 += (v2 * v2);
+				}
+				correlation = (float) (Na/(Math.sqrt(SQR1) * Math.sqrt(SQR2)));
+				means[coord]=_getSigmoid(correlation);
+			}			 
 		}
-		return correlation;
+		return means;
 	}
 	
-	public float doWork_sigmoid (String s){
-		String[] S = s.split("-");
-		float adjacency = (float) 0.0;
-		int i = Integer.parseInt(S[0]);
-		int j = Integer.parseInt(S[1]);
-		if(i==j){
-			adjacency = (float) 1.0;
-		}else{
-			adjacency = (float) (1/(1+Math.exp(A*-1*(Math.abs(Exp.getValueByEntry(i,j))-M))));
+	private float _getSigmoid (float V){
+		return (float) (1.0f/(1+Math.exp(A*-1*(Math.abs(V)-M))));
+	}
+	
+	public float[] doWork_sigmoid (String s){
+		int i = Integer.parseInt(s);
+		int size = Exp.getNumRows() - i;
+		float[] adjacency = new float[size];
+		for(int j=i;j<Exp.getNumRows();j++){
+			int coord = j-i;
+			if(i==j){
+				adjacency[coord] = 1.0f;
+			}else{
+				adjacency[coord] = _getSigmoid(Exp.getValueByEntry(i,j));
+			}
 		}
 		return adjacency;
 	}
 	
-	public float doWork_tom (String s){
-		String[] S = s.split("-");
-		float tom = 0.0f;
-		int i = Integer.parseInt(S[0]);
-		int j = Integer.parseInt(S[1]);
-		if(i==j){
-			tom = 1.0f;
-		}else{
-			float product=0;
-			float i_k = Exp.findK(i, i);
-			float j_k = Exp.findK(j,j);
-			for(int u=0;u<D;u++){
-				if((u != i) && (u != j) && (Exp.testValue(i, u)) && (Exp.testValue(j, u))){
-					product += Exp.getValueByEntry(i,u) * Exp.getValueByEntry(j,u);
+	public float[] doWork_tom (String s){
+		int i = Integer.parseInt(s);
+		int size = Exp.getNumRows() - i;
+		float i_k = Exp.findK(i, i);
+		float[] TOM = new float[size];
+		for(int j=i;j<Exp.getNumRows();j++){
+			int coord = j-i;
+			float tom = 0.0f;
+			if(i==j){
+				tom = 1.0f;
+			}else{
+				float product=0;
+				float j_k = Exp.findK(j,j);
+				for(int u=0;u<D;u++){
+					if((u != i) && (u != j) && (Exp.testValue(i, u)) && (Exp.testValue(j, u))){
+						product += Exp.getValueByEntry(i,u) * Exp.getValueByEntry(j,u);
+					}
 				}
+				float k_min = Math.min(i_k, j_k);
+				float DFIJ=Exp.getValueByEntry(i,j);
+				tom = ((product+DFIJ)/(k_min + 1 - DFIJ));
 			}
-			float k_min = Math.min(i_k, j_k);
-			float DFIJ=Exp.getValueByEntry(i,j);
-			tom = ((product+DFIJ)/(k_min + 1 - DFIJ));
+			TOM[coord]=tom;
 		}
-		return tom;
+		return TOM;
 	}
 	
 }
