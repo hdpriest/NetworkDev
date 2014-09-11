@@ -222,10 +222,10 @@ public class Operations {
 	public static GCNMatrix calculateTOM (GCNMatrix Adjacency, int Threads){
 		int D = Adjacency.getNumRows();
 		GCNMatrix ReturnMatrix = new GCNMatrix(D,D);
-        ReturnMatrix = Operations.copyNames(Adjacency.getRowNames(), ReturnMatrix);
+                ReturnMatrix = Operations.copyNames(Adjacency.getRowNames(), ReturnMatrix);
 		ExecutorService pool = Executors.newFixedThreadPool(Threads);
-		ExecutorCompletionService<HashMap<String,Float>> completionService = new ExecutorCompletionService<>(pool);
-		List<Future<HashMap<String,Float>>> taskList = new ArrayList<Future<HashMap<String,Float>>>();
+		ExecutorCompletionService<HashMap<String,float[]>> completionService = new ExecutorCompletionService<>(pool);
+		List<Future<HashMap<String,float[]>>> taskList = new ArrayList<Future<HashMap<String,float[]>>>();
 		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
 		System.err.println("Processing topological overlap using " + Threads + " threads.");
 		for(int i=0;i<D;i++){
@@ -233,8 +233,8 @@ public class Operations {
 			queue.add(S);
 		}
 		for ( int i = 0; i < Threads; i++ ) {
-			Callable<HashMap<String,Float>> worker = new ConcurrentProcessing(Adjacency,queue,"tom");
-			Future<HashMap<String,Float>> submit = completionService.submit(worker);
+			Callable<HashMap<String,float[]>> worker = new ConcurrentProcessing(Adjacency,queue,"tom");
+			Future<HashMap<String,float[]>> submit = completionService.submit(worker);
 			taskList.add(submit);  
                         
 		}
@@ -243,19 +243,19 @@ public class Operations {
 		
 		for(int t=0;t<Threads;t++){
 			try{
-				HashMap<String,Float> hm = completionService.take().get();
+				HashMap<String,float[]> hm = completionService.take().get();
 				System.err.println("obtained result for thread " + t);
 				int r = 0;
-				for(Map.Entry<String,Float> entry : hm.entrySet()){
-					String s = entry.getKey();
-					String[] S = s.split("-");
-					Float d = entry.getValue();
-					int i = Integer.parseInt(S[0]);
-					int j = Integer.parseInt(S[1]);
-					//System.out.println(i+"\t"+j+"\t"+d);
-					ReturnMatrix.setValueByEntry(d,i,j);
-					ReturnMatrix.setValueByEntry(d,j,i);
-					r++;
+				for(Map.Entry<String,float[]> entry : hm.entrySet()){
+                                        String s = entry.getKey();
+                                        float[] d = new float[D];
+                                        d = entry.getValue();
+                                        int i = Integer.valueOf(s);
+                                        for(int j=0;j<d.length;j++){
+                                            int coord = j+i;
+                                            ReturnMatrix.setValueByEntry(d[j],i,j);
+                                            r++;
+                                        }
 				}
 				System.err.println("Processed "+ r + " records");
 			}catch(InterruptedException e){
@@ -299,20 +299,20 @@ public class Operations {
 		// prepwork
 		int D = Expression.getNumRows();
 		GCNMatrix Adjacency = new GCNMatrix(D,D);
-        Adjacency = Operations.copyNames(Expression.getRowNames(), Adjacency);
-        switch (corr) {
-    		case "gini": Expression.calculateGiniSums(); // half of every gini coeff is a pre-calculable value
-    		break;
-    		case "pcc": Expression.calculateMeans(); // most of a pcc is pre-calculateable;
-    		break;
-    		default: explode();
-    		break;
-        }
+                 Adjacency = Operations.copyNames(Expression.getRowNames(), Adjacency);
+                switch (corr) {
+                    case "gini": Expression.calculateGiniSums(); // half of every gini coeff is a pre-calculable value
+                    break;
+                    case "pcc": Expression.calculateMeans(); // most of a pcc is pre-calculateable;
+                    break;
+                    default: explode();
+                    break;
+                }
         
         // thread prep
 		ExecutorService pool = Executors.newFixedThreadPool(Threads);
-		ExecutorCompletionService<HashMap<String,Float>> completionService = new ExecutorCompletionService<>(pool);
-		List<Future<HashMap<String,Float>>> taskList = new ArrayList<Future<HashMap<String,Float>>>();
+		ExecutorCompletionService<HashMap<String,float[]>> completionService = new ExecutorCompletionService<>(pool);
+		List<Future<HashMap<String,float[]>>> taskList = new ArrayList<Future<HashMap<String,float[]>>>();
 		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
 		System.err.println("Processing adjacency using " + Threads + " threads.");
 		
@@ -324,27 +324,32 @@ public class Operations {
 		
 		//add the tasks
 		for ( int i = 0; i < Threads; i++ ) {
-			Callable<HashMap<String,Float>> worker = new ConcurrentProcessing(Expression,queue,corr,"sigmoid",mu,alpha);
-			Future<HashMap<String,Float>> submit = completionService.submit(worker);
+			Callable<HashMap<String,float[]>> worker = new ConcurrentProcessing(Expression,queue,corr,"sigmoid",mu,alpha);
+			Future<HashMap<String,float[]>> submit = completionService.submit(worker);
 			taskList.add(submit);  
 		}
-		
+		 
 		// collect results
 		for(int t=0;t<Threads;t++){
 			try{
-				HashMap<String,Float> hm = completionService.take().get();
+				HashMap<String,float[]> hm = completionService.take().get();
 				System.err.println("obtained result for thread " + t);
 				int r=0;
-				for(Map.Entry<String,Float> entry : hm.entrySet()){
+				for(Map.Entry<String,float[]> entry : hm.entrySet()){
 					String s = entry.getKey();
-					String[] S = s.split("-");
-					Float d = entry.getValue();
-					int i = Integer.parseInt(S[0]);
-					int j = Integer.parseInt(S[1]);
+//					String[] S = s.split("-");
+                                        float[] d = new float[D];
+					d = entry.getValue();
+                                        int i = Integer.valueOf(s);
+                                        for(int j=0;j<d.length;j++){
+                                            int coord = j+i;
+                                            Adjacency.setValueByEntry(d[j],i,j);
 					//System.out.println(i+"\t"+j+"\t"+d);
-					Adjacency.setValueByEntry( d,i,j);
+					//Adjacency.setValueByEntry( d,i,j);
 					//Adjacency.setValueByEntry( d,j,i);
-					r++;
+                                            r++;
+                                        }
+					
 				}
 				System.err.println("Processed "+ r + " records");
 			}catch(InterruptedException e){
@@ -355,7 +360,7 @@ public class Operations {
 			System.err.println("Thread " + t + " complete.");
 		}
 		System.err.println("Done.");
-		pool.shutdown();
+		pool.shutdownNow();
 		return Adjacency;
 	}
 	
