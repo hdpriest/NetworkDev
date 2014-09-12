@@ -221,7 +221,7 @@ public class NetworkCalculator {
 
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
         System.err.println("Calculating Similarity & Adjacency...\n");
-        CurrentMatrix = Operations.calculateAdjacency(DataFrame,corr,"sigmoid",alpha,mu,threads);
+        CurrentMatrix = Operations.calculateAdjacency(DataFrame,corr,"sigmoid",mu,alpha,threads);
         File theDir = new File(Out);
         if (!theDir.exists()) {
             System.out.println("creating directory: " + Out);
@@ -247,9 +247,6 @@ public class NetworkCalculator {
         
         //CurrentMatrix.generateHistogramHM(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
         Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
-        
-        System.err.println("Clustering...\n");
-
         System.exit(0);
     }
 

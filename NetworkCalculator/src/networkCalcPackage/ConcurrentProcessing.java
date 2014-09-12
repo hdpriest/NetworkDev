@@ -129,7 +129,7 @@ public class ConcurrentProcessing implements Callable<HashMap<String,float[]>> {
 	public float[] doWork_pcc (String s){
 		int i = Integer.parseInt(s);
 		int size = Exp.getNumRows() - i;
-		float[] means = new float[size];
+		float[] correlations = new float[size];
 		float[] I_data = Exp.getRowByIndex(i);
 		float I_mean = Exp.getMean(i);
         	for(int j=i;j<Exp.getNumRows();j++){
@@ -151,11 +151,11 @@ public class ConcurrentProcessing implements Callable<HashMap<String,float[]>> {
 					SQR2 += (v2 * v2);
 				}
 				correlation = (float) (Na/(Math.sqrt(SQR1) * Math.sqrt(SQR2)));
-                                correlation = _getSigmoid(correlation);
+                correlation = _getSigmoid(correlation);
 			}
-                        means[coord]=_getSigmoid(correlation);
+            correlations[coord]=correlation;
 		}
-		return means;
+		return correlations;
 	}
 	
 	private float _getSigmoid (float V){

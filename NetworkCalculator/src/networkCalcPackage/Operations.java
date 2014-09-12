@@ -222,7 +222,7 @@ public class Operations {
 	public static GCNMatrix calculateTOM (GCNMatrix Adjacency, int Threads){
 		int D = Adjacency.getNumRows();
 		GCNMatrix ReturnMatrix = new GCNMatrix(D,D);
-                ReturnMatrix = Operations.copyNames(Adjacency.getRowNames(), ReturnMatrix);
+        ReturnMatrix = Operations.copyNames(Adjacency.getRowNames(), ReturnMatrix);
 		ExecutorService pool = Executors.newFixedThreadPool(Threads);
 		ExecutorCompletionService<HashMap<String,float[]>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,float[]>>> taskList = new ArrayList<Future<HashMap<String,float[]>>>();
@@ -248,12 +248,13 @@ public class Operations {
 				int r = 0;
 				for(Map.Entry<String,float[]> entry : hm.entrySet()){
                                         String s = entry.getKey();
-                                        float[] d = new float[D];
-                                        d = entry.getValue();
                                         int i = Integer.valueOf(s);
+                                        int size = D-i;
+                                        float[] d = new float[size];
+                                        d = entry.getValue();
                                         for(int j=0;j<d.length;j++){
                                             int coord = j+i;
-                                            ReturnMatrix.setValueByEntry(d[j],i,j);
+                                            ReturnMatrix.setValueByEntry(d[j],i,coord);
                                             r++;
                                         }
 				}
@@ -336,14 +337,15 @@ public class Operations {
 				System.err.println("obtained result for thread " + t);
 				int r=0;
 				for(Map.Entry<String,float[]> entry : hm.entrySet()){
-					String s = entry.getKey();
+										String s = entry.getKey();
 //					String[] S = s.split("-");
-                                        float[] d = new float[D];
-					d = entry.getValue();
-                                        int i = Integer.valueOf(s);
+										int i = Integer.valueOf(s);
+										int size = D-i;
+                                        float[] d = new float[size];
+                                        d = entry.getValue();
                                         for(int j=0;j<d.length;j++){
                                             int coord = j+i;
-                                            Adjacency.setValueByEntry(d[j],i,j);
+                                            Adjacency.setValueByEntry(d[j],i,coord);
 					//System.out.println(i+"\t"+j+"\t"+d);
 					//Adjacency.setValueByEntry( d,i,j);
 					//Adjacency.setValueByEntry( d,j,i);
