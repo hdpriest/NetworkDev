@@ -6,12 +6,14 @@ import java.io.IOException;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -20,6 +22,7 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtilities;
@@ -619,6 +622,80 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 	}
 }
 
+	public static void permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P) {
+		int s1 = expF1.getNumColumns();
+		int s2 = expF2.getNumColumns();
+		int R = expF1.getNumRows();
+		int M = Math.min(expF1.getNumColumns(), expF2.getNumColumns());
+		int S = s1+s2;
+		int s = M * 2;
+		Integer[][] Sets = new Integer[P][];
+		Sets = _getPermutations(s1,s2,P);
+		ExpressionFrame pF1 = new ExpressionFrame(R,M);
+		ExpressionFrame pF2 = new ExpressionFrame(R,M);
+		// for all i in Sets p, obtain values of i<s from exp1, values of i>s
+		for(int p=0;p<P;p++){
+			for(int r=0;r<R;r++){
+				float[] rF1 = expF1.getRowByIndex(r);
+				float[] rF2 = expF2.getRowByIndex(r);
+				float[] nR1 = new float[M];
+				float[] nR2 = new float[M];
+				for(int m=0;m<M;m++){
+					int ind = Sets[p][m];
+					if(ind<s1){
+						nR1[m]=rF1[ind];
+					}else if(ind>=s1){
+						ind = ind - s1;
+						nR1[m]=rF2[ind];
+					}
+				}
+				pF1.addRow(nR1);
+				for(int m=M;m<s;m++){
+					int ind = Sets[p][m];
+					if(ind<s1){
+						nR2[m]=rF1[ind];
+					}else if(ind>=s1){
+						ind = ind - s1;
+						nR2[m]=rF2[ind];
+					}
+				}
+				pF2.addRow(nR2);
+			}	
+		}
+		// Now have permuted expression frames?
+		// NEEDS TESTING.
+	}
+	
+	private static Integer[][] _getPermutations(int s1,int s2,int p) {
+		Integer[][] Sets = new Integer[p][];
+		int m = Math.min(s1,s2);
+		int S = s1+s2;
+		int s = m * 2;
+		Integer ind[] = new Integer[S];
+		for(int i=0;i<S;i++){
+			ind[i]=i;
+		}
+		for(int i=0;i<p;i++){
+			// obtain a array of random order indicies, i-> [0,123,2,5,3,1]
+			Integer shuffled[] = fisherYates(ind);
+			Integer[] perms = Arrays.copyOfRange(shuffled, 0, s);
+			Sets[i]=perms;
+		}
+		return Sets;
+	}
+	
+	/// shuffle some primitives
+	private static Integer[] fisherYates (Integer[] array){
+	    Random rnd = new Random();
+	    for (int i = array.length - 1; i > 0; i--){
+	      int index = rnd.nextInt(i + 1);
+	      // Simple swap
+	      int a = array[index];
+	      array[index] = array[i];
+	      array[i] = a;
+	    }
+	    return array;
+	  }
 }
 
 

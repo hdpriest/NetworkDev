@@ -218,6 +218,8 @@ public class NetworkCalculator {
         System.err.println("Loading Data File\n");
 
         ExpressionFrame DataFrame = loadData(pathIn, FileDimensions, sep);
+        String FrameOut = Out + "/InputExpression.matrix.tab";
+        DataFrame.printMatrixToFile(FrameOut, sep);
 
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
         System.err.println("Calculating Similarity & Adjacency...\n");
@@ -291,7 +293,13 @@ public class NetworkCalculator {
             }
             dir1 = cmd.getOptionValue("d1");
             dir2 = cmd.getOptionValue("d2");
+            /*
+             * TODO : need to implement a few things 
+             * 1: print and load expression 
+             */
             threads = Integer.parseInt(cmd.getOptionValue("t"));
+            String Exp1 = dir1 + "/InputExpression.matrix.csv";
+            String Exp2 = dir2 + "/InputExpression.matrix.csv";
             String matrix1 = dir1 + "/Adj.matrix.tab";
             String matrix2 = dir2 + "/Adj.matrix.tab";
             out = cmd.getOptionValue("o");
@@ -308,6 +316,14 @@ public class NetworkCalculator {
                 System.exit(0);
             }
 
+            System.err.println("Loading original Expression data...");
+            int[] ExpDim = getFileDimensions(Exp1,sep);
+            ExpressionFrame ExpF1 = loadData(Exp1,ExpDim,sep);
+            ExpressionFrame ExpF2 = loadData(Exp2,ExpDim,sep);
+            System.err.println("Beginning permuation analysis...");
+            int P = 10;
+            Operations.permuteData(ExpF1,ExpF2,10);
+            
             System.err.println("Loading Data File\n");
 
             GCNMatrix NetworkA = new GCNMatrix(FD_1[0], FD_1[1]);

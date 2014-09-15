@@ -2,10 +2,13 @@ package networkCalcPackage;
 
 import java.awt.Color;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
+import java.util.Scanner;
 import java.math.RoundingMode;
+
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.chart.ChartFactory;
@@ -113,6 +116,7 @@ class ExpressionFrame {
 	public void setColumnNames (String[] Cols){
 		Y_lab = Cols;
 	}
+	
 	public float[][] getDataFrame () {
             return DataFrame;
     }
