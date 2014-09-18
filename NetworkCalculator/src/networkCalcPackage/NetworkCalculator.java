@@ -298,8 +298,8 @@ public class NetworkCalculator {
              * 1: print and load expression 
              */
             threads = Integer.parseInt(cmd.getOptionValue("t"));
-            String Exp1 = dir1 + "/InputExpression.matrix.csv";
-            String Exp2 = dir2 + "/InputExpression.matrix.csv";
+            String Exp1 = dir1 + "/InputExpression.matrix.tab";
+            String Exp2 = dir2 + "/InputExpression.matrix.tab";
             String matrix1 = dir1 + "/Adj.matrix.tab";
             String matrix2 = dir2 + "/Adj.matrix.tab";
             out = cmd.getOptionValue("o");
@@ -316,13 +316,16 @@ public class NetworkCalculator {
                 System.exit(0);
             }
 
-            System.err.println("Loading original Expression data...");
+            System.err.println("Loading original Expression data... (1)");
             int[] ExpDim = getFileDimensions(Exp1,sep);
             ExpressionFrame ExpF1 = loadData(Exp1,ExpDim,sep);
+            System.err.println("Loading original Expression data... (2)");
+            ExpDim = getFileDimensions(Exp2,sep);
             ExpressionFrame ExpF2 = loadData(Exp2,ExpDim,sep);
+            
             System.err.println("Beginning permuation analysis...");
-            int P = 10;
-            Operations.permuteData(ExpF1,ExpF2,10);
+            int P = 30;
+            Operations.permuteData(ExpF1,ExpF2,P);
             
             System.err.println("Loading Data File\n");
 
@@ -660,7 +663,7 @@ public class NetworkCalculator {
                 System.err.println("No file found to read.\n");
                 System.exit(0);
             }
-
+            
             Scanner scanner = new Scanner(file);
             String header[] = scanner.nextLine().split(sep);
             dimensions[0] = 0; // Frame height (minus header)
@@ -677,6 +680,7 @@ public class NetworkCalculator {
             scanner.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
+            System.exit(0);
         } finally {
         }
         return dimensions;

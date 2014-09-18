@@ -631,10 +631,12 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 		int s = M * 2;
 		Integer[][] Sets = new Integer[P][];
 		Sets = _getPermutations(s1,s2,P);
-		ExpressionFrame pF1 = new ExpressionFrame(R,M);
-		ExpressionFrame pF2 = new ExpressionFrame(R,M);
+		//System.out.println("size1: "+s1+"\nsize2: "+s2);
 		// for all i in Sets p, obtain values of i<s from exp1, values of i>s
 		for(int p=0;p<P;p++){
+			System.out.println("Permutation: " + p);
+			ExpressionFrame pF1 = new ExpressionFrame(R,M);
+			ExpressionFrame pF2 = new ExpressionFrame(R,M);
 			for(int r=0;r<R;r++){
 				float[] rF1 = expF1.getRowByIndex(r);
 				float[] rF2 = expF2.getRowByIndex(r);
@@ -642,28 +644,41 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 				float[] nR2 = new float[M];
 				for(int m=0;m<M;m++){
 					int ind = Sets[p][m];
+					//System.out.println("getting "+ ind + " ("+ m +")");
 					if(ind<s1){
+						//System.out.println("getting "+ind+" from 1 s1 is " + s1);
 						nR1[m]=rF1[ind];
 					}else if(ind>=s1){
 						ind = ind - s1;
+					//	System.out.println("getting "+ind+" from 2 s1 is " + s1);
 						nR1[m]=rF2[ind];
 					}
 				}
 				pF1.addRow(nR1);
 				for(int m=M;m<s;m++){
+					int Mind = m-M;
 					int ind = Sets[p][m];
+					//System.out.println("getting "+ ind + " ("+ m +")");
 					if(ind<s1){
-						nR2[m]=rF1[ind];
+						//System.out.println("getting "+ind+" from 1 s1 is " + s1);
+						nR2[Mind]=rF1[ind];
 					}else if(ind>=s1){
 						ind = ind - s1;
-						nR2[m]=rF2[ind];
+						//System.out.println("getting "+ind+" from 2 s1 is " + s1);
+						nR2[Mind]=rF2[ind];
 					}
 				}
 				pF2.addRow(nR2);
+				GCNMatrix CurrentMatrix = new GCNMatrix(pF1.getNumRows(), pF1.getNumRows());
+		        System.err.println("Calculating Similarity & Adjacency... (1)\n");
+		        CurrentMatrix = Operations.calculateAdjacency(pF1,"pcc","sigmoid",0.6f,12.0f,16);
+		        System.err.println("Calculating Similarity & Adjacency... (2)\n");
+		        CurrentMatrix = Operations.calculateAdjacency(pF2,"pcc","sigmoid",0.6f,12.0f,16);
 			}	
 		}
 		// Now have permuted expression frames?
 		// NEEDS TESTING.
+		System.exit(0);
 	}
 	
 	private static Integer[][] _getPermutations(int s1,int s2,int p) {
@@ -676,11 +691,17 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 			ind[i]=i;
 		}
 		for(int i=0;i<p;i++){
+			
 			// obtain a array of random order indicies, i-> [0,123,2,5,3,1]
 			Integer shuffled[] = fisherYates(ind);
 			Integer[] perms = Arrays.copyOfRange(shuffled, 0, s);
+			/*for(int x=0;x<perms.length;x++){
+				System.out.print(perms[x]+",");
+			}
+			System.out.print("\n");*/
 			Sets[i]=perms;
 		}
+		//System.exit(0);
 		return Sets;
 	}
 	
