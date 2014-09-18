@@ -3,6 +3,7 @@ package networkCalcPackage;
 import java.io.File;
 import java.util.Scanner;
 import java.io.FileNotFoundException;
+
 import org.apache.commons.cli.*;
 
 public class NetworkCalculator {
@@ -224,16 +225,7 @@ public class NetworkCalculator {
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
         System.err.println("Calculating Similarity & Adjacency...\n");
         CurrentMatrix = Operations.calculateAdjacency(DataFrame,corr,"sigmoid",mu,alpha,threads);
-        File theDir = new File(Out);
-        if (!theDir.exists()) {
-            System.out.println("creating directory: " + Out);
-            try {
-                theDir.mkdir();
-            } catch (SecurityException se) {
-                //TODO handle it
-            }
-        }
-        
+        Operations.createDirectory(Out);
         //CurrentMatrix = Operations.calculateSigmoidAdjacency(CurrentMatrix, mu, alpha, threads);
         String ThisOut = Out + "/Adjacency.dist.jpeg";
         CurrentMatrix.maskMatrix(Mask);
@@ -259,6 +251,7 @@ public class NetworkCalculator {
         String dir2;
         String out;
         int threads;
+        int permutations;
         try {
             CommandLine cmd = parser.parse(options, args);
             HelpFormatter formatter = new HelpFormatter();
@@ -291,18 +284,27 @@ public class NetworkCalculator {
                 formatter.printHelp("java -jar jarfile.jar", options);
                 System.exit(0);
             }
+            if (cmd.hasOption("p")) {
+            } else {
+                formatter.printHelp("java -jar jarfile.jar", options);
+                System.exit(0);
+            }
             dir1 = cmd.getOptionValue("d1");
             dir2 = cmd.getOptionValue("d2");
+            permutations = Integer.parseInt(cmd.getOptionValue("p"));
+            threads = Integer.parseInt(cmd.getOptionValue("t"));
+            out = cmd.getOptionValue("o");
+            Operations.createDirectory(out);
             /*
              * TODO : need to implement a few things 
              * 1: print and load expression 
              */
-            threads = Integer.parseInt(cmd.getOptionValue("t"));
+            
             String Exp1 = dir1 + "/InputExpression.matrix.tab";
             String Exp2 = dir2 + "/InputExpression.matrix.tab";
             String matrix1 = dir1 + "/Adj.matrix.tab";
             String matrix2 = dir2 + "/Adj.matrix.tab";
-            out = cmd.getOptionValue("o");
+            
             String sep = "\t";
 
             int[] FD_1 = new int[2];
@@ -324,31 +326,25 @@ public class NetworkCalculator {
             ExpressionFrame ExpF2 = loadData(Exp2,ExpDim,sep);
             
             System.err.println("Beginning permuation analysis...");
-            int P = 30;
-            Operations.permuteData(ExpF1,ExpF2,P);
+            Operations.permuteData(ExpF1,ExpF2,permutations,out,threads);
+            System.err.println("Permutations done");
             
-            System.err.println("Loading Data File\n");
-
-            GCNMatrix NetworkA = new GCNMatrix(FD_1[0], FD_1[1]);
-            GCNMatrix NetworkB = new GCNMatrix(FD_1[0], FD_1[1]);
-            System.err.println("Loading Data File: " + matrix1 + "\n");
-            NetworkA = loadNetwork(matrix1, FD_1, sep);
-            System.err.println("Loading Data File: " + matrix2 + "\n");
-            NetworkB = loadNetwork(matrix2, FD_1, sep);
+            System.err.println("Calculating actual values...");
+            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1,"gini","sigmoid",0.6f,12.0f,16);
+            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2,"gini","sigmoid",0.6f,12.0f,16);
             NetworkA.calculateKs();
             NetworkB.calculateKs();
 
-            GCNMatrix Difference = new GCNMatrix(FD_1[0], FD_1[1]);
-            Difference = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
-            String O2 = "Selfwise." + out + ".jpeg";
+            GCNMatrix Difference = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
+            String O2 = out + "/Selfwise.actual.jpeg";
             Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", true);
-
+            
             NetworkA = Operations.calculateTOM(NetworkA, threads);
             NetworkB = Operations.calculateTOM(NetworkB, threads);
             Difference = Operations.calculateDifference(NetworkA, NetworkB);
-            String O1 = "Pairwise." + out + ".jpeg";
+            String O1 = out + "/Pairwise.actual.jpeg";
             Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", true);
-
+            System.exit(0);
             System.exit(0);
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
@@ -486,11 +482,17 @@ public class NetworkCalculator {
         OptionBuilder.withDescription("number of processing threads");
         Option threads = OptionBuilder.create("t");
 
+        OptionBuilder.withArgName("permutations");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("number of permutations to determine significance");
+        Option permutations = OptionBuilder.create("p");
+        
         options.addOption(help);
         options.addOption(dir1);
         options.addOption(dir2);
         options.addOption(output);
         options.addOption(threads);
+        options.addOption(permutations);
         return options;
     }
 

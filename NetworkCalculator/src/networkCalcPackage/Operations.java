@@ -318,7 +318,7 @@ public class Operations {
 		ExecutorCompletionService<HashMap<String,float[]>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,float[]>>> taskList = new ArrayList<Future<HashMap<String,float[]>>>();
 		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
-		System.err.println("Processing adjacency using " + Threads + " threads.");
+		//System.err.println("Processing adjacency using " + Threads + " threads.");
 		
 		//queue prep
 		for(int i=0;i<D;i++){
@@ -337,7 +337,7 @@ public class Operations {
 		for(int t=0;t<Threads;t++){
 			try{
 				HashMap<String,float[]> hm = completionService.take().get();
-				System.err.println("obtained result for thread " + t);
+				//System.err.println("obtained result for thread " + t);
 				int r=0;
 				for(Map.Entry<String,float[]> entry : hm.entrySet()){
 										String s = entry.getKey();
@@ -356,13 +356,13 @@ public class Operations {
                                         }
 					
 				}
-				System.err.println("Processed "+ r + " records");
+				//System.err.println("Processed "+ r + " records");
 			}catch(InterruptedException e){
 				e.printStackTrace();
 			}catch (ExecutionException e){
 				e.printStackTrace();
 			}
-			System.err.println("Thread " + t + " complete.");
+			//System.err.println("Thread " + t + " complete.");
 		}
 		System.err.println("Done.");
 		pool.shutdownNow();
@@ -622,7 +622,7 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 	}
 }
 
-	public static void permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P) {
+	public static void permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P,String out,int threads) {
 		int s1 = expF1.getNumColumns();
 		int s2 = expF2.getNumColumns();
 		int R = expF1.getNumRows();
@@ -669,16 +669,22 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 					}
 				}
 				pF2.addRow(nR2);
-				GCNMatrix CurrentMatrix = new GCNMatrix(pF1.getNumRows(), pF1.getNumRows());
-		        System.err.println("Calculating Similarity & Adjacency... (1)\n");
-		        CurrentMatrix = Operations.calculateAdjacency(pF1,"pcc","sigmoid",0.6f,12.0f,16);
-		        System.err.println("Calculating Similarity & Adjacency... (2)\n");
-		        CurrentMatrix = Operations.calculateAdjacency(pF2,"pcc","sigmoid",0.6f,12.0f,16);
 			}	
+			GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1,"pcc","sigmoid",0.6f,12.0f,threads);
+			GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2,"pcc","sigmoid",0.6f,12.0f,threads);
+			CurrentMatrix1.calculateKs();
+			CurrentMatrix2.calculateKs();
+			GCNMatrix Difference = Operations.compareNetworksViaTOM(CurrentMatrix1,CurrentMatrix2);
+			String O2 = out + "/Selfwise."+ p + ".testing.jpeg";
+            Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", true);
+            CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
+            CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2, threads);
+            Difference = Operations.calculateDifference(CurrentMatrix1,CurrentMatrix2);
+            String O1 = out + "/Pairwise." + p + ".jpeg";
+            Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", true);
 		}
 		// Now have permuted expression frames?
 		// NEEDS TESTING.
-		System.exit(0);
 	}
 	
 	private static Integer[][] _getPermutations(int s1,int s2,int p) {
@@ -717,6 +723,17 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 	    }
 	    return array;
 	  }
+	public static void createDirectory (String dir){
+		File theDir = new File(dir);
+        if (!theDir.exists()) {
+            System.out.println("creating directory: " + dir);
+            try {
+                theDir.mkdir();
+            } catch (SecurityException se) {
+                //TODO handle it
+            }
+        }
+	}
 }
 
 
