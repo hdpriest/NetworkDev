@@ -190,12 +190,12 @@ class GCNMatrix {
 	}
 	
 	public void maskMatrix (float maskLevel) {
-		int H = DataFrame.length;
-		int W = DataFrame[0].length;
+		int H = N;
 		for(int i=0;i<H;i++){
-			for(int j=0;j<W;j++){
-				if(DataFrame[i][j]<maskLevel){
-					DataFrame[i][j]=0;
+			for(int j=i;j<N;j++){
+				float v = _getValueByEntry(i,j);
+				if(Math.abs(v)<maskLevel){
+                                        _setValueByEntry(0.0f,i,j);
 				}
 			}
 		}
@@ -203,7 +203,7 @@ class GCNMatrix {
 	
 	public boolean testValue (int i,int j){
 		boolean res=true;
-		if(DataFrame[i][j] == 0){
+		if(_getValueByEntry(i,j) == 0f){
 			res=false;
 		}else{
 			res=true;
@@ -219,7 +219,7 @@ class GCNMatrix {
 				if(i==j){
 					
 				}else{
-					thisK+=DataFrame[i][j];
+					thisK+=_getValueByEntry(i,j);
 				}
 			}
 			k[i]=thisK;

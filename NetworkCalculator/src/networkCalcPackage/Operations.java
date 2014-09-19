@@ -426,17 +426,15 @@ public class Operations {
 	public static GCNMatrix calculateDifference (GCNMatrix mat1, GCNMatrix mat2){
 		int D = mat1.getNumRows();
 		GCNMatrix Difference = new GCNMatrix(D,D);
-        Difference = Operations.copyNames(mat1.getRowNames(), Difference);
+                Difference = Operations.copyNames(mat1.getRowNames(), Difference);
 		for(int i=0;i<D;i++){
 			for(int j=i;j<D;j++){
 				float v1=mat1.getValueByEntry(i, j);
 				float v2=mat2.getValueByEntry(i, j);
 				//if((v1 != 0) & (v2 != 0)){
-					float d1 =v1-v2;
-					float d2 =v1-v2;
-				//System.out.println("Val1: " + v1 +" Val2: " + v2 + " diff " + d);
-					Difference.setValueByEntry(d1,i,j);
-					Difference.setValueByEntry(d2,j,i);
+				float d1 =v1-v2;
+//                                System.out.println("Val1: " + v1 +" Val2: " + v2 + " diff " + d1);
+				Difference.setValueByEntry(d1,i,j);
 				//}
 			}
 		}
@@ -577,18 +575,21 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 	int W = DataFrame.getNumColumns();
 	DecimalFormat df = new DecimalFormat("#.##");
 	df.setRoundingMode(RoundingMode.HALF_UP);
-	TreeMap<Double,Integer> HMHistogram = new TreeMap<Double,Integer>();
+	TreeMap<Float,Integer> HMHistogram = new TreeMap<Float,Integer>();
 	for(int i=0;i<H;i++){
 		for(int j=0;j<W;j++){
 			//System.out.println("Val: "+DataFrame[i][j]+"\n");
 			if(DataFrame.getValueByEntry(i,j) != 0){
 				try{
-					Double V = (Double.valueOf(df.format(DataFrame.getValueByEntry(i,j))));
+					Float V = (Float.valueOf(df.format(DataFrame.getValueByEntry(i,j))));
+                                        
 					if(HMHistogram.containsKey(V)){
 						Integer I = HMHistogram.get(V);
+                                               // System.out.println("Putting " + V+ " and " + I);
 						HMHistogram.put(V,I+1);
 					}else{
 						HMHistogram.put(V,1);
+                                               // System.out.println("Putting " + V+ " and 1");
 					}
 				}catch(NumberFormatException ex){
 					System.out.println("Obtain " + DataFrame.getValueByEntry(i,j) +" from matrix.");
@@ -599,9 +600,12 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 	}
 	XYSeriesCollection dataset = new XYSeriesCollection();
 	XYSeries series = new XYSeries("Values");
-	for(Map.Entry<Double,Integer> entry : HMHistogram.entrySet()) {
-			  Double A = entry.getKey();
-			  Integer value = entry.getValue();
+	for(Map.Entry<Float,Integer> entry : HMHistogram.entrySet()) {
+			  Float A;
+                          A = entry.getKey();
+			  Integer value;
+                          value = entry.getValue();
+                          //System.err.println("Got " + A + " and " + value);
                           if(print == true){
                             System.out.println(A +","+value);
                           }
@@ -676,12 +680,13 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 			CurrentMatrix2.calculateKs();
 			GCNMatrix Difference = Operations.compareNetworksViaTOM(CurrentMatrix1,CurrentMatrix2);
 			String O2 = out + "/Selfwise."+ p + ".testing.jpeg";
-            Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", true);
-            CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
-            CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2, threads);
-            Difference = Operations.calculateDifference(CurrentMatrix1,CurrentMatrix2);
-            String O1 = out + "/Pairwise." + p + ".jpeg";
-            Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", true);
+                        Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", true);
+                        CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
+                        CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2, threads);
+                        Difference = Operations.calculateDifference(CurrentMatrix1,CurrentMatrix2);
+                        String O1 = out + "/Pairwise." + p + ".jpeg";
+                        Difference.maskMatrix(0.02f);
+                        Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", true);
 		}
 		// Now have permuted expression frames?
 		// NEEDS TESTING.

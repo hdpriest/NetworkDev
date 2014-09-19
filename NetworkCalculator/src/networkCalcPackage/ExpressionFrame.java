@@ -133,8 +133,9 @@ class ExpressionFrame {
 		int W = DataFrame[0].length;
 		for(int i=0;i<H;i++){
 			for(int j=0;j<W;j++){
-				if(DataFrame[i][j]<maskLevel){
-					DataFrame[i][j]=0;
+                                float v = _getValueByEntry(i,j);
+				if(v<maskLevel){
+                                        _setValueByEntry(0.0f,i,j);
 				}
 			}
 		}
@@ -142,7 +143,7 @@ class ExpressionFrame {
 	
 	public boolean testValue (int i,int j){
 		boolean res=true;
-		if(DataFrame[i][j] == 0){
+		if(_getValueByEntry(i,j) == 0){
 			res=false;
 		}else{
 			res=true;
@@ -158,7 +159,7 @@ class ExpressionFrame {
 				if(i==j){
 					
 				}else{
-					thisK+=DataFrame[i][j];
+					thisK+=_getValueByEntry(i,j);
 				}
 			}
 			k[i]=thisK;

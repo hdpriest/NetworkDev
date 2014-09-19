@@ -330,8 +330,8 @@ public class NetworkCalculator {
             System.err.println("Permutations done");
             
             System.err.println("Calculating actual values...");
-            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1,"gini","sigmoid",0.6f,12.0f,16);
-            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2,"gini","sigmoid",0.6f,12.0f,16);
+            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1,"pcc","sigmoid",0.6f,12.0f,16);
+            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2,"pcc","sigmoid",0.6f,12.0f,16);
             NetworkA.calculateKs();
             NetworkB.calculateKs();
 
@@ -341,9 +341,14 @@ public class NetworkCalculator {
             
             NetworkA = Operations.calculateTOM(NetworkA, threads);
             NetworkB = Operations.calculateTOM(NetworkB, threads);
+            O2 = out + "/TOMA.actual.jpeg";
+            Operations.generateHistogramHM(NetworkA, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", true);
+            O2 = out + "/TOMB.actual.jpeg";
+            Operations.generateHistogramHM(NetworkB, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", true);
             Difference = Operations.calculateDifference(NetworkA, NetworkB);
             String O1 = out + "/Pairwise.actual.jpeg";
             Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", true);
+//            Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
             System.exit(0);
             System.exit(0);
         } catch (ParseException exp) {
