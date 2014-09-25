@@ -230,7 +230,7 @@ public class Operations {
 		ExecutorCompletionService<HashMap<String,float[]>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,float[]>>> taskList = new ArrayList<Future<HashMap<String,float[]>>>();
 		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
-		System.err.println("Processing topological overlap using " + Threads + " threads.");
+		//System.err.println("Processing topological overlap using " + Threads + " threads.");
 		for(int i=0;i<D;i++){
 			String S = String.valueOf(i);
 			queue.add(S);
@@ -247,7 +247,7 @@ public class Operations {
 		for(int t=0;t<Threads;t++){
 			try{
 				HashMap<String,float[]> hm = completionService.take().get();
-				System.err.println("obtained result for thread " + t);
+				//System.err.println("obtained result for thread " + t);
 				int r = 0;
 				for(Map.Entry<String,float[]> entry : hm.entrySet()){
                                         String s = entry.getKey();
@@ -261,15 +261,15 @@ public class Operations {
                                             r++;
                                         }
 				}
-				System.err.println("Processed "+ r + " records");
+				//System.err.println("Processed "+ r + " records");
 			}catch(InterruptedException e){
 				e.printStackTrace();
 			}catch (ExecutionException e){
 				e.printStackTrace();
 			}
-			System.err.println("Thread " + t + " complete.");
+			//System.err.println("Thread " + t + " complete.");
 		}
-		System.err.println("Done.");
+		//System.err.println("Done.");
 		pool.shutdownNow();
 		return ReturnMatrix;
 	}
@@ -364,7 +364,7 @@ public class Operations {
 			}
 			//System.err.println("Thread " + t + " complete.");
 		}
-		System.err.println("Done.");
+		//System.err.println("Done.");
 		pool.shutdownNow();
 		return Adjacency;
 	}
@@ -570,6 +570,7 @@ public class Operations {
 		}
 	}
 */
+      
 public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab,boolean print) {
 	int H = DataFrame.getNumRows();
 	int W = DataFrame.getNumColumns();
@@ -626,7 +627,7 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 	}
 }
 
-	public static void permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P,String out,int threads) {
+	public static float permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P,String out,int threads) {
 		int s1 = expF1.getNumColumns();
 		int s2 = expF2.getNumColumns();
 		int R = expF1.getNumRows();
@@ -637,6 +638,10 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 		Sets = _getPermutations(s1,s2,P);
 		//System.out.println("size1: "+s1+"\nsize2: "+s2);
 		// for all i in Sets p, obtain values of i<s from exp1, values of i>s
+                
+                float CUTOFF = 1.0f;
+                
+                ArrayList<TreeMap<Float,Integer>> Perms = new ArrayList<>();
 		for(int p=0;p<P;p++){
 			System.out.println("Permutation: " + p);
 			ExpressionFrame pF1 = new ExpressionFrame(R,M);
@@ -674,24 +679,139 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 				}
 				pF2.addRow(nR2);
 			}	
-			GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1,"pcc","sigmoid",0.6f,12.0f,threads);
-			GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2,"pcc","sigmoid",0.6f,12.0f,threads);
+			GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1,"pcc","sigmoid",0.8f,20.0f,threads);
+			GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2,"pcc","sigmoid",0.8f,20.0f,threads);
 			CurrentMatrix1.calculateKs();
 			CurrentMatrix2.calculateKs();
-			GCNMatrix Difference = Operations.compareNetworksViaTOM(CurrentMatrix1,CurrentMatrix2);
+                        CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1,16);
+                        CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2,16);
+			GCNMatrix Difference = Operations.calculateDifference(CurrentMatrix1,CurrentMatrix2);
+                        TreeMap<Float,Integer> Distribution = Difference.generateDistribution();
+                        Perms.add(Distribution);
+                        Difference.maskMatrix(0.02f);
 			String O2 = out + "/Selfwise."+ p + ".testing.jpeg";
-                        Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", true);
-                        CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
+                        Operations.generateHistogramHM(Difference, O2, "Cross-network Adjacency diffs Zm vs Sv", "selfwise TOM", "Count", false);
+                        /*CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
                         CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2, threads);
                         Difference = Operations.calculateDifference(CurrentMatrix1,CurrentMatrix2);
                         String O1 = out + "/Pairwise." + p + ".jpeg";
                         Difference.maskMatrix(0.02f);
-                        Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", true);
+                        Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", false);
+                        */
+		}
+                GCNMatrix NetworkA = Operations.calculateAdjacency(expF1,"pcc","sigmoid",0.8f,20.0f,16);
+                GCNMatrix NetworkB = Operations.calculateAdjacency(expF2,"pcc","sigmoid",0.8f,20.0f,16);
+                NetworkA.calculateKs();
+                NetworkB.calculateKs();
+                NetworkA = Operations.calculateTOM(NetworkA,16);
+                NetworkB = Operations.calculateTOM(NetworkB,16);
+                GCNMatrix rDiff = Operations.calculateDifference(NetworkA, NetworkB);
+                TreeMap<Float,Integer> Real = rDiff.generateDistribution();
+                
+                System.err.println("Cutoff\tAverage False\tTrue\tFDR");
+                for(float c=0.0f;c<1.0f;c+=0.01f){
+                    float C = c;
+                    Double Total=0.0d;
+                    for(int a=0;a<Perms.size();a++){
+                        for(Map.Entry<Float,Integer> entry : Perms.get(a).entrySet()) {
+                            Float A;
+                            A = entry.getKey();
+                            Double value;
+                            value = Double.valueOf(entry.getValue());
+                            if(Math.abs(A)>=C){
+                                Total += value;
+                            }
+                        }
+                    }
+                    // Total holds all instances of adj value > C across all perms
+                    Double Average = Total/Perms.size();
+                    Double RealHits = 0.0d;
+                    for(Map.Entry<Float,Integer> entry : Real.entrySet()) {
+                        Float A;
+                        A = entry.getKey();
+                        Double value;
+                        value = Double.valueOf(entry.getValue());
+                        if(Math.abs(A)>=C){
+                            RealHits += value;
+                        }
+                    }
+                    double FDR = Average/RealHits;
+                    if(FDR<=0.15){
+                        System.err.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
+                    }
+                    
+                    if(FDR <= 0.05){
+                        if(CUTOFF==1){
+                            CUTOFF = C;
+                        }else{
+                            
+                        }
+                    }
+                    
+                }
+		// Now have permuted expression frames?
+		// NEEDS TESTING.
+                return CUTOFF;
+	}
+        
+	public static void permuteDataHalf(ExpressionFrame expF1, ExpressionFrame expF2, int P,String out,int threads) {
+		int s1 = expF1.getNumColumns();
+		int s2 = expF2.getNumColumns();
+		int R = expF1.getNumRows();
+		int M = Math.min(expF1.getNumColumns(), expF2.getNumColumns());
+		int S = s1+s2;
+		int s = M * 2;
+		Integer[][] Sets = new Integer[P][];
+		Sets = _getPermutations(s1,s2,P);
+		//System.out.println("size1: "+s1+"\nsize2: "+s2);
+		// for all i in Sets p, obtain values of i<s from exp1, values of i>s
+                GCNMatrix RealAdj = Operations.calculateAdjacency(expF1,"pcc","sigmoid",0.8f,16.0f,threads);
+                RealAdj.calculateKs();
+                GCNMatrix RealTom = Operations.calculateTOM(RealAdj, threads);
+		for(int p=0;p<P;p++){
+			System.out.println("Permutation: " + p);
+			ExpressionFrame pF1 = new ExpressionFrame(R,M);
+			for(int r=0;r<R;r++){
+				float[] rF1 = expF1.getRowByIndex(r);
+				float[] rF2 = expF2.getRowByIndex(r);
+				float[] nR1 = new float[M];
+				float[] nR2 = new float[M];
+				for(int m=0;m<M;m++){
+					int ind = Sets[p][m];
+					//System.out.println("getting "+ ind + " ("+ m +")");
+					if(ind<s1){
+						//System.out.println("getting "+ind+" from 1 s1 is " + s1);
+						nR1[m]=rF1[ind];
+					}else if(ind>=s1){
+						ind = ind - s1;
+					//	System.out.println("getting "+ind+" from 2 s1 is " + s1);
+						nR1[m]=rF2[ind];
+					}
+				}
+				pF1.addRow(nR1);
+			}
+                       	GCNMatrix CurrentMatrix = Operations.calculateAdjacency(pF1,"pcc","sigmoid",0.8f,16.0f,threads);
+                        
+			CurrentMatrix.calculateKs();
+                        
+			GCNMatrix Difference = Operations.calculateDifference(RealAdj,CurrentMatrix);
+                        Difference.maskMatrix(0.02f);
+			String O2 = out + "/Selfwise."+ p + ".testing.jpeg";
+                        Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
+                        
+                        /*
+                        CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
+                        
+                        Difference = Operations.calculateDifference(RealTom,CurrentMatrix);
+                        String O1 = out + "/Pairwise." + p + ".jpeg";
+                        Difference.maskMatrix(0.02f);
+                        Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", false);
+                        */
 		}
 		// Now have permuted expression frames?
 		// NEEDS TESTING.
 	}
-	
+        
 	private static Integer[][] _getPermutations(int s1,int s2,int p) {
 		Integer[][] Sets = new Integer[p][];
 		int m = Math.min(s1,s2);

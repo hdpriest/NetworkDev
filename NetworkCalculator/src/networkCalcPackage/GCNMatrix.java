@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.math.RoundingMode;
+import java.util.Map;
+import java.util.TreeMap;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.chart.ChartFactory;
@@ -200,7 +202,36 @@ class GCNMatrix {
 			}
 		}
 	}
-	
+        
+	public TreeMap<Float,Integer> generateDistribution () {
+	int H = N;
+	DecimalFormat df = new DecimalFormat("#.##");
+	df.setRoundingMode(RoundingMode.HALF_UP);
+	TreeMap<Float,Integer> HMHistogram = new TreeMap<Float,Integer>();
+	for(int i=0;i<H;i++){
+		for(int j=i;j<H;j++){
+			//System.out.println("Val: "+DataFrame[i][j]+"\n");
+			if(_getValueByEntry(i,j) != 0){
+				try{
+					Float V = (Float.valueOf(df.format(_getValueByEntry(i,j))));
+					if(HMHistogram.containsKey(V)){
+						Integer I = HMHistogram.get(V);
+                                               // System.out.println("Putting " + V+ " and " + I);
+						HMHistogram.put(V,I+1);
+					}else{
+						HMHistogram.put(V,1);
+                                               // System.out.println("Putting " + V+ " and 1");
+					}
+				}catch(NumberFormatException ex){
+					System.out.println("Obtain " + _getValueByEntry(i,j) +" from matrix.");
+					System.exit(1);
+				}
+			}
+		}
+	}
+	return HMHistogram;
+}
+  
 	public boolean testValue (int i,int j){
 		boolean res=true;
 		if(_getValueByEntry(i,j) == 0f){

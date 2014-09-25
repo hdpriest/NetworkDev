@@ -326,34 +326,38 @@ public class NetworkCalculator {
             ExpressionFrame ExpF2 = loadData(Exp2,ExpDim,sep);
             
             System.err.println("Beginning permuation analysis...");
-            Operations.permuteData(ExpF1,ExpF2,permutations,out,threads);
-            System.err.println("Permutations done");
+            float CUTOFF = Operations.permuteData(ExpF1,ExpF2,permutations,out,threads);
+            System.err.println("Permutations done. Obtained Cutoff of dTOM = " + CUTOFF);
             
             System.err.println("Calculating actual values...");
-            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1,"pcc","sigmoid",0.6f,12.0f,16);
-            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2,"pcc","sigmoid",0.6f,12.0f,16);
+            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1,"pcc","sigmoid",0.8f,20.0f,16);
+            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2,"pcc","sigmoid",0.8f,20.0f,16);
             NetworkA.calculateKs();
             NetworkB.calculateKs();
 
-            GCNMatrix Difference = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
+            //GCNMatrix Difference = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
+            GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
+            Difference.maskMatrix(0.02f);
             String O2 = out + "/Selfwise.actual.jpeg";
-            Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", true);
-            
+            Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
+            /*
             NetworkA = Operations.calculateTOM(NetworkA, threads);
             NetworkB = Operations.calculateTOM(NetworkB, threads);
             O2 = out + "/TOMA.actual.jpeg";
-            Operations.generateHistogramHM(NetworkA, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", true);
+            Operations.generateHistogramHM(NetworkA, O2, "Topological Overlaps Network A", "TOM", "Count", false);
             O2 = out + "/TOMB.actual.jpeg";
-            Operations.generateHistogramHM(NetworkB, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", true);
+            Operations.generateHistogramHM(NetworkB, O2, "Topological Overlaps Network B", "TOM", "Count", false);
             Difference = Operations.calculateDifference(NetworkA, NetworkB);
             String O1 = out + "/Pairwise.actual.jpeg";
-            Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", true);
+            Operations.generateHistogramHM(Difference, O1, "Pairwise Edge-based TOM Differences Zm vs Sv", "cross-pair Delta-TOM", "Count", false);
 //            Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
             System.exit(0);
             System.exit(0);
+            */
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
             System.err.println("Exiting...\n");
+            
             System.exit(0);
         }
 
