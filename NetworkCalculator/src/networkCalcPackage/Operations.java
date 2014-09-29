@@ -33,6 +33,9 @@ import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
 
+
+
+
 public class Operations {
 	
 	public static float GINI (float[] array1,float[] array2){
@@ -193,39 +196,11 @@ public class Operations {
 		}
 		return ReturnFrame;
 	}
-	/*
-	public static GCNMatrix calculateTOM (GCNMatrix InputFrame){
-		int D = InputFrame.getNumRows();
-		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
-                ReturnFrame = Operations.copyNames(InputFrame, ReturnFrame);
-		for(int i=0;i<D;i++){
-			float i_k = InputFrame.findK(i, i);
-			for(int j=0;j<D;j++){
-				float T=0;
-				if(i==j){
-					T=1;
-				}else{
-					float product=0f;
-					float j_k = InputFrame.findK(j,j);
-					for(int u=0;u<D;u++){
-						if((u != i) && (u != j) && (InputFrame.testValue(i, u)) && (InputFrame.testValue(j, u))){
-							product += InputFrame.getValueByEntry(i,u) * InputFrame.getValueByEntry(j,u);
-						}
-					}
-					float k_min = Math.min(i_k, j_k);
-					float DFIJ=InputFrame.getValueByEntry(i,j);
-					T=(product+DFIJ)/(k_min + 1 - DFIJ);
-				}
-				ReturnFrame.setValueByEntry(T, i, j);
-			}
-		}
-		return ReturnFrame;
-	}
-	*/
+
 	public static GCNMatrix calculateTOM (GCNMatrix Adjacency, int Threads){
 		int D = Adjacency.getNumRows();
 		GCNMatrix ReturnMatrix = new GCNMatrix(D,D);
-        ReturnMatrix = Operations.copyNames(Adjacency.getRowNames(), ReturnMatrix);
+                ReturnMatrix = Operations.copyNames(Adjacency.getRowNames(), ReturnMatrix);
 		ExecutorService pool = Executors.newFixedThreadPool(Threads);
 		ExecutorCompletionService<HashMap<String,float[]>> completionService = new ExecutorCompletionService<>(pool);
 		List<Future<HashMap<String,float[]>>> taskList = new ArrayList<Future<HashMap<String,float[]>>>();
@@ -273,26 +248,7 @@ public class Operations {
 		pool.shutdownNow();
 		return ReturnMatrix;
 	}
-	/*
-	public static GCNMatrix calculateSigmoidAdjacency (GCNMatrix Similarity, float mu, float alpha){
-		int D = Similarity.getNumRows();
-		GCNMatrix Adjacency = new GCNMatrix(D,D);
-                Adjacency = Operations.copyNames(Similarity, Adjacency);
-		for(int i=0;i<D;i++){
-			for(int j=i;j<D;j++){
-				float adjacency=0.0f;
-				if(i==j){
-					adjacency = 1.0f;
-				}else{
-					adjacency = (float) (1/(1+Math.exp(alpha*-1*(Math.abs(Similarity.getValueByEntry(i,j))-mu))));
-				}
-				Adjacency.setValueByEntry(adjacency, i, j);
-				Adjacency.setValueByEntry(adjacency, j, i);
-			}
-		}
-		return Adjacency;
-	}
-	*/
+	
 	private static void explode (){
 		System.err.println("No correlation got to this point!?");
 		System.exit(0);
@@ -440,136 +396,7 @@ public class Operations {
 		}
 		return Difference;
 	}
-	/*
-	public static GCNMatrix calculateSimilarity (GCNMatrix Expression){
-		int D = Expression.getNumRows();
-		GCNMatrix Similarity = new GCNMatrix(D,D);
-                Similarity = Operations.copyNames(Expression, Similarity);
-		for(int i=0;i<D;i++){
-			for(int j=i;j<D;j++){
-				float correlation=(float) 0.0;
-				if(i==j){
-					correlation = (float) 1.0;
-				}else{
-					double[] I_data = Expression.getRowByIndexDbl(i);
-					double[] J_data = Expression.getRowByIndexDbl(j);
-					PearsonsCorrelation corr = new PearsonsCorrelation();
-					correlation = (float) corr.correlation(I_data,J_data);
-				}
-				Similarity.setValueByEntry(correlation,i,j);
-				Similarity.setValueByEntry(correlation,j,i);
-			}
-		}
-
-		return Similarity;
-	}
-	
-	public static GCNMatrix calculateSimilarity (GCNMatrix Expression,int Threads){
-		int D = Expression.getNumRows();
-		GCNMatrix Similarity = new GCNMatrix(D,D);
-                Similarity = Operations.copyNames(Expression, Similarity);
-		ExecutorService pool = Executors.newFixedThreadPool(Threads);
-		ExecutorCompletionService<HashMap<String,Float>> completionService = new ExecutorCompletionService<>(pool);
-		List<Future<HashMap<String,Float>>> taskList = new ArrayList<Future<HashMap<String,Float>>>();
-		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
-		System.err.println("Processing similarity using " + Threads + " threads.");
 		
-		for(int i=0;i<D;i++){
-			for(int j=i;j<D;j++){
-				String S = i+"-"+j;
-				queue.add(S);
-			}
-		}
-		for ( int i = 0; i < Threads; i++ ) {
-			Callable<HashMap<String,Float>> worker = new ConcurrentProcessing(Expression,queue,"pcc");
-			Future<HashMap<String,Float>> submit = completionService.submit(worker);
-			taskList.add(submit);  
-		}
-		
-
-		for(int t=0;t<Threads;t++){
-			try{
-				HashMap<String,Float> hm = completionService.take().get();
-				System.err.println("obtained result for thread " + t);
-				int r =0;
-				for(Map.Entry<String,Float> entry : hm.entrySet()){
-					String s = entry.getKey();
-					String[] S = s.split("-");
-					Float d = entry.getValue();
-					int i = Integer.parseInt(S[0]);
-					int j = Integer.parseInt(S[1]);
-					//System.out.println(i+"\t"+j+"\t"+d);
-					Similarity.setValueByEntry((float) d,i,j);
-					Similarity.setValueByEntry((float) d,j,i);
-					r++;
-				}
-				System.err.println("Processed "+ r + " records");
-			}catch(InterruptedException e){
-				e.printStackTrace();
-			}catch (ExecutionException e){
-				e.printStackTrace();
-			}
-			System.err.println("Thread " + t + " complete.");
-		}
-		System.err.println("Done.");
-		pool.shutdown();
-		return Similarity;
-	}
-	*/
-	/*
-	public static void generateHistogram (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab,boolean log) {
-		int H = DataFrame.getNumRows();
-		int W = DataFrame.getNumColumns();
-		double[] Histogram=new double[201];
-		DecimalFormat df = new DecimalFormat("#.####");
-		df.setRoundingMode(RoundingMode.HALF_UP);
-		
-		for(int i=0;i<H;i++){
-			for(int j=0;j<W;j++){
-				//System.out.println("Val: "+DataFrame[i][j]+"\n");
-				if(DataFrame.getValueByEntry(i,j) != 0){
-					try{
-						Double v= ((Double.valueOf(df.format(DataFrame.getValueByEntry(i,j))))+1)*100;
-						
-						int value = v.intValue();
-						Histogram[value]++;
-						
-					}catch(NumberFormatException ex){
-						System.out.println("Obtain " + DataFrame.getValueByEntry(i,j) +" from matrix.");
-						System.exit(1);
-					}
-				}
-			}
-		}
-		XYSeriesCollection dataset = new XYSeriesCollection();
-		XYSeries series = new XYSeries("Values");
-		for(int x=0;x<201;x++){
-			double a = ((double)x/100)-1.0;
-			Double A = Double.valueOf(df.format(a));
-			System.out.println(A +","+Histogram[x]);
-			if(log == true){
-				//double logv = Math.log10((double) Histogram[x]);
-				//series.add((double) A, logv, true);
-				series.add((double) A, (double) Histogram[x],true);
-			}else{
-				series.add((double) A, (double) Histogram[x],true);
-			}
-		}
-		dataset.addSeries(series);
-		JFreeChart chart = ChartFactory.createXYLineChart(Title,Xlab,Ylab,dataset, PlotOrientation.VERTICAL, 
-				 false, true, false);
-		chart.setBackgroundPaint(Color.white);
-		chart.setAntiAlias(true);	
-		final Plot plot = chart.getPlot();
-		plot.setBackgroundPaint(Color.white);
-		plot.setOutlinePaint(Color.black);
-		try {
-			ChartUtilities.saveChartAsJPEG(new File(pathOut), chart, 500, 300);
-		} catch (IOException e) {
-			System.err.println("Problem occurred creating chart.");
-		}
-	}
-*/
       
 public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab,boolean print) {
 	int H = DataFrame.getNumRows();

@@ -241,6 +241,7 @@ public class NetworkCalculator {
         
         //CurrentMatrix.generateHistogramHM(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
         Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
+        CurrentMatrix.generateHeatmap();
         System.exit(0);
     }
 

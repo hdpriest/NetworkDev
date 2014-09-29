@@ -1,20 +1,34 @@
 package networkCalcPackage;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.text.DecimalFormat;
+import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.Map;
 import java.util.TreeMap;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.imageio.ImageIO;
+import javax.swing.JFrame;
 import org.jfree.chart.ChartFactory;
-import org.jfree.chart.JFreeChart;
 import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
+import org.ujmp.core.enums.FileFormat;
+import org.ujmp.core.exceptions.MatrixException;
+import org.ujmp.core.floatmatrix.FloatMatrix2D;
+import org.ujmp.core.interfaces.GUIObject;
+import org.ujmp.gui.io.ExportPNG;
+
+
 
 
 class GCNMatrix {
@@ -27,25 +41,27 @@ class GCNMatrix {
 	private String[] Y_lab;
 	private int X_iterator;
 	
-        /* 
-        We need to do some matrix-fu to make this memory-slimmer. 
-        represent our matrix as a 1-d array of upper triangle matrix
-        For a 1000x1000 matrix, number of elements that precedes row i is:
-        1000+999+998 ... + (1000*(i-1)
-        
-        NumElementsPreceding ROW i, where N = scalar(DIM(matrix)), I is the 0-index row index:
-        i( N-((i-1)/2) )
-        
-        And the number of elements that precede [i,j] in an upper-diagonal matrix is: 
-        i( N-((i-1)/2) ) + 1) + (j-1) WHERE j>=i
-        
-        N=100, i = 0, j = 1 (first off-diagonal value)
-        100(1) - 0 + 0 
-       
-        PROBLEM is that calculating the coordinates appears to negate any speed increase... 
-        and im not sure how the memory works, but it doesn't seem to make a difference (which is multiply counterintuitive)
-        
-        */
+         public void generateHeatmap () {
+           double[][] newDF = new double[N][N];
+           FloatMatrix2D nat = FloatMatrix2D.factory.dense(N, N);       
+           for(int i=0;i<N;i++){
+               float[] Row = getRowByIndex(i);
+               for(int j=0;j<Row.length;j++){
+                   nat.setFloat(Row[j],i,j);
+               }
+           }
+           GUIObject gui = nat.getGUIObject();
+          JFrame frame = gui.getFrame();
+          
+          BufferedImage img = new BufferedImage(gui.getFrame().getWidth(),gui.getFrame().getHeight(),BufferedImage.TYPE_INT_RGB);
+          Graphics2D g2d = img.createGraphics();
+          File outputfile = new File("image.png");
+            try {
+                ImageIO.write(img, "png", outputfile);
+            } catch (IOException ex) {
+                Logger.getLogger(GCNMatrix.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
         
 	public GCNMatrix (int Dim1, int Dim2) {
 		DataFrame = new float[Dim1][Dim2];
@@ -202,6 +218,8 @@ class GCNMatrix {
 			}
 		}
 	}
+        
+       
         
 	public TreeMap<Float,Integer> generateDistribution () {
 	int H = N;
