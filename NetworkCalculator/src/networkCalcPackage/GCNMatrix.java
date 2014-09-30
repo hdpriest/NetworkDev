@@ -41,6 +41,7 @@ class GCNMatrix {
 	private String[] Y_lab;
 	private int X_iterator;
 	
+	
          public void generateHeatmap () {
            double[][] newDF = new double[N][N];
            FloatMatrix2D nat = FloatMatrix2D.factory.dense(N, N);       
@@ -189,6 +190,9 @@ class GCNMatrix {
 	public String[] getRowNames (){
             return X_lab;
         }
+	public String getRowName (int I){
+        return X_lab[I];
+    }
 	public void setRowNames (String[] Rows) {
             X_lab = Rows;
 	}

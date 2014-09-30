@@ -11,5 +11,7 @@
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.USER_LIBRARY/Apache"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.USER_LIBRARY/JfreeCharts"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.USER_LIBRARY/jsc"/>
+	<classpathentry kind="lib" path="C:/Users/hpriest/Documents/Projects/Java/Lib/UJMP/ujmp-complete-0.2.5.jar"/>
+	<classpathentry kind="lib" path="C:/Users/hpriest/Documents/Projects/Java/Lib/JavaML/javaml-0.1.7/javaml-0.1.7.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

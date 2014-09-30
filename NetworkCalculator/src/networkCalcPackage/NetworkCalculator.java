@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.Scanner;
 import java.io.FileNotFoundException;
 
+import net.sf.javaml.core.Dataset;
+
 import org.apache.commons.cli.*;
 
 public class NetworkCalculator {
@@ -241,7 +243,11 @@ public class NetworkCalculator {
         
         //CurrentMatrix.generateHistogramHM(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
         Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
-        CurrentMatrix.generateHeatmap();
+        //CurrentMatrix.generateHeatmap();
+        Clustering Clust = new Clustering(CurrentMatrix);
+        System.out.println("Calculating clusters...");
+        Dataset[] Clusters = Clust.runKMeans(15);
+        System.out.println("Done.");
         System.exit(0);
     }
 

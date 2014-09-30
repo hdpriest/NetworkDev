@@ -686,6 +686,7 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
             }
         }
 	}
+	
 }
 
 
