@@ -4,8 +4,6 @@ import java.io.File;
 import java.util.Scanner;
 import java.io.FileNotFoundException;
 
-import net.sf.javaml.core.Dataset;
-
 import org.apache.commons.cli.*;
 
 public class NetworkCalculator {
@@ -246,7 +244,7 @@ public class NetworkCalculator {
         //CurrentMatrix.generateHeatmap();
         Clustering Clust = new Clustering(CurrentMatrix);
         System.out.println("Calculating clusters...");
-        Dataset[] Clusters = Clust.runKMeans(15);
+        Clust.Cluster(4);
         System.out.println("Done.");
         System.exit(0);
     }

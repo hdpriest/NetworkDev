@@ -152,7 +152,25 @@ class GCNMatrix {
 		}
 		return Row;
 	}
-	
+        
+        private float[] _getRowAsDistance(int I){
+		float[] Row = new float[N];
+		for(int j=0;j<N;j++){
+			Row[j]=1.0f - (_getValueByEntry(I,j));
+		}
+		return Row;
+	}
+        
+	public float[] getRowByIndexAsDistance (int I){
+		if(DataFrame[I] != null){
+			return _getRowAsDistance(I);
+		}else{
+			System.err.println("Cannot get row "+I+" from matrix.\n\n");
+			System.exit(0);
+		}
+		return null;
+	}
+        
 	public float[] getRowByIndex (int I){
 		if(DataFrame[I] != null){
 			return _getRow(I);
@@ -170,9 +188,21 @@ class GCNMatrix {
 			return DataFrame[J][I];
 		}
 	}
+        
+        private float _getValueByEntryAsDistance (int I,int J){
+		if(I<=J){
+			return (1.0f-DataFrame[I][J]);
+		}else{
+			return (1.0f-DataFrame[J][I]);
+		}
+	}
 	
 	public float getValueByEntry (int I,int J){
 		return _getValueByEntry(I,J);
+	}
+        
+        public float getValueByEntryAsDistance (int I,int J){
+		return _getValueByEntryAsDistance(I,J);
 	}
 	
 	public void setValueByEntry (float Value,int I, int J){
