@@ -1,16 +1,7 @@
 package networkCalcPackage;
 
 import java.io.PrintWriter;
-/*
-Adapted from Langfelder & Yau's adaptation of original Fortran code of Fionn Murtagh
-http://cran.r-project.org/web/packages/flashClust/index.html
-http://labs.genetics.ucla.edu/horvath/CoexpressionNetwork/Rpackages/flashClust/
 
-Published here:
-http://www.jstatsoft.org/v46/i11/paper
-
-No changes, just a java implementation with perhaps some multithreading support ... we'll see.
-*/
 
 class Clustering {
         private GCNMatrix DISS;
@@ -31,6 +22,16 @@ class Clustering {
 	
 	
 	public Clustering (GCNMatrix Similarities) {
+            /*
+            Adapted from Langfelder & Yau's adaptation of original Fortran code of Fionn Murtagh
+            http://cran.r-project.org/web/packages/flashClust/index.html
+            http://labs.genetics.ucla.edu/horvath/CoexpressionNetwork/Rpackages/flashClust/
+
+            Published here:
+            http://www.jstatsoft.org/v46/i11/paper
+
+            No changes, just a java implementation with perhaps some multithreading support ... we'll see.
+            */
             /*
             Init variables, get Distances, etc...
             */
@@ -54,22 +55,24 @@ class Clustering {
         
         public void Cluster (int Crit){
             Critereon = Crit;
-            
+                        
             // Find NN for all I
-            float minD = INF;
+            
             for(int i=0;i<N-1;i++){
                 int J=-1;
+                float minD = INF;
                 for(int j=i+1;j<N;j++){
                     if(DISS.getValueByEntry(i,j) > minD) continue;
                     minD = DISS.getValueByEntry(i,j);
                     J=j;
+                    
                 }
                 NN[i]=J;
                 DISNN[i]=minD;
             }
             
             while(NCL>1){
-                minD = INF;
+                float minD = INF;
                 int IM=0;
                 int JM=0;
                 for(int i=0;i<N-1;i++){
@@ -82,6 +85,11 @@ class Clustering {
                 NCL--;
                 int I2 = (IM < JM) ? IM : JM;
                 int J2 = (IM > JM) ? IM : JM; // I2 < J2
+                // So, at each step, IA holds the root node, IB holds the node that was merged into it, and CRIT holds the dissimilarity.
+                // These are in order, meaning that the first entry is that pair of NNs which was closest. The 2nd entry is the 2nd closest.
+                // So, we can obtain the order of merges which will tell us the horizontal order of the dendrogram
+                // There's no gty that IA[0] and IA[1] are the same root...
+                
                 IA[N-NCL]=I2;
                 IB[N-NCL]=J2;
                 CRIT[N-NCL]=minD;
@@ -192,18 +200,145 @@ class Clustering {
                     }
                 }
             }
+            System.err.println("Done clustering...\n");
+        }
+        
+        public void getClusters () {
+            /*
+        private GCNMatrix DISS;
+        //private float[][] DISS;
+        private int Critereon;
+        private int N;
+        private int[] IA;
+        private int[] IB;
+        private int NCL;
+        private float[] CRIT;
+        private int[] MEMBR;
+        private int[] NN;
+        private float[] DISNN;
+        private boolean[] FLAG;
+        private float INF = Float.POSITIVE_INFINITY;
+            */
+            float cutoff = 0.99f * (CRIT[N-1]);
+            System.out.println("Cutoff is 99% of dendrogram height: " +cutoff);
+            for(int i=1;i<N;i++){
+                System.out.println(IA[i] + " " + IB[i] + " " + CRIT[i]);
+            }
+            System.exit(0);
+            /*
+            I would say the desired return from this is... a list of clusters, and the clusters are lists of nodes.
+            So, it could really be ArrayList<array> or something similar...
+            But, keep in mind the R package ALSO has dynamicTreeCut - which calculates the diff threshold
+            Also, it has a min module size, which would keep you from reporting a bunch of singletons as
+            single gene modules... 
+            */
+            
+        }
+        
+        public void getDendroOrder () {
+/*            
+            C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
+C                                                               C
+C  Given a HIERARCHIC CLUSTERING, described as a sequence of    C
+C  agglomerations, prepare the seq. of aggloms. and "horiz."    C
+C  order of objects for plotting the dendrogram using S routine C
+C  'plclust'.                                                   C
+C                                                               C
+C  Parameters:                                                  C
+C                                                               C
+C  IA, IB:       vectors of dimension N defining the agglomer-  C
+C                 ations.                                       C
+C  IIA, IIB:     used to store IA and IB values differently     C
+C                (in form needed for S command 'plclust'        C
+C  IORDER:       "horiz." order of objects for dendrogram       C
+C                                                               C
+C  F. Murtagh, ESA/ESO/STECF, Garching, June 1991               C
+C                                                               C
+C  HISTORY                                                      C
+C                                                               C
+C  Adapted from routine HCASS, which additionally determines    C
+C   cluster assignments at all levels, at extra comput. expense C
+C                                                               C
+C  This routine copied by Peter Langfelder from the source      C
+C  of R package stats.                                          C
+C                                                               C
+C---------------------------------------------------------------C
+      SUBROUTINE HCASS2(N,IA,IB,IORDER,IIA,IIB)
+c Args
+      INTEGER N,IA(N),IB(N),IORDER(N),IIA(N),IIB(N)
+c Var
+      INTEGER I, J, K, K1, K2, LOC
+C
+C     Following bit is to get seq. of merges into format acceptable to plclust
+C     I coded clusters as lowest seq. no. of constituents; S's 'hclust' codes
+C     singletons as -ve numbers, and non-singletons with their seq. nos.
+C
+*/
+            int[] IIA = new int[N];
+            int[] IIB = new int[N];
+            int[] IORDER = new int [N];
+            for(int i=0;i<N;i++){
+                IIA[i]=IA[i];
+                IIB[i]=IB[i];
+            }
+            
+            for(int i=0;i<N-2;i++){
+                int k = (IA[i] < IB[i]) ? IA[i] : IB[i];
+                for(int j=i+1;j<N-1;j++){
+                    if (IA[j] == k) IIA[j]=(-1 * i);
+                    if (IB[j] == k) IIB[j]=(-1 * i);
+                }
+            }
+            /// I don't understand the point of the above and below stanzas yet...
+            for(int i=0;i<N-1;i++){
+                IIA[i] = -1 * IIA[i];
+                IIB[i] = -1 * IIB[i];
+            }
+            
+            for(int i=0;i<N-1;i++){
+                if((IIA[i] > 0) && (IIB[i] < 0)){
+                   int K = IIA[i];
+                   IIA[i] = IIB[i];
+                   IIB[i] = K;
+                }
+                if((IIA[i] > 0) && (IIB[i] > 0)){
+                    int K1 = (IIA[i] < IIB[i]) ? IIA[i] : IIB[i];
+                    int K2 = (IIA[i] > IIB[i]) ? IIA[i] : IIB[i];
+                    IIA[i] = K1;
+                    IIB[i] = K2;
+                }
+            }
+            IORDER[1] = IIA[N-1];
+            IORDER[2] = IIB[N-1];
+            int LOC = 2;
+            for(int i=N-3;i>=0;i--){
+                for(int j=0;j<LOC;j++){
+                    if(IORDER[j] == i){
+                        IORDER[j] = IIA[i];
+                        if(j == LOC){
+                            LOC=LOC+1;
+                            IORDER[LOC]=IIB[i];
+                        }else{
+                            LOC=LOC+1;
+                            for(int k=LOC;k>=j+2;k--){
+                                IORDER[k] = IORDER[k-1];
+                            }
+                            IORDER[j+1]=IIB[i];
+                        }
+                        break;
+                    }
+                }
+            }
+            for(int i=0;i<N;i++){
+                IORDER[i]=-1 * IORDER[i];
+                System.out.println(i+ " "+ IORDER[i]);
+            }
+            
+            
         }
                 
 	/*
-	public Dataset[] runKMeans (int k) {
-		ClusterEvaluation ce = new SumOfAveragePairwiseSimilarities();
-		ClusterEvaluation sse = new SumOfSquaredErrors();
-		Clusterer ikm = new IterativeKMeans(1,k,ce);
-		Clusterer km = new KMeans(k);
-		Dataset[] clusters = km.cluster(DataSet);
-		_clustersToFile(clusters,"test");
-		return clusters;
-	}
+	
 	private static void _clustersToFile (Dataset[] clusters, String path){
 		try {	
 				for(int c=0;c<clusters.length;c++){
@@ -223,282 +358,5 @@ class Clustering {
 			
 	}
         */
-        /*
-C++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
-C                                                            C
-C  HIERARCHICAL CLUSTERING using (user-specified) criterion. C
-C                                                            C
-C  Parameters:                                               C
-C                                                            C
-C  DATA(N,M)         input data matrix,                      C
-C  DISS(LEN)         dissimilarities in lower half diagonal  C
-C                    storage; LEN = N.N-1/2,                 C
-C  IOPT              clustering criterion to be used,        C
-C  IA, IB, CRIT      history of agglomerations; dimensions   C
-C                    N, first N-1 locations only used,       C
-C  MEMBR, NN, DISNN  vectors of length N, used to store      C
-C                    cluster cardinalities, current nearest  C
-C                    neighbour, and the dissimilarity assoc. C
-C                    with the latter.                        C
-C  FLAG              boolean indicator of agglomerable obj./ C
-C                    clusters.                               C
-C                                                            C
-C  F. Murtagh, ESA/ESO/STECF, Garching, February 1986.       C
-C  Modified by Peter Langfelder, implemented bug fix
-C  by Chi Ming Yau
-C                                                            C
-C------------------------------------------------------------C
-      SUBROUTINE HC(N,LEN,IOPT,IA,IB,CRIT,MEMBR,NN,DISNN,
-     X                FLAG,DISS)
-      IMPLICIT DOUBLE PRECISION (A-H, O-Z)
-
-      DOUBLE PRECISION MEMBR(N),DISS(LEN)
-      INTEGER IA(N),IB(N)
-      DOUBLE PRECISION CRIT(N)
-      DIMENSION NN(N),DISNN(N)
-      LOGICAL FLAG(N)
-      DOUBLE PRECISION INF
-c     was 1D+20
-      DATA INF/1.D+300/
-c
-c     unnecessary initialization of im jj jm to keep g77 -Wall happy
-c
-      IM = 0
-      JJ = 0
-      JM = 0
-
-C
-C  Initializations
-C
-      DO I=1,N
-c         MEMBR(I)=1.
-         FLAG(I)=.TRUE.
-      ENDDO
-      NCL=N
-C
-C  Construct dissimilarity matrix
-C
-C      DO I=1,N-1
-C         DO J=I+1,N
-C            IND=IOFFSET(N,I,J)
-C            DISS(IND)=0.
-C            DO K=1,M
-C               DISS(IND)=DISS(IND)+(DATA(I,K)-DATA(J,K))**2
-C            ENDDO
-C            IF (IOPT.EQ.1) DISS(IND)=DISS(IND)/2.
-C           (Above is done for the case of the min. var. method
-C            where merging criteria are defined in terms of variances
-C            rather than distances.)
-C          ENDDO
-C       ENDDO
-
-C
-C  Carry out an agglomeration - first create list of NNs
-C
-
-
-      DO I=1,N-1
-         DMIN=INF
-         DO J=I+1,N
-            IND=IOFFSET(N,I,J)
-            IF (DISS(IND).GE.DMIN) GOTO 500
-               DMIN=DISS(IND)
-               JM=J
-  500    CONTINUE
-         ENDDO
-         NN(I)=JM
-         DISNN(I)=DMIN
-      ENDDO
-C
-  400 CONTINUE
-C     Next, determine least diss. using list of NNs
-      DMIN=INF
-      DO I=1,N-1
-         IF (.NOT.FLAG(I)) GOTO 600
-         IF (DISNN(I).GE.DMIN) GOTO 600
-            DMIN=DISNN(I)
-            IM=I
-            JM=NN(I)
-  600    CONTINUE
-      ENDDO
-      NCL=NCL-1
-C
-C  This allows an agglomeration to be carried out.
-C
-      I2=MIN0(IM,JM)
-      J2=MAX0(IM,JM)
-      IA(N-NCL)=I2
-      IB(N-NCL)=J2
-      CRIT(N-NCL)=DMIN
-C
-C  Update dissimilarities from new cluster.
-C
-      FLAG(J2)=.FALSE.
-      DMIN=INF
-      DO K=1,N
-         IF (.NOT.FLAG(K)) GOTO 800
-         IF (K.EQ.I2) GOTO 800
-         X=MEMBR(I2)+MEMBR(J2)+MEMBR(K)
-         IF (I2.LT.K) THEN
-                           IND1=IOFFSET(N,I2,K)
-                      ELSE
-                           IND1=IOFFSET(N,K,I2)
-         ENDIF
-         IF (J2.LT.K) THEN
-                           IND2=IOFFSET(N,J2,K)
-                      ELSE
-                           IND2=IOFFSET(N,K,J2)
-         ENDIF
-         IND3=IOFFSET(N,I2,J2)
-         XX=DISS(IND3)
-C
-C  WARD'S MINIMUM VARIANCE METHOD - IOPT=1.
-C
-         IF (IOPT.EQ.1) THEN
-            DISS(IND1)=(MEMBR(I2)+MEMBR(K))*DISS(IND1)+
-     X                 (MEMBR(J2)+MEMBR(K))*DISS(IND2)-
-     X                 MEMBR(K)*XX
-            DISS(IND1)=DISS(IND1)/X
-         ENDIF
-C
-C  SINGLE LINK METHOD - IOPT=2.
-C
-         IF (IOPT.EQ.2) THEN
-            DISS(IND1)=MIN(DISS(IND1),DISS(IND2))
-         ENDIF
-C
-C  COMPLETE LINK METHOD - IOPT=3.
-C
-         IF (IOPT.EQ.3) THEN
-            DISS(IND1)=MAX(DISS(IND1),DISS(IND2))
-         ENDIF
-C
-C  AVERAGE LINK (OR GROUP AVERAGE) METHOD - IOPT=4.
-C
-         IF (IOPT.EQ.4) THEN
-            DISS(IND1)=(MEMBR(I2)*DISS(IND1)+MEMBR(J2)*DISS(IND2))/
-     X                 (MEMBR(I2)+MEMBR(J2))
-         ENDIF
-C
-C  MCQUITTY'S METHOD - IOPT=5.
-C
-         IF (IOPT.EQ.5) THEN
-            DISS(IND1)=0.5*DISS(IND1)+0.5*DISS(IND2)
-         ENDIF
-C
-C  MEDIAN (GOWER'S) METHOD - IOPT=6.
-C
-         IF (IOPT.EQ.6) THEN
-            DISS(IND1)=0.5*DISS(IND1)+0.5*DISS(IND2)-0.25*XX
-         ENDIF
-C
-C  CENTROID METHOD - IOPT=7.
-C
-         IF (IOPT.EQ.7) THEN
-            DISS(IND1)=(MEMBR(I2)*DISS(IND1)+MEMBR(J2)*DISS(IND2)-
-     X          MEMBR(I2)*MEMBR(J2)*XX/(MEMBR(I2)+MEMBR(J2)))/
-     X          (MEMBR(I2)+MEMBR(J2))
-            ENDIF
-C
-         IF (I2.GT.K) GOTO 800
-         IF (DISS(IND1).GE.DMIN) GOTO 800
-            DMIN=DISS(IND1)
-            JJ=K
-  800    CONTINUE
-      ENDDO
-      MEMBR(I2)=MEMBR(I2)+MEMBR(J2)
-      DISNN(I2)=DMIN
-      NN(I2)=JJ
-C
-C  Update list of NNs insofar as this is required.
-C  This part modified by Chi Ming Yau and PL. For methods IOPT=6 and 7
-C  use modified updating of nearest neighbors that is a bit slower but
-C  necessary.
-
-      IF (IOPT.GT.5) THEN
-        DO I=1,N-1
-          IF (.NOT.FLAG(I)) GOTO 900
-          IF (I.EQ.I2) GOTO 850
-          IF (NN(I).EQ.I2) GOTO 850
-          IF (NN(I).EQ.J2) GOTO 850
-C  Compare DISNN(I) with updated DISS between I and I2
-          IF (I2.LT.I) THEN
-                            IND=IOFFSET(N,I2,I)
-                       ELSE
-                            IND=IOFFSET(N,I,I2)
-          ENDIF
-          DMIN=DISS(IND)
-          IF (DMIN.GE.DISNN(I)) GOTO 900
-             DISNN(I)=DMIN
-             NN(I)=I2
-          GOTO 900
- 850      CONTINUE
-C        (Redetermine NN of I:)
-          DMIN=INF
-          DO J=I+1,N
-             IND=IOFFSET(N,I,J)
-             IF (.NOT.FLAG(J)) GOTO 870
-             IF (I.EQ.J) GOTO 870
-             IF (DISS(IND).GE.DMIN) GOTO 870
-                DMIN=DISS(IND)
-                JJ=J
- 870         CONTINUE
-          ENDDO
-          NN(I)=JJ
-          DISNN(I)=DMIN
- 900      CONTINUE
-        ENDDO
-      ELSE
-C       For methods IOPT<6 use the original fast update.
-        DO I=1,N-1
-           IF (.NOT.FLAG(I)) GOTO 901
-           IF (NN(I).EQ.I2) GOTO 851
-           IF (NN(I).EQ.J2) GOTO 851
-           GOTO 901
-  851      CONTINUE
-C          (Redetermine NN of I:)
-           DMIN=INF
-           DO J=I+1,N
-              IND=IOFFSET(N,I,J)
-              IF (.NOT.FLAG(J)) GOTO 871
-              IF (I.EQ.J) GOTO 871
-              IF (DISS(IND).GE.DMIN) GOTO 871
-                 DMIN=DISS(IND)
-                 JJ=J
-  871         CONTINUE
-           ENDDO
-           NN(I)=JJ
-           DISNN(I)=DMIN
-  901      CONTINUE
-        ENDDO
-      ENDIF
-
-C
-C  Repeat previous steps until N-1 agglomerations carried out.
-C
-      IF (NCL.GT.1) GOTO 400
-C
-C
-      RETURN
-      END
-C
-C
-      FUNCTION IOFFSET(N,I,J)
-C  Map row I and column J of upper half diagonal symmetric matrix
-C  onto vector.
-      IMPLICIT DOUBLE PRECISION (A-H, O-Z)
-
-C  Convert integer I to a double
-C  This hopefully prevents overflow errors when I^2 is greater than
-C  2^31.
-      IF (N.GT.32768) THEN
-         XI = DBLE(I)
-         IOFFSET=J+NINT( (XI-1)*N - (XI*(XI+1))/2)
-      ELSE
-         IOFFSET=J+(I-1)*N-(I*(I+1))/2
-      ENDIF
-      RETURN
-      END
-        */
-
+        
 }

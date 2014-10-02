@@ -245,6 +245,7 @@ public class NetworkCalculator {
         Clustering Clust = new Clustering(CurrentMatrix);
         System.out.println("Calculating clusters...");
         Clust.Cluster(4);
+        Clust.getClusters();
         System.out.println("Done.");
         System.exit(0);
     }
