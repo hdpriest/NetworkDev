@@ -244,8 +244,8 @@ public class NetworkCalculator {
         //CurrentMatrix.generateHeatmap();
         Clustering Clust = new Clustering(CurrentMatrix);
         System.out.println("Calculating clusters...");
-        Clust.Cluster(4);
-        Clust.getClusters();
+        Clust.Cluster(4); // Method for clustering 4 == average -- Parameterize
+        Clust.getClusters(50); // 50 = min cluster size -- Parameterize
         System.out.println("Done.");
         System.exit(0);
     }

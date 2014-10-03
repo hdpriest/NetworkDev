@@ -1,6 +1,11 @@
 package networkCalcPackage;
 
+import java.util.Iterator;
+import java.util.List;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+
+import org.apache.commons.lang3.ArrayUtils;
 
 
 class Clustering {
@@ -203,7 +208,7 @@ class Clustering {
             System.err.println("Done clustering...\n");
         }
         
-        public void getClusters () {
+        public void getClusters (int MinSize) {
             /*
         private GCNMatrix DISS;
         //private float[][] DISS;
@@ -219,11 +224,63 @@ class Clustering {
         private boolean[] FLAG;
         private float INF = Float.POSITIVE_INFINITY;
             */
-            float cutoff = 0.99f * (CRIT[N-1]);
-            System.out.println("Cutoff is 99% of dendrogram height: " +cutoff);
-            for(int i=1;i<N;i++){
-                System.out.println(IA[i] + " " + IB[i] + " " + CRIT[i]);
+        	// This will be pretty ham-handed.
+            float cutoff = 0.99f * (1.0f-(CRIT[1]));
+        	//float cutoff = 0.99f * CRIT[N-1];
+            System.err.println("Cutoff is 99% of dendrogram height: " +cutoff);
+            ArrayList<ArrayList<Integer>> Clusters = new ArrayList<ArrayList<Integer>>(N);
+            int[][] I_Clusters = new int[N][];
+            for(int i=0;i<N;i++){
+            	ArrayList<Integer> Cluster = new ArrayList<Integer>();
+            	int[] clust = new int[1];
+            	clust[0]=i;
+            	I_Clusters[i]=clust;
+            	Cluster.add(i); // Init all positions to a cluster of 1 which is the node...
+            	Clusters.add(i,Cluster); // Add cluster to the list of clusters at pos I
             }
+            for(int i=0;i<N-1;i++){
+            	if(CRIT[i] > cutoff) continue;
+            	// IA[i] is the source. IB[i] is the merged node. Crit[i] is the distance value
+            	// Merge all of IB[i] into IA[i] at every step.
+                //System.out.println(IA[i] + " " + IB[i] + " " + CRIT[i]);
+            	/*int IndB = Clusters.indexOf(IB[i]);
+            	int IndA = Clusters.indexOf(IA[i]);
+            	if(IndB == -1) continue;
+                Clusters.get(IndA).addAll(Clusters.get(IndB));
+                Clusters.remove(IndB);
+                */
+            	if(I_Clusters[IB[i]] == null) continue;
+            	int[] i_clust = ArrayUtils.addAll(I_Clusters[IA[i]], I_Clusters[IB[i]]);
+            	I_Clusters[IA[i]]= i_clust;
+            	I_Clusters[IB[i]]= null;
+            	
+            }
+            int M=0;
+            for(int i=0;i<N;i++){
+            	if(I_Clusters[i] == null) continue;
+            	if(I_Clusters[i].length < MinSize) continue;
+            	M++;
+            	_clustersToFile(I_Clusters[i],M);
+            }
+            /*
+            Iterator<ArrayList<Integer>> it = Clusters.iterator();
+            int M = 0;
+            while(it.hasNext()){
+                ArrayList<Integer> Cluster = it.next();
+                if(Cluster.size() < MinSize) continue;
+                M++;
+                _clustersToFile(Cluster,M);
+                //Do something with obj
+            }
+            */
+            /*
+            2 Cutoff is 99% of dendrogram height: 0.98991627
+            3 1860 1936 0.1579324
+            4 773 1744 0.15950626
+            5 1183 1501 0.16032898
+            6 197 440 0.16189879
+            7 113 1246 0.16213399
+*/
             System.exit(0);
             /*
             I would say the desired return from this is... a list of clusters, and the clusters are lists of nodes.
@@ -278,15 +335,15 @@ C
             int[] IIB = new int[N];
             int[] IORDER = new int [N];
             for(int i=0;i<N;i++){
-                IIA[i]=IA[i];
+                IIA[i]=IA[i]; // copy into IIA and IIB
                 IIB[i]=IB[i];
             }
             
             for(int i=0;i<N-2;i++){
-                int k = (IA[i] < IB[i]) ? IA[i] : IB[i];
+                int k = (IA[i] < IB[i]) ? IA[i] : IB[i]; // k is lesser of IA and IB @ i ( i think this is always true?)
                 for(int j=i+1;j<N-1;j++){
                     if (IA[j] == k) IIA[j]=(-1 * i);
-                    if (IB[j] == k) IIB[j]=(-1 * i);
+                    if (IB[j] == k) IIB[j]=(-1 * i); // 
                 }
             }
             /// I don't understand the point of the above and below stanzas yet...
@@ -299,15 +356,17 @@ C
                 if((IIA[i] > 0) && (IIB[i] < 0)){
                    int K = IIA[i];
                    IIA[i] = IIB[i];
-                   IIB[i] = K;
+                   IIB[i] = K; // ensures IIB[i] > 0 and IIA[i] < 0
                 }
                 if((IIA[i] > 0) && (IIB[i] > 0)){
                     int K1 = (IIA[i] < IIB[i]) ? IIA[i] : IIB[i];
                     int K2 = (IIA[i] > IIB[i]) ? IIA[i] : IIB[i];
                     IIA[i] = K1;
-                    IIB[i] = K2;
+                    IIB[i] = K2; // ensures IIA[i] < IIB[i] for all i
                 }
             }
+            // prev for= IIA[i] < 0, IIB[i] never < 0, IIA[i] < IIB[i]...
+            // can profile only IIA[i] to find events w/ -
             IORDER[1] = IIA[N-1];
             IORDER[2] = IIB[N-1];
             int LOC = 2;
@@ -337,26 +396,25 @@ C
             
         }
                 
-	/*
 	
-	private static void _clustersToFile (Dataset[] clusters, String path){
+	private static void _clustersToFile (int[] Cluster, int M){
 		try {	
-				for(int c=0;c<clusters.length;c++){
-					String nPath = "Test.cluster."+c+".txt";
-					PrintWriter writer = new PrintWriter(nPath,"UTF-8");
-					for(int I=0;I<clusters[c].size();I++){
-						Instance this_Instance = clusters[c].get(I);
-						String name = (String) this_Instance.classValue();
-						writer.println(name);
-					}
-					writer.close();
-				}
+			//Iterator<Integer> Node = Cluster.iterator();
+            String nPath = "Cluster." + M + ".txt"; 
+            PrintWriter writer = new PrintWriter(nPath,"UTF-8");
+            //while(Node.hasNext()){
+            //	int node = Node.next();
+            for(int i=0;i<Cluster.length;i++){
+            	int node = Cluster[i];
+            	writer.println(node);
+            }
+            writer.close();
 				
-			} catch (Exception e){
+		} catch (Exception e){
 				// 
-			}
+		}
 			
 	}
-        */
+     
         
 }
