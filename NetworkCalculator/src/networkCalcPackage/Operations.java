@@ -166,7 +166,7 @@ public class Operations {
 	public static GCNMatrix compareNetworksViaTOM (GCNMatrix Net1, GCNMatrix Net2){
 		int D = Net1.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
-        ReturnFrame = Operations.copyNames(Net1.getRowNames(), ReturnFrame);
+                ReturnFrame = Operations.copyNames(Net1.getRowNames(), ReturnFrame);
 		for(int i=0;i<D;i++){
 			
 			for(int j=0;j<D;j++){

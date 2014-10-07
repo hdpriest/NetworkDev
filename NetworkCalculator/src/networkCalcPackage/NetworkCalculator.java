@@ -242,10 +242,10 @@ public class NetworkCalculator {
         //CurrentMatrix.generateHistogramHM(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
         Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
         //CurrentMatrix.generateHeatmap();
-        Clustering Clust = new Clustering(CurrentMatrix);
+        Dendrogram Dendrogram = new Dendrogram(CurrentMatrix);
         System.out.println("Calculating clusters...");
-        Clust.Cluster(4); // Method for clustering 4 == average -- Parameterize
-        Clust.getClusters(50); // 50 = min cluster size -- Parameterize
+        Dendrogram.getDendrogram(4); // Method for clustering 4 == average -- Parameterize
+        Dendrogram.getClusters(50); // 50 = min cluster size -- Parameterize
         System.out.println("Done.");
         System.exit(0);
     }
