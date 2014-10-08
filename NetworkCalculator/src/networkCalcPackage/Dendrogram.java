@@ -326,13 +326,16 @@ class Dendrogram {
             
             
             // Get transition points. Find forward run lengths of each transition point
+            int last=0;
             for(int s=0;s<S.length-1;s++){
-                System.out.println(S[s]);
                 // S[s] is looking realistic
-                TP[s] = ((int) (S[s]) ^ (int) (S[s+1])) >> 31 == 0 ? false : true;  // not mine. taken from awesome stackoverflow post
-            } /// CURRENTLY returns all false, so the above probably isn't working
-            for(int s=0;s<S.length-1;s++){
-                System.out.println(TP[s]);
+                TP[s] = (S[s] * S[s+1] <= 0.0f); // true if s and s+1 are opp signs, true otherwise
+                if(TP[s] == true){
+                	int C = s-last;
+                	System.out.println("Cluster size: " + C);
+                	last = s;
+                }
+                //System.out.println(S[s] + "\t" + TP[s]);
             }
             System.exit(0);
                // Either clean-up here, or not. Probably best here.
