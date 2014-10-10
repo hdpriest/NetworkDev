@@ -242,14 +242,62 @@ public class NetworkCalculator {
         //CurrentMatrix.generateHistogramHM(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
         Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
         //CurrentMatrix.generateHeatmap();
-        Dendrogram Dendrogram = new Dendrogram(CurrentMatrix);
+        Cluster Clusters = new Cluster(CurrentMatrix,4);
+        Clusters.dynamicTreeCut(25);
         System.out.println("Calculating clusters...");
-        Dendrogram.getDendrogram(4); // Method for clustering 4 == average -- Parameterize
-        Dendrogram.getClusters(50); // 50 = min cluster size -- Parameterize
+       // Cluster.getClusters(50); // 50 = min cluster size -- Parameterize
         System.out.println("Done.");
         System.exit(0);
     }
+    
+    private static void test(String[] args) {
+        CommandLineParser parser = new BasicParser();
+        Options options = buildConstructOptions();
+        String pathIn = null;
+        String Out = null;
+        float alpha = 0.0f;
+        float mu = 0.0f;
+        float Mask = 0.0f;
+        int threads = 0;
+        String corr = null;
+        threads = 16;
+        
+        Out = "test";
+        corr = "pcc";
+        alpha = 20;
+        mu = 0.8f;
+        Mask = 0.0f;
 
+        GCNMatrix CurrentMatrix = new GCNMatrix(10,10);
+        System.err.println("Calculating Similarity & Adjacency...\n");
+        float[] Row = {0.91f,0.92f,0.93f,0.1f,0.1f,0.1f,0.1f,0.15f,0.15f,0.15f};
+        CurrentMatrix.addRow(Row); // 0
+        CurrentMatrix.addRow(Row); // 1
+        CurrentMatrix.addRow(Row); // 2
+        float[] Row1 = {0.1f,0.1f,0.1f,0.91f,0.92f,0.93f,0.94f,0.15f,0.15f,0.15f};
+        CurrentMatrix.addRow(Row1); // 3
+        CurrentMatrix.addRow(Row1); // 4
+        CurrentMatrix.addRow(Row1); // 5
+        CurrentMatrix.addRow(Row1); // 6
+        float[] Row2 = {0.15f,0.15f,0.15f,0.1f,0.1f,0.1f,0.1f,0.91f,0.92f,0.93f};
+        CurrentMatrix.addRow(Row2); // 7 
+        CurrentMatrix.addRow(Row2); // 8
+        CurrentMatrix.addRow(Row2); // 9
+        
+        //CurrentMatrix.calculateKs();
+        //CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
+        //CurrentMatrix.maskMatrix(Mask);
+        
+        
+        Cluster Clusters = new Cluster(CurrentMatrix,4);
+        System.out.println("Calculating clusters...");
+        Clusters.dynamicTreeCut(25);
+        //Dendrogram.getDendrogram(4); // Method for clustering 4 == average -- Parameterize
+        //Dendrogram.getClusters(50); // 50 = min cluster size -- Parameterize
+        System.out.println("Done.");
+        System.exit(0);
+    }
+    
     private static void compareNetworks(String[] args) {
         CommandLineParser parser = new BasicParser();
         Options options = buildCompareOptions();
@@ -433,11 +481,63 @@ public class NetworkCalculator {
                 case "view":
                     clusterNetwork(args);
                     break;
+                case "test":
+                    test(args);
                 default:
                     baseOptions(args);
                     break;
             }
         }
+    }
+    private static Options testOptions() {
+        Options options = new Options();
+        Option help = new Option("h", "print this message");
+
+        OptionBuilder.withArgName("datafile");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values");
+        Option datafile = OptionBuilder.create("d");
+
+        OptionBuilder.withArgName("correlation");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("correlation metric to use ('gini' or 'pcc')");
+        Option corr = OptionBuilder.create("c");
+
+        OptionBuilder.withArgName("alpha");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("alpha parameter for sigmoid adjacency calculation (i.e. 20)");
+        Option alpha = OptionBuilder.create("a");
+
+        OptionBuilder.withArgName("mu");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("mu parameter for sigmoid adjacency calculation (i.e. 0.8)");
+        Option mu = OptionBuilder.create("m");
+
+        OptionBuilder.withArgName("Mask");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("parameter for masking matricies - values below this will be set to zero");
+        Option Mask = OptionBuilder.create("M");
+
+        OptionBuilder.withArgName("output");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Temporary Directory");
+        Option output = OptionBuilder.create("o");
+
+        OptionBuilder.withArgName("threads");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Number of Compute Threads");
+        Option threads = OptionBuilder.create("t");
+
+        options.addOption(help);
+        options.addOption(datafile);
+        options.addOption(alpha);
+        options.addOption(corr);
+        options.addOption(mu);
+        options.addOption(Mask);
+        options.addOption(output);
+        options.addOption(threads);
+
+        return options;
     }
 
     private static Options buildOptions() {
@@ -463,12 +563,18 @@ public class NetworkCalculator {
         OptionBuilder.hasArg();
         OptionBuilder.withDescription("query a single network for node properties");
         Option view = OptionBuilder.create("view");
+        
+        OptionBuilder.withArgName("test");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("test routines");
+        Option test = OptionBuilder.create("test");
 
         options.addOption(help);
         options.addOption(construct);
         options.addOption(similarity);
         options.addOption(compare);
         options.addOption(view);
+        options.addOption(test);
 
         return options;
     }

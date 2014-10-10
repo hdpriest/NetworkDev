@@ -27,7 +27,7 @@ class Dendrogram {
         
 	
 	
-	public Dendrogram (GCNMatrix Similarities) {
+	public Dendrogram (GCNMatrix Distances) {
             /*
             Adapted from Langfelder & Yau's adaptation of original Fortran code of Fionn Murtagh
             http://cran.r-project.org/web/packages/flashClust/index.html
@@ -41,21 +41,20 @@ class Dendrogram {
             /*
             Init variables, get Distances, etc...
             */
-            N = Similarities.getNumRows();
+
+            DISS = Distances;
+            N = DISS.getNumRows();
+            NCL = N;
+            FLAG = new boolean[N];
+            NN = new int[N];
+            DISNN = new float[N];
             IA = new int[N];
             IB = new int[N];
             CRIT = new float[N];
             MEMBR = new int[N];
-            NN = new int[N];
-            DISNN = new float[N];
-            FLAG = new boolean[N];
-            DISS = new GCNMatrix(N,N);
-            NCL = N;
             for (int i = 0; i < N ; i++) {
                 FLAG[i] = true; // all objects start agglomerable
                 MEMBR[i] = 1; // all clusters start with 1 entry
-                float[] Row = Similarities.getRowByIndexAsDistance(i);
-                DISS.addRow(Row);
 	    }
 	}
         
@@ -90,15 +89,11 @@ class Dendrogram {
                 }
                 NCL--;
                 int I2 = (IM < JM) ? IM : JM;
-                int J2 = (IM > JM) ? IM : JM; // I2 < J2
-                // So, at each step, IA holds the root node, IB holds the node that was merged into it, and CRIT holds the dissimilarity.
-                // These are in order, meaning that the first entry is that pair of NNs which was closest. The 2nd entry is the 2nd closest.
-                // So, we can obtain the order of merges which will tell us the horizontal order of the dendrogram
-                // There's no gty that IA[0] and IA[1] are the same root...
-                
-                IA[N-NCL]=I2;
-                IB[N-NCL]=J2;
-                CRIT[N-NCL]=minD;
+                int J2 = (IM > JM) ? IM : JM; 
+
+                IA[N-NCL-1]=I2;
+                IB[N-NCL-1]=J2;
+                CRIT[N-NCL-1]=minD;
 
                 FLAG[J2] = false;
 
@@ -206,143 +201,57 @@ class Dendrogram {
                     }
                 }
             }
-            ORDER = _getDendroOrder ();
+            for(int i=0;i<N-1;i++){
+            //    System.out.println(i +"\t" +IA[i] + "\t" + IB[i] + "\t" + CRIT[i]);
+            }
             System.err.println("Done clustering...\n");
         }
-        private void _staticCut (float cutoff,int MinSize){
-            ArrayList<ArrayList<Integer>> Clusters = new ArrayList<ArrayList<Integer>>(N);
+        public int[][] staticCut (float cutoff,int MinSize){
             int[][] I_Clusters = new int[N][];
             for(int i=0;i<N;i++){
             	ArrayList<Integer> Cluster = new ArrayList<Integer>();
             	int[] clust = new int[1];
             	clust[0]=i;
             	I_Clusters[i]=clust;
-            	Cluster.add(i); // Init all positions to a cluster of 1 which is the node...
-            	Clusters.add(i,Cluster); // Add cluster to the list of clusters at pos I
             }
             for(int i=0;i<N-1;i++){
             	if(CRIT[i] > cutoff) continue;
-            	// IA[i] is the source. IB[i] is the merged node. Crit[i] is the distance value
-            	// Merge all of IB[i] into IA[i] at every step.
-                //System.out.println(IA[i] + " " + IB[i] + " " + CRIT[i]);
-            	/*int IndB = Clusters.indexOf(IB[i]);
-            	int IndA = Clusters.indexOf(IA[i]);
-            	if(IndB == -1) continue;
-                Clusters.get(IndA).addAll(Clusters.get(IndB));
-                Clusters.remove(IndB);
-                */
             	if(I_Clusters[IB[i]] == null) continue;
             	int[] i_clust = ArrayUtils.addAll(I_Clusters[IA[i]], I_Clusters[IB[i]]);
             	I_Clusters[IA[i]]= i_clust;
             	I_Clusters[IB[i]]= null;
             	
             }
-            int M=0;
-            for(int i=0;i<N;i++){
-            	if(I_Clusters[i] == null) continue;
-            	if(I_Clusters[i].length < MinSize) continue;
-            	M++;
-            	_clustersToFile(I_Clusters[i],M);
-            }
+            return I_Clusters;
         }
-        public void getClusters (int MinSize) {
-            /*
-        private GCNMatrix DISS;
-        //private float[][] DISS;
-        private int Critereon;
-        private int N;
-        private int[] IA;
-        private int[] IB;
-        private int NCL;
-        private float[] CRIT;
-        private int[] MEMBR;
-        private int[] NN;
-        private float[] DISNN;
-        private boolean[] FLAG;
-        private float INF = Float.POSITIVE_INFINITY;
-            */
-        	// This will be pretty ham-handed.
-            float cutoff = 0.99f * (1.0f-(CRIT[1]));
-        	//float cutoff = 0.99f * CRIT[N-1];
-            System.err.println("Cutoff is 99% of dendrogram height: " +cutoff);
-            float L=0.0f;
-            for(int h = 0;h<CRIT.length;h++){
-                L = L + CRIT[h];
-            }
-            L = L / (float) CRIT.length;
-            _treeCutCore(0,N-1,L);  // 0 to N allows the treeCutCore to address any stretch of IORDER and CRIT
-            System.exit(0);
-            _staticCut(cutoff,MinSize);
-            /*
-            Iterator<ArrayList<Integer>> it = Clusters.iterator();
-            int M = 0;
-            while(it.hasNext()){
-                ArrayList<Integer> Cluster = it.next();
-                if(Cluster.size() < MinSize) continue;
-                M++;
-                _clustersToFile(Cluster,M);
-                //Do something with obj
-            }
-            */
-            /*
-            2 Cutoff is 99% of dendrogram height: 0.98991627
-            3 1860 1936 0.1579324
-            4 773 1744 0.15950626
-            5 1183 1501 0.16032898
-            6 197 440 0.16189879
-            7 113 1246 0.16213399
-*/
-            System.exit(0);
-            /*
-            I would say the desired return from this is... a list of clusters, and the clusters are lists of nodes.
-            So, it could really be ArrayList<array> or something similar...
-            But, keep in mind the R package ALSO has dynamicTreeCut - which calculates the diff threshold
-            Also, it has a min module size, which would keep you from reporting a bunch of singletons as
-            single gene modules... 
-            */
-            
+        public int[] getMergeLeaves() { // pretty sure thats not a leaf.
+            return IB;
         }
         
-        private float[] _getS (float[] H, int[] O, float L) { 
-            float[] S = new float[O.length];
-            for(int h=0;h<O.length;h++){
-                S[h] = H[O[h]]-L; // go get the heights for the branches in O, and calculate S based on those
-            }
-            return S;
+        public int[] getMergeRoots(){
+            return IA;
         }
-
-        private void _treeCutCore (int I, int J, float L_o) {
-        //private float[] _treeCutCore (float[] H, float L_o){
-        // Operates on a segment of the overall tree, exemplified in IORDER and CRIT    
-            int size = J-I+1;
-            boolean[] TP = new boolean[size];
-            int[] O = new int[size];
-            for(int i=I;i<=J;i++){
-                int ind = i-I;
-                O[ind] = 0;
-                O[ind] = ORDER[i]; // subset of overall order vector contains the original branchIDs of the sequential merges
-            }
-            float[] S = _getS(CRIT, O,L_o);
-            
-            
-            // Get transition points. Find forward run lengths of each transition point
-            int last=0;
-            for(int s=0;s<S.length-1;s++){
-                // S[s] is looking realistic
-                TP[s] = (S[s] * S[s+1] <= 0.0f); // true if s and s+1 are opp signs, true otherwise
-                if(TP[s] == true){
-                	int C = s-last;
-                	System.out.println("Cluster size: " + C);
-                	last = s;
-                }
-                //System.out.println(S[s] + "\t" + TP[s]);
-            }
-            System.exit(0);
-               // Either clean-up here, or not. Probably best here.
+        
+        public float[] getHeights (){
+            return CRIT;
+        }
+        
+        public int getNumberOfBranches(){
+            return N;
         }
         
         
-        private int[] _getDendroOrder () {
+       
+        private float _getMean (float[] Distances){
+            float mean =0.0f;
+            for(int i=0;i<Distances.length;i++){
+                mean = mean + Distances[i];
+            }
+            mean = mean / Distances.length;
+            return mean;
+        }
+        
+        public int[] getDendroOrder () {
 /*            
             C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
 C                                                               C
@@ -381,6 +290,7 @@ C     I coded clusters as lowest seq. no. of constituents; S's 'hclust' codes
 C     singletons as -ve numbers, and non-singletons with their seq. nos.
 C
 */
+            int N = IA.length;
             int[] IIA = new int[N];
             int[] IIB = new int[N];
             int[] IORDER = new int [N];
@@ -389,45 +299,38 @@ C
                 IIB[i]=IB[i];
             }
             
-            for(int i=0;i<=N-2;i++){ // why skip last two merges? So theres two branches...?
-                int k = (IA[i] < IB[i]) ? IA[i] : IB[i]; // find which node is root node
+            for(int i=0;i<=N-1;i++){ 
+                int k = (IA[i] < IB[i]) ? IA[i] : IB[i]; 
                 for(int j=i+1;j<=N-1;j++){
                     if (IA[j] == k) IIA[j]=(-1 * i);
                     if (IB[j] == k) IIB[j]=(-1 * i); 
-                    // find all occ. of k after i - set them to negative.
                 }
             }
             
             for(int i=0;i<=N-1;i++){
                 IIA[i] = -1 * IIA[i];
                 IIB[i] = -1 * IIB[i];
-                // invert the signs. this makes the first occ. of each k negative (its a singleton at that time)
-                // and makes all following occ of k a positive int - it is a cluster at that time
             }
             
             for(int i=0;i<=N-1;i++){
-                if((IIA[i] > 0) && (IIB[i] < 0)){ // if A is a cluster and B is a singleton
+                if((IIA[i] > 0) && (IIB[i] < 0)){ 
                    int K = IIA[i];
                    IIA[i] = IIB[i];
-                   IIB[i] = K; // set B to the cluster Id and A to the singleton Id
+                   IIB[i] = K; 
                 }
-                if((IIA[i] > 0) && (IIB[i] > 0)){ // if this is a cluster/cluster merge 
+                if((IIA[i] > 0) && (IIB[i] > 0)){ 
                     int K1 = (IIA[i] < IIB[i]) ? IIA[i] : IIB[i];
                     int K2 = (IIA[i] > IIB[i]) ? IIA[i] : IIB[i];
                     IIA[i] = K1;
-                    IIB[i] = K2; // swap A and B. (so again, A merges into B)
+                    IIB[i] = K2; 
                 }
             }
-            // SO far, all we've done is relabel and set directions
-            // to the same merges as we had before.
-            // IIA merges into B
-
-            
-            IORDER[0] = IIA[N-2]; // is neg
-            IORDER[1] = IIB[N-2];// Set first two branches as last two merges // is pos
+            IORDER[0] = IIA[N-2]; 
+            IORDER[1] = IIB[N-2];
+ 
             int LOC = 1;
-            for(int i=N-3;i>=0;i--){ // for all branches... (backwards)
-                for(int j=0;j<=LOC;j++){ //go through ORDER
+            for(int i=N-3;i>=0;i--){ 
+                for(int j=0;j<=LOC;j++){ 
                     if(IORDER[j] == i){ // find pos of IORDER j - ONLY true if IORDER[j] is not a singleton
                         IORDER[j] = IIA[i]; // first set order j to source node
                         if(j == LOC){ // if we're at the end of our current loop
@@ -446,63 +349,47 @@ C
             }
             for(int i=0;i<N;i++){
                 IORDER[i]=-1 * IORDER[i];
+                //    System.out.println(i + "\t" + IORDER[i]);
             }
+            ORDER = IORDER;
             return IORDER;
         }
                 
-	
-	private static void _clustersToFile (int[] Cluster, int M){
-		try {	
-			//Iterator<Integer> Node = Cluster.iterator();
-            String nPath = "Cluster." + M + ".txt"; 
-            PrintWriter writer = new PrintWriter(nPath,"UTF-8");
-            //while(Node.hasNext()){
-            //	int node = Node.next();
-            for(int i=0;i<Cluster.length;i++){
-            	int node = Cluster[i];
-            	writer.println(node);
+	private float[] _subsetArray (int[] index, float[] TA){
+            float[] subset = new float[index.length];
+            for(int i=0;i<index.length;i++){
+                subset[i] = TA[index[i]];
             }
-            writer.close();
-				
-		} catch (Exception e){
+            return subset;
+        }
+        
+        private int[] _subsetArray (int[] index, int[] TA){
+            int[] subset = new int[index.length];
+            for(int i=0;i<index.length;i++){
+                subset[i] = TA[index[i]];
+            }
+            return subset;
+        }
+        
+        
+        
+	private static void _clustersToFile (int[] Cluster, int M){
+            try {	
+		//Iterator<Integer> Node = Cluster.iterator();
+                String nPath = "Cluster." + M + ".txt"; 
+                PrintWriter writer = new PrintWriter(nPath,"UTF-8");
+                //while(Node.hasNext()){
+                //	int node = Node.next();
+                for(int i=0;i<Cluster.length;i++){
+                	int node = Cluster[i];
+                	writer.println(node);
+                }
+                writer.close();	
+            } catch (Exception e){
 				// 
-		}
+            }
 			
 	}
      
         
 }
-/*
- private void _staticCut (float cutoff,int MinSize){
-            ArrayList<ArrayList<Integer>> Clusters = new ArrayList<ArrayList<Integer>>(N);
-            int[][] I_Clusters = new int[N][];
-            for(int i=0;i<N;i++){
-            	ArrayList<Integer> Cluster = new ArrayList<Integer>();
-            	int[] clust = new int[1];
-            	clust[0]=i;
-            	I_Clusters[i]=clust;
-            	Cluster.add(i); // Init all positions to a cluster of 1 which is the node...
-            	Clusters.add(i,Cluster); // Add cluster to the list of clusters at pos I
-            }
-            for(int i=0;i<N-1;i++){
-            	if(CRIT[i] > cutoff) continue;
-            	// IA[i] is the source. IB[i] is the merged node. Crit[i] is the distance value
-            	// Merge all of IB[i] into IA[i] at every step.
-                //System.out.println(IA[i] + " " + IB[i] + " " + CRIT[i]);
-            	
-            
-            	if(I_Clusters[IB[i]] == null) continue;
-            	int[] i_clust = ArrayUtils.addAll(I_Clusters[IA[i]], I_Clusters[IB[i]]);
-            	I_Clusters[IA[i]]= i_clust;
-            	I_Clusters[IB[i]]= null;
-            	
-            }
-            int M=0;
-            for(int i=0;i<N;i++){
-            	if(I_Clusters[i] == null) continue;
-            	if(I_Clusters[i].length < MinSize) continue;
-            	M++;
-            	_clustersToFile(I_Clusters[i],M);
-            }
-        }
-*/
