@@ -201,15 +201,16 @@ class Dendrogram {
                     }
                 }
             }
+            /*
             for(int i=0;i<N-1;i++){
-            //    System.out.println(i +"\t" +IA[i] + "\t" + IB[i] + "\t" + CRIT[i]);
+                System.out.println(i +"\t" +IA[i] + "\t" + IB[i] + "\t" + CRIT[i]);
             }
             System.err.println("Done clustering...\n");
+            */
         }
-        public int[][] staticCut (float cutoff,int MinSize){
+        public ArrayList<int[]> staticCut (float cutoff,int MinSize){
             int[][] I_Clusters = new int[N][];
             for(int i=0;i<N;i++){
-            	ArrayList<Integer> Cluster = new ArrayList<Integer>();
             	int[] clust = new int[1];
             	clust[0]=i;
             	I_Clusters[i]=clust;
@@ -222,7 +223,12 @@ class Dendrogram {
             	I_Clusters[IB[i]]= null;
             	
             }
-            return I_Clusters;
+            ArrayList<int[]> Clusters = new ArrayList<int[]>();
+            for(int i=0;i<N-1;i++){
+                if(I_Clusters[i] == null) continue;
+                Clusters.add(I_Clusters[i]);
+            }
+            return Clusters;
         }
         public int[] getMergeLeaves() { // pretty sure thats not a leaf.
             return IB;
