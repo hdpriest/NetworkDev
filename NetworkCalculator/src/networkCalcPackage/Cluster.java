@@ -258,6 +258,57 @@ Solution: this_Order (above), holds the ordering of the branches of this_Dendro
             ArrayList<int[]> Clusters = new ArrayList<int[]>();
             // Anything based on S is based on this_Order 
             // below, branch s corresponds to this_Order[s];
+            ArrayList<Integer> Breakpoints = new ArrayList<Integer>();
+            ArrayList<Integer> ForwardRuns = new ArrayList<Integer>();
+            Breakpoints.add(0);
+            //find all breakpoints
+            for(int s=0;s<S.length-1;s++){
+            	boolean tp = (S[s] * S[s+1] <= 0.0f); // true if sign of s and s+1 are non-equal
+            	if(tp == true){
+            		int length = s - last;
+            		ForwardRuns.add(length); // refers to the forward run of the previous breakpoint
+            		Breakpoints.add(s); // adds this breakpoint
+            		last = s;
+            	}else{
+            		
+            	}
+            }
+            ForwardRuns.add(S.length-last); // caps off the forward run array
+            int tau = 10;
+            // identify significant breakpoints with forward run length > Tau
+            int b = 1; // always retain the first breakpoint, at zero...
+            System.err.println("iterating through breakpoints...");
+            while(b < Breakpoints.size()-1){
+            	System.err.println("working on " + b);
+            	if(ForwardRuns.get(b) < tau){
+            		ForwardRuns.remove(b);
+            		Breakpoints.remove(b);
+            		int newForward = Breakpoints.get(b) - Breakpoints.get(b-1);
+            		ForwardRuns.set(b-1, newForward);
+            		// b is gone. there is a new b.
+            		// no need to iterate.
+            	}else{
+            		// leave in place. is a significant run
+            		b++;
+            	}
+            	// any remaining breakpoints likely have invalid run lengths
+            }
+            System.err.println("Done.\nAdding Clusters");
+            //
+            b=0;
+            while(b<Breakpoints.size()-2){
+            	int this_s = Breakpoints.get(b);
+            	int this_fr= ForwardRuns.get(b);
+            	int end = this_s+this_fr-1;
+            	int[] cluster = new int[this_fr];
+            	for(int i = this_s;i<=end;i++){
+            		int index=i-this_s;
+            		cluster[index]=i;
+            	}
+            	Clusters.add(cluster);
+            }
+            System.err.println("done.");
+            /*
             for(int s=0;s<S.length-1;s++){
                 TP[s] = (S[s] * S[s+1] <= 0.0f);
                 int C = s-last+1;
@@ -280,6 +331,7 @@ Solution: this_Order (above), holds the ordering of the branches of this_Dendro
                     Clusters.add(cluster);
                 }
             }
+            */
             // Build ordered set of clusters // AND filter at the same time
           
             int c = 0;
