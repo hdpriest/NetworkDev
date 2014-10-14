@@ -306,6 +306,7 @@ Solution: this_Order (above), holds the ordering of the branches of this_Dendro
             		cluster[index]=i;
             	}
             	Clusters.add(cluster);
+            	b++;
             }
             System.err.println("done.");
             /*
