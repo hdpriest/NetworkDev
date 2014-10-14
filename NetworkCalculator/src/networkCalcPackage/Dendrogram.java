@@ -208,25 +208,27 @@ class Dendrogram {
             System.err.println("Done clustering...\n");
             */
         }
+        
         public ArrayList<int[]> staticCut (float cutoff,int MinSize){
             int[][] I_Clusters = new int[N][];
             for(int i=0;i<N;i++){
             	int[] clust = new int[1];
-            	clust[0]=i;
+            	int branch_id=i;
+            	clust[0]=branch_id;
             	I_Clusters[i]=clust;
             }
             for(int i=0;i<N-1;i++){
             	if(CRIT[i] > cutoff) continue;
             	if(I_Clusters[IB[i]] == null) continue;
-            	int[] i_clust = ArrayUtils.addAll(I_Clusters[IA[i]], I_Clusters[IB[i]]);
-            	I_Clusters[IA[i]]= i_clust;
-            	I_Clusters[IB[i]]= null;
+            	int[] i_clust = ArrayUtils.addAll(I_Clusters[IA[i]], I_Clusters[IB[i]]); // all branch ids of B added to A
+            	I_Clusters[IA[i]]= i_clust; // holds all branch IDs of B and A
+            	I_Clusters[IB[i]]= null; // set b = 0 (merge only once)
             	
             }
             ArrayList<int[]> Clusters = new ArrayList<int[]>();
             for(int i=0;i<N-1;i++){
                 if(I_Clusters[i] == null) continue;
-                Clusters.add(I_Clusters[i]);
+                Clusters.add(I_Clusters[i]); // Cluster is now a int[] containing branch IDs of a single dendro  
             }
             return Clusters;
         }
