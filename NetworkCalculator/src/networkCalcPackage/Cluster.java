@@ -77,7 +77,7 @@ class Cluster {
                     continue;
                 }
 
-                ArrayList<int[]> new_Clusters = _adaptiveTreeCut(this_cluster);
+                ArrayList<int[]> new_Clusters = _adaptiveTreeCut(this_cluster,MinSize);
 /*
  * The content of new_Clusters is a set of new branch IDs which:
  * contain all integers from i=0 to i<this_cluster.length
@@ -106,7 +106,7 @@ class Cluster {
                         n++;
                     }
                     // no iteration
-                    continue;// continues anyway; this just makes you look like a tool;
+                    // continues anyway; this just makes you look like a tool;
                 }
             }
             System.out.println("Done.");
@@ -114,6 +114,7 @@ class Cluster {
             Iterator<int[]> it = Clusters.iterator();
             while(it.hasNext()){
                 int[] cluster = it.next();
+                if(cluster.length < MinSize) continue;
                 System.out.println("Final cluster size: " + cluster.length);
             }
 /*
@@ -161,55 +162,34 @@ class Cluster {
             return min;
         }
         
-        private ArrayList<int[]> _adaptiveTreeCut(int[] Cluster) {
+        private ArrayList<int[]> _adaptiveTreeCut(int[] Cluster,int Tau) {
             GCNMatrix thisDist = _getDistForCluster(Cluster);
             Dendrogram this_Dendro = new Dendrogram(thisDist);
             this_Dendro.getDendrogram(Criteria);
-// thisDendro now has the unique merge order and heights of the rows of thisDist
             float[] this_Dist  = this_Dendro.getHeights();
             int[] this_Order = this_Dendro.getDendroOrder();
-/*
-but now all of the branch IDs change!            
-here is the problem. As you descend levels of this algorithm:
-1) static cut
-2) dynamic tree cut (per cluster)
-3) adaptive tree cut (new dendro)
-4) tree cut core (clusters)
 
-The branch IDs of 4 don't travel back to 1... this means that at the final step, when you re-ass
-all of the cluster branches to the main cluster tree, everything is FUBAR'd (doesn't conjugate like that...)
-
-Solution: this_Order (above), holds the ordering of the branches of this_Dendro
-*/            
-            /*
-             * The content of Cluster is important it is a set of branch IDs which are 
-             * not necessarily contiguous
-             * not necessarily origin-0
-             * not necessarily sorted
-             * Cluster[i]=branch_id
-             * Dist[branch_id]=height
-             */
             float L_naught=_getMean(this_Dist);
             float L_max   = 0.5f * (L_naught + _getMax(this_Dist));
             float L_min   = 0.5f * (L_naught + _getMin(this_Dist));
             // call l_naught, then l_min, then l_max, 
             //int[][] clusters = _treeCutCore(this_Order,this_Dist,L_naught,25);
             ArrayList<int[]> clusters = new ArrayList<int[]>();
-            if(Cluster.length < 10){
+            if(Cluster.length < Tau){
             	// can't cluster things that are too small.
             	clusters.add(Cluster);
             	return clusters;
             }
             System.out.println("working on cluster of size "+ Cluster.length);
-            clusters =	_treeCutCore(this_Order,this_Dist,L_naught,25);
+            clusters =	_treeCutCore(this_Order,this_Dist,L_naught,Tau);
             System.out.println("Found " + clusters.size() + " clusters on this iteration (naught) " + L_naught);
             //if(Arrays.equals(Cluster,clusters[0])){
             if(clusters.size() <= 1){
-                clusters = _treeCutCore(this_Order,this_Dist,L_min,25);
+                clusters = _treeCutCore(this_Order,this_Dist,L_min,Tau);
                 System.out.println("Found " + clusters.size() + " clusters on this iteration (lower) " + L_min );
             }
             if(clusters.size() <= 1){
-                clusters = _treeCutCore(this_Order,this_Dist,L_max,25);
+                clusters = _treeCutCore(this_Order,this_Dist,L_max,Tau);
                 System.out.println("Found " + clusters.size() + " clusters on this iteration (upper) " + L_max);
             }
             
@@ -239,7 +219,7 @@ Solution: this_Order (above), holds the ordering of the branches of this_Dendro
             float[] S = new float[this_Order.length];
             for(int o=0;o<this_Order.length;o++){
                 S[o] = this_Dist[this_Order[o]]-L; // go get the heights for the branches in O, and calculate S based on those
-                //System.out.println(o + "\t" + this_Order[o] +"\t" + S[o] + "\t" + L);
+                System.out.println(o + "\t" + this_Order[o] +"\t" + S[o] + "\t" + L);
             }
             return S;
         }
@@ -260,49 +240,68 @@ Solution: this_Order (above), holds the ordering of the branches of this_Dendro
             // below, branch s corresponds to this_Order[s];
             ArrayList<Integer> Breakpoints = new ArrayList<Integer>();
             ArrayList<Integer> ForwardRuns = new ArrayList<Integer>();
-            Breakpoints.add(0);
+            ArrayList<Integer> ReverseRuns = new ArrayList<Integer>();
             //find all breakpoints
+            int tau = T;
             for(int s=0;s<S.length-1;s++){
             	boolean tp = (S[s] * S[s+1] <= 0.0f); // true if sign of s and s+1 are non-equal
             	if(tp == true){
-            		int length = s - last;
-            		ForwardRuns.add(length); // refers to the forward run of the previous breakpoint
+                        int RR = s - last; // assures s - 0 for first transition point
+                        if (RR <= tau) continue;
+                        int FR = S.length - s;
+                        for(int f = s+1;f<S.length-1;f++){
+                            if(S[f] * S[f+1] <= 0.0f){
+                                FR = f - s;
+                                break;
+                            }
+                        }
+            		ForwardRuns.add(FR); // refers to the forward run of the previous breakpoint
             		Breakpoints.add(s); // adds this breakpoint
+                        ReverseRuns.add(RR);
+                        System.err.println("adding " + s + " as a breakpoint, and " + FR + " as the forward run and " + RR + " as the reverse run");
             		last = s;
-            	}else{
+            	}else if(s==S.length-2){
+                    int RR = S.length - last -1; 
+                    if (RR <= tau) continue;
+                    int FR = 0;
+                    int t = S.length-1;
+                    ForwardRuns.add(FR); // refers to the forward run of the previous breakpoint
+                    Breakpoints.add(t); // adds this breakpoint
+                    ReverseRuns.add(RR);
+                    System.err.println("adding " + t + " as a breakpoint, and " + FR + " as the forward run and " + RR + " as the reverse run");
+                }else{
             		
             	}
             }
             ForwardRuns.add(S.length-last); // caps off the forward run array
-            int tau = 10;
+            
             // identify significant breakpoints with forward run length > Tau
-            int b = 1; // always retain the first breakpoint, at zero...
+            int b = 0; 
             System.err.println("iterating through breakpoints...");
-            while(b < Breakpoints.size()-1){
+            while(b < Breakpoints.size()){
             	System.err.println("working on " + b);
-            	if(ForwardRuns.get(b) < tau){
-            		ForwardRuns.remove(b);
-            		Breakpoints.remove(b);
-            		int newForward = Breakpoints.get(b) - Breakpoints.get(b-1);
-            		ForwardRuns.set(b-1, newForward);
-            		// b is gone. there is a new b.
-            		// no need to iterate.
-            	}else{
-            		// leave in place. is a significant run
-            		b++;
+                //if((ForwardRuns.get(b) > tau) && (ReverseRuns.get(b) > tau)){
+                if(ReverseRuns.get(b) > tau){
+                    System.err.println("Significant breakpoint at " + Breakpoints.get(b) + " with FR: " + ForwardRuns.get(b) + " And RR: " + ReverseRuns.get(b));
+                    b++;
+                }else{
+                    System.err.println("Removing breakpoint at " + Breakpoints.get(b) + " with FR: " + ForwardRuns.get(b) + " And RR: " + ReverseRuns.get(b));
+                    Breakpoints.remove(b);
+                    ForwardRuns.remove(b);
+                    ReverseRuns.remove(b);
             	}
             	// any remaining breakpoints likely have invalid run lengths
             }
             System.err.println("Done.\nAdding Clusters");
             //
             b=0;
-            while(b<Breakpoints.size()-2){
+            while(b<Breakpoints.size()){
             	int this_s = Breakpoints.get(b);
-            	int this_fr= ForwardRuns.get(b);
-            	int end = this_s+this_fr-1;
-            	int[] cluster = new int[this_fr];
-            	for(int i = this_s;i<=end;i++){
-            		int index=i-this_s;
+            	int this_rr= ReverseRuns.get(b);
+            	int begin = this_s-this_rr;
+            	int[] cluster = new int[this_rr+1];
+            	for(int i = begin;i<=this_s;i++){
+            		int index=i-begin;
             		cluster[index]=i;
             	}
             	Clusters.add(cluster);
@@ -347,7 +346,7 @@ Solution: this_Order (above), holds the ordering of the branches of this_Dendro
                 }*/
                 float main_Mean = _getMeanForCluster(this_Dist,this_Order,this_Cluster);
                 float next_Mean = _getMeanForCluster(this_Dist,this_Order,next_Cluster);
-                System.out.println("main: " + main_Mean + "("+this_n+") next: " + next_Mean +"(" + next_n + ")");
+                System.out.println("main: " + main_Mean + " ("+this_n+") next: " + next_Mean +" (" + next_n + ")");
                 //if(Clusters.get(c+1).length < T){
                 if((this_n > T) && (next_n < T)){
                     if(next_Mean <= main_Mean){
@@ -376,23 +375,7 @@ Solution: this_Order (above), holds the ordering of the branches of this_Dendro
                     c++;
                 }
             }
-            /*      
-            Iterator<Integer[]> I = Clusters.iterator();
-            int[][] Cs = new int[Clusters.size()][];
-            int m = 0;
-            while(I.hasNext()){
-                Integer[] CLUSTER = I.next();
-                int[] cluster = new int[CLUSTER.length];
-                for(int i=0;i<CLUSTER.length;i++){
-                    cluster[i]=(int) CLUSTER[i];
-                }
-                Cs[m]=cluster;
-                m++;
-            }
-            return Cs;
-            */
             return Clusters;
-               // Either clean-up here, or not. Probably best here.
         }
         private float _getMean (float[] Distances){
             float mean =0.0f;
