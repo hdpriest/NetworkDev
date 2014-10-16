@@ -10,7 +10,6 @@ import org.apache.commons.lang3.ArrayUtils;
 
 class Dendrogram {
         private GCNMatrix DISS;
-        //private float[][] DISS;
         private int Critereon;
         private int N;
         private int[] IA;
@@ -53,15 +52,13 @@ class Dendrogram {
             CRIT = new float[N];
             MEMBR = new int[N];
             for (int i = 0; i < N ; i++) {
-                FLAG[i] = true; // all objects start agglomerable
-                MEMBR[i] = 1; // all clusters start with 1 entry
+                FLAG[i] = true; 
+                MEMBR[i] = 1;
 	    }
 	}
         
         public void getDendrogram (int Crit){
             Critereon = Crit;
-                        
-            // Find NN for all I
             
             for(int i=0;i<N-1;i++){
                 int J=-1;
@@ -99,16 +96,13 @@ class Dendrogram {
 
                 minD = INF;
                 int JJ=-1;
-                // UPDATE DISTANCES
                 for(int k=0;k<N;k++){
                     if(FLAG[k] != true) continue;
                     if(k==I2) continue;
                     int X = MEMBR[I2] + MEMBR[J2] + MEMBR[k];
                     float XX = DISS.getValueByEntry(I2,J2);
-                    // IND1 in fortran = K,I2
-                    // IND2 in fortran = K,J2 
-                    float IK = DISS.getValueByEntry(I2,k); // IND 1
-                    float JK = DISS.getValueByEntry(J2,k); // IND 2
+                    float IK = DISS.getValueByEntry(I2,k);
+                    float JK = DISS.getValueByEntry(J2,k);
                     float newDiss=1.0f;
                     switch (Critereon) { // works on String or int (and others) TODO encode cases...
                         //case "ward":
@@ -144,30 +138,23 @@ class Dendrogram {
                         //etc
                     }
                     DISS.setValueByEntry(newDiss, I2, k);
-                    if(I2 > k) continue; // what is this for??
+                    if(I2 > k) continue; 
                     if(newDiss > minD) continue;
                     minD = newDiss;
-                    JJ=k; // only designate k as the NN if k > I2 .... can only merge left??
+                    JJ=k; 
                 }
                 MEMBR[I2] = MEMBR[I2] + MEMBR[J2];
                 DISNN[I2] = minD;
                 NN[I2]=JJ;
 
-                /*
-                 OK. Update NNs:
-                if NN(i) == I2, update DISNN(i)
-                if NN(i) == J2, update DISNN, update NN(i)=I2
-                 Yau & PL have a better updater for 6 & 7
-                */ 
                 if(Critereon > 5){
                     for(int i=0;i<N-1;i++){
-                        if(FLAG[i] != true) continue; // FLAG[i] == false >> i has been clustered
+                        if(FLAG[i] != true) continue;
                         if((i == I2) || (NN[i] == I2) || (NN[i] == J2)){ 
-                            // If i != I2, i's NN isn't I2 or J2, it's NN didn't change, unless the new I2 Distance is < DISNN
                             minD = INF;
                             for(int j=i+1;j<N;j++){
                                 if(FLAG[j] != true) continue;
-                                if (i == j) continue; // Why is this here??
+                                if (i == j) continue; 
                                 float D = DISS.getValueByEntry(i,j);
                                 if(D >= minD) continue;
                                 minD = D;
@@ -177,19 +164,19 @@ class Dendrogram {
                             DISNN[i]=minD;
                         }else{
                             float D = DISS.getValueByEntry(i,I2);
-                            if(D >= DISNN[i]) continue; // Skip this if the updated i-I2 distance is GE the current NN of i
+                            if(D >= DISNN[i]) continue;
                             DISNN[i] = D;
                             NN[i] = I2;
                         }
                     }
                 }else{
                     for(int i=0;i<N-1;i++){
-                        if(FLAG[i] != true) continue; // omits J2
-                        if((NN[i] == I2) || (NN[i] == J2)){ // Otherwise, NN didn't change
+                        if(FLAG[i] != true) continue; 
+                        if((NN[i] == I2) || (NN[i] == J2)){ 
                             minD = INF;
                             for(int j=i+1;j<N;j++){
                                 if(FLAG[j] != true) continue;
-                                if(i == j) continue; // again. seemed useless.
+                                if(i == j) continue; 
                                 float D = DISS.getValueByEntry(i,j);
                                 if(D > minD) continue;
                                 minD = D;
@@ -201,12 +188,6 @@ class Dendrogram {
                     }
                 }
             }
-            /*
-            for(int i=0;i<N-1;i++){
-                System.out.println(i +"\t" +IA[i] + "\t" + IB[i] + "\t" + CRIT[i]);
-            }
-            System.err.println("Done clustering...\n");
-            */
         }
         
         public ArrayList<int[]> staticCut (float cutoff,int MinSize){
@@ -220,19 +201,20 @@ class Dendrogram {
             for(int i=0;i<N-1;i++){
             	if(CRIT[i] > cutoff) continue;
             	if(I_Clusters[IB[i]] == null) continue;
-            	int[] i_clust = ArrayUtils.addAll(I_Clusters[IA[i]], I_Clusters[IB[i]]); // all branch ids of B added to A
-            	I_Clusters[IA[i]]= i_clust; // holds all branch IDs of B and A
-            	I_Clusters[IB[i]]= null; // set b = 0 (merge only once)
+            	int[] i_clust = ArrayUtils.addAll(I_Clusters[IA[i]], I_Clusters[IB[i]]);
+            	I_Clusters[IA[i]]= i_clust;
+            	I_Clusters[IB[i]]= null;
             	
             }
             ArrayList<int[]> Clusters = new ArrayList<int[]>();
             for(int i=0;i<N-1;i++){
                 if(I_Clusters[i] == null) continue;
-                Clusters.add(I_Clusters[i]); // Cluster is now a int[] containing branch IDs of a single dendro  
+                if(I_Clusters[i].length==1) continue;
+                Clusters.add(I_Clusters[i]);
             }
             return Clusters;
         }
-        public int[] getMergeLeaves() { // pretty sure thats not a leaf.
+        public int[] getMergeLeaves(){ // pretty sure thats not a leaf.
             return IB;
         }
         
@@ -303,7 +285,7 @@ C
             int[] IIB = new int[N];
             int[] IORDER = new int [N];
             for(int i=0;i<N;i++){
-                IIA[i]=IA[i]; // copy into IIA and IIB
+                IIA[i]=IA[i];
                 IIB[i]=IB[i];
             }
             
@@ -339,15 +321,15 @@ C
             int LOC = 1;
             for(int i=N-3;i>=0;i--){ 
                 for(int j=0;j<=LOC;j++){ 
-                    if(IORDER[j] == i){ // find pos of IORDER j - ONLY true if IORDER[j] is not a singleton
-                        IORDER[j] = IIA[i]; // first set order j to source node
-                        if(j == LOC){ // if we're at the end of our current loop
-                            LOC=LOC+1; // set the next limit
-                            IORDER[LOC]=IIB[i]; // set order LOC to the merge-into node
-                        }else{ // if we're in the body of the iteration
-                            LOC=LOC+1; // set next limit (extends THIS iteration)
-                            for(int k=LOC;k>=j+2;k--){ // from next limit back to j+2
-                                IORDER[k] = IORDER[k-1]; // .... copy all k-1 to k... the fuck?
+                    if(IORDER[j] == i){
+                        IORDER[j] = IIA[i];
+                        if(j == LOC){
+                            LOC=LOC+1;
+                            IORDER[LOC]=IIB[i];
+                        }else{
+                            LOC=LOC+1;
+                            for(int k=LOC;k>=j+2;k--){
+                                IORDER[k] = IORDER[k-1];
                             }
                             IORDER[j+1]=IIB[i];
                         }
@@ -357,7 +339,6 @@ C
             }
             for(int i=0;i<N;i++){
                 IORDER[i]=-1 * IORDER[i];
-                //    System.out.println(i + "\t" + IORDER[i]);
             }
             ORDER = IORDER;
             return IORDER;
@@ -383,18 +364,14 @@ C
         
 	private static void _clustersToFile (int[] Cluster, int M){
             try {	
-		//Iterator<Integer> Node = Cluster.iterator();
                 String nPath = "Cluster." + M + ".txt"; 
                 PrintWriter writer = new PrintWriter(nPath,"UTF-8");
-                //while(Node.hasNext()){
-                //	int node = Node.next();
                 for(int i=0;i<Cluster.length;i++){
                 	int node = Cluster[i];
                 	writer.println(node);
                 }
                 writer.close();	
             } catch (Exception e){
-				// 
             }
 			
 	}

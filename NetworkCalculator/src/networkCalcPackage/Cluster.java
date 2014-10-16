@@ -46,7 +46,6 @@ class Cluster {
         public void dynamicTreeCut (int MinSize) {
             // implementation of dynamic tree cut and flashclust from horvath and langfelder et al
             // This will be pretty ham-handed.
-            //float cutoff = 0.99f * (1.0f-(CRIT[1]));
             float[] Dist = Dendrogram.getHeights();
             int N = Dendrogram.getNumberOfBranches();
             int[] Order = Dendrogram.getDendroOrder();
@@ -56,7 +55,6 @@ class Cluster {
             ArrayList<int[]> Clusters = Dendrogram.staticCut(cutoff,MinSize);
 
             int c = 0;
-            //while(c < Clusters.size()){
             for(c=0;c<Clusters.size();c++){
                 int[] this_cluster = Clusters.get(c); 
                 /*
@@ -68,7 +66,7 @@ class Cluster {
                  * Dist[branch_id]=height
                  */
                 int this_N = this_cluster.length;
-                if(Clusters.size() > N){ // checks because Clusters changes many times
+                if(Clusters.size() > N){
                     System.err.println("More clusters than genes. Something has gone horribly wrong.\n\n");
                     System.exit(0);
                 }
@@ -91,23 +89,20 @@ class Cluster {
                         System.exit(0);
                 }
                 if(new_Clusters.size() == 1){
-                // if new_Clusters size ==1 (i.e., no new clusters here) then.... proceed to next cluster.
                     System.out.println("Found no new clusters");
                     c++;
                     continue;
                 }else{ 
-               // if new_Clusters size ne 0 && ne 1, insert new clusters starting at c, and do not iterate (i.e., start @ c again)
                     int n = 0;
                     Clusters.remove(c);
                     while(n < new_Clusters.size()){
-                        int nc = c+n; // starts @ c
+                        int nc = c+n;
                         System.out.println("Inserting cluster at " + nc);
                         Clusters.add(nc,new_Clusters.get(n));
                         n++;
                     }
-                    c=c+n+1;
-                    // no iteration
-                    // continues anyway; this just makes you look like a tool;
+                    //c++;
+                    //c=c+n+1;
                 }
             }
             System.out.println("Done.");
@@ -115,19 +110,9 @@ class Cluster {
             Iterator<int[]> it = Clusters.iterator();
             while(it.hasNext()){
                 int[] cluster = it.next();
-                if(cluster.length < MinSize) continue;
+                //if(cluster.length < MinSize) continue;
                 System.out.println("Final cluster size: " + cluster.length);
             }
-/*
-            }
-            for(int i=0;i<N;i++){
-                if(Clusters[i] == null) continue;
-                int thisN = Clusters[i].length;
-                if(thisN < MinSize) continue;
-                System.out.println("Main Cluster size: " + thisN);
-                _adaptiveTreeCut(Clusters[i]);
-            }
-*/
             System.exit(0);
         }
         
@@ -135,10 +120,10 @@ class Cluster {
             int thisN = cluster.length;
             GCNMatrix thisDist = new GCNMatrix(thisN,thisN);
             for(int j=0;j<thisN;j++){
-                int Ind_i = cluster[j]; // branch id at j
+                int Ind_i = cluster[j];
                 float[] Row = new float[thisN];
                 for(int J=0;J<thisN;J++){
-                    int Ind_j = cluster[J]; // branch id at J
+                    int Ind_j = cluster[J];
                     float d = DISS.getValueByEntry(Ind_i,Ind_j); 
                     Row[J] = d;
                 }
@@ -173,18 +158,14 @@ class Cluster {
             float L_naught=_getMean(this_Dist);
             float L_max   = 0.5f * (L_naught + _getMax(this_Dist));
             float L_min   = 0.5f * (L_naught + _getMin(this_Dist));
-            // call l_naught, then l_min, then l_max, 
-            //int[][] clusters = _treeCutCore(this_Order,this_Dist,L_naught,25);
             ArrayList<int[]> clusters = new ArrayList<int[]>();
             if(Cluster.length < Tau){
-            	// can't cluster things that are too small.
             	clusters.add(Cluster);
             	return clusters;
             }
             System.out.println("working on cluster of size "+ Cluster.length);
             clusters =	_treeCutCore(this_Order,this_Dist,L_naught,Tau);
             System.out.println("Found " + clusters.size() + " clusters on this iteration (naught) " + L_naught);
-            //if(Arrays.equals(Cluster,clusters[0])){
             if(clusters.size() <= 1){
                 clusters = _treeCutCore(this_Order,this_Dist,L_min,Tau);
                 System.out.println("Found " + clusters.size() + " clusters on this iteration (lower) " + L_min );
@@ -194,12 +175,11 @@ class Cluster {
                 System.out.println("Found " + clusters.size() + " clusters on this iteration (upper) " + L_max);
             }
             
-            if(clusters.size() == 0){ // No new clusters are found at any cut height
-            	clusters.add(Cluster); // Send back the original.
+            if(clusters.size() == 0){
+            	clusters.add(Cluster);
             	return clusters;
             }else if(clusters.size() == 1){
-            	clusters.remove(0); // treeCutCore can drop nodes from clusters and return only one.
-            	// this might not be correct. will have to look.
+            	clusters.remove(0);
             	clusters.add(Cluster);
             	return clusters;
             }else{
@@ -207,10 +187,9 @@ class Cluster {
             		System.out.println("\t Sub Cluster size: " + clusters.get(c).length);
             		int[] cluster = clusters.get(c);
             		for(int i=0;i<cluster.length;i++){
-            			cluster[i]=Cluster[cluster[i]]; // map back to original branch IDs
+            			cluster[i]=Cluster[cluster[i]];
             		}
-            		clusters.set(c, cluster); // maybe a more elegant way to do this.
-            		// will ONLY work if treeCutCore doesn't further mangle IDs.
+            		clusters.set(c, cluster);
             	}
             }
             return clusters;
@@ -219,7 +198,7 @@ class Cluster {
         private float[] _getS (int[] this_Order, float L,float[] this_Dist) { 
             float[] S = new float[this_Order.length];
             for(int o=0;o<this_Order.length;o++){
-                S[o] = this_Dist[this_Order[o]]-L; // go get the heights for the branches in O, and calculate S based on those
+                S[o] = this_Dist[this_Order[o]]-L;
                 System.out.println(o + "\t" + this_Order[o] +"\t" + S[o] + "\t" + L);
             }
             return S;
@@ -237,17 +216,14 @@ class Cluster {
             float[] S = _getS(this_Order,L_o,this_Dist);
             int last=0;
             ArrayList<int[]> Clusters = new ArrayList<int[]>();
-            // Anything based on S is based on this_Order 
-            // below, branch s corresponds to this_Order[s];
             ArrayList<Integer> Breakpoints = new ArrayList<Integer>();
             ArrayList<Integer> ForwardRuns = new ArrayList<Integer>();
             ArrayList<Integer> ReverseRuns = new ArrayList<Integer>();
-            //find all breakpoints
             int tau = T;
             for(int s=0;s<S.length-1;s++){
-            	boolean tp = (S[s] * S[s+1] <= 0.0f); // true if sign of s and s+1 are non-equal
+            	boolean tp = (S[s] * S[s+1] <= 0.0f);
             	if(tp == true){
-                        int RR = s - last; // assures s - 0 for first transition point
+                        int RR = s - last;
                         //if (RR <= tau) continue;
                         int FR = S.length - s;
                         for(int f = s+1;f<S.length-1;f++){
@@ -256,8 +232,8 @@ class Cluster {
                                 break;
                             }
                         }
-            		ForwardRuns.add(FR); // refers to the forward run of the previous breakpoint
-            		Breakpoints.add(s); // adds this breakpoint
+            		ForwardRuns.add(FR);
+            		Breakpoints.add(s);
                         ReverseRuns.add(RR);
                         System.err.println("adding " + s + " as a breakpoint, and " + FR + " as the forward run and " + RR + " as the reverse run");
             		last = s;
@@ -266,17 +242,16 @@ class Cluster {
                     //if (RR <= tau) continue;
                     int FR = 0;
                     int t = S.length-1;
-                    ForwardRuns.add(FR); // refers to the forward run of the previous breakpoint
-                    Breakpoints.add(t); // adds this breakpoint
+                    ForwardRuns.add(FR);
+                    Breakpoints.add(t);
                     ReverseRuns.add(RR);
                     System.err.println("adding " + t + " as a breakpoint, and " + FR + " as the forward run and " + RR + " as the reverse run");
                 }else{
             		
             	}
             }
-            ForwardRuns.add(S.length-last); // caps off the forward run array
-            
-            // identify significant breakpoints with forward run length > Tau
+            ForwardRuns.add(S.length-last);
+
             int b = 0; 
             System.err.println("iterating through breakpoints...");
             while(b < Breakpoints.size()){
@@ -291,7 +266,6 @@ class Cluster {
                     ForwardRuns.remove(b);
                     ReverseRuns.remove(b);
             	}
-            	// any remaining breakpoints likely have invalid run lengths
             }
             System.err.println("Done.\nAdding Clusters");
             //
@@ -355,13 +329,13 @@ class Cluster {
             while(c < Clusters.size()-1){
                     int[] this_Cluster = Clusters.get(c);
                     if(this_Cluster.length < T){
-                        Clusters.remove(c); // delete small clusters
+                        Clusters.remove(c);
                         System.err.println("Removing cluster of size " + this_Cluster.length);
                     }else{
-                        c++; // iterate past large clusters
+                        c++;
                     }
             }
-            return Clusters; // returns only large
+            return Clusters;
         }
         private float _getMean (float[] Distances){
             float mean =0.0f;
@@ -390,12 +364,9 @@ class Cluster {
         }
         
 	private static void _clustersToFile (int[] Cluster, int M){
-            try {	
-		//Iterator<Integer> Node = Cluster.iterator();
+            try {
                 String nPath = "Cluster." + M + ".txt"; 
                 PrintWriter writer = new PrintWriter(nPath,"UTF-8");
-                //while(Node.hasNext()){
-                //	int node = Node.next();
                 for(int i=0;i<Cluster.length;i++){
                 	int node = Cluster[i];
                 	writer.println(node);

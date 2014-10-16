@@ -243,7 +243,7 @@ public class NetworkCalculator {
         Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
         //CurrentMatrix.generateHeatmap();
         Cluster Clusters = new Cluster(CurrentMatrix,4);
-        Clusters.dynamicTreeCut(25);
+        Clusters.dynamicTreeCut(50);
         System.out.println("Calculating clusters...");
        // Cluster.getClusters(50); // 50 = min cluster size -- Parameterize
         System.out.println("Done.");
