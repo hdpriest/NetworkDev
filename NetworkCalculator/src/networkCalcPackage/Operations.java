@@ -54,7 +54,7 @@ public class Operations {
 		return GINI_coeff;
 	}
 	
-        private static GCNMatrix copyNames (String[] names, GCNMatrix NetB){
+        public static GCNMatrix copyNames (String[] names, GCNMatrix NetB){
             /// if you always copy Rows->rows and columns, you can't go wrong
             NetB.setRowNames(names);
             NetB.setColumnNames(names);

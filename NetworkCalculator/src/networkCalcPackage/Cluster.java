@@ -10,7 +10,7 @@ import org.apache.commons.lang3.ArrayUtils;
 
 
 class Cluster {
-        private GCNMatrix DISS;
+        private static GCNMatrix DISS;
         private float INF = Float.POSITIVE_INFINITY;
         private Dendrogram Dendrogram;
         private int Criteria;
@@ -35,10 +35,12 @@ class Cluster {
             int N = Similarities.getNumRows();
             Criteria = Crit;
             DISS = new GCNMatrix(N,N);
+            DISS = Operations.copyNames(Similarities.getRowNames(), DISS);
             for (int i = 0; i < N ; i++) {
                 float[] Row = Similarities.getRowByIndexAsDistance(i);
                 DISS.addRow(Row);
 	    }
+            
             Dendrogram = new Dendrogram(DISS);
             Dendrogram.getDendrogram(Criteria);
 	}
@@ -108,10 +110,13 @@ class Cluster {
             System.out.println("Done.");
             System.out.println("Obtained " + Clusters.size() + " Clusters.");
             Iterator<int[]> it = Clusters.iterator();
+            int iter = 1;
             while(it.hasNext()){
                 int[] cluster = it.next();
-                //if(cluster.length < MinSize) continue;
+                if(cluster.length < MinSize) continue;
                 System.out.println("Final cluster size: " + cluster.length);
+                _clustersToFile(cluster,iter);
+                iter++;
             }
             System.exit(0);
         }
@@ -369,7 +374,8 @@ class Cluster {
                 PrintWriter writer = new PrintWriter(nPath,"UTF-8");
                 for(int i=0;i<Cluster.length;i++){
                 	int node = Cluster[i];
-                	writer.println(node);
+                	String name = DISS.getRowName(node);
+                	writer.println(name);
                 }
                 writer.close();	
             } catch (Exception e){
