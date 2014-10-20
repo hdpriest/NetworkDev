@@ -191,9 +191,9 @@ class GCNMatrix {
         
         private float _getValueByEntryAsDistance (int I,int J){
 		if(I<=J){
-			return (1.0f-DataFrame[I][J]);
+			return Math.abs(1.0f-DataFrame[I][J]);
 		}else{
-			return (1.0f-DataFrame[J][I]);
+			return Math.abs(1.0f-DataFrame[J][I]);
 		}
 	}
 	
@@ -201,7 +201,7 @@ class GCNMatrix {
 		return _getValueByEntry(I,J);
 	}
         
-        public float getValueByEntryAsDistance (int I,int J){
+	public float getValueByEntryAsDistance (int I,int J){
 		return _getValueByEntryAsDistance(I,J);
 	}
 	

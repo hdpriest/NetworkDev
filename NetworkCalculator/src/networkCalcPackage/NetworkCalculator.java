@@ -217,7 +217,7 @@ public class NetworkCalculator {
         FileDimensions = getFileDimensions(pathIn, sep);
 
         System.err.println("Loading Data File\n");
-
+        Operations.createDirectory(Out);
         ExpressionFrame DataFrame = loadData(pathIn, FileDimensions, sep);
         String FrameOut = Out + "/InputExpression.matrix.tab";
         DataFrame.printMatrixToFile(FrameOut, sep);
@@ -225,7 +225,7 @@ public class NetworkCalculator {
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
         System.err.println("Calculating Similarity & Adjacency...\n");
         CurrentMatrix = Operations.calculateAdjacency(DataFrame,corr,"sigmoid",mu,alpha,threads);
-        Operations.createDirectory(Out);
+        
         //CurrentMatrix = Operations.calculateSigmoidAdjacency(CurrentMatrix, mu, alpha, threads);
         String ThisOut = Out + "/Adjacency.dist.jpeg";
         CurrentMatrix.maskMatrix(Mask);
