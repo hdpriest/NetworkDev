@@ -45,7 +45,7 @@ class Cluster {
             Dendrogram.getDendrogram(Criteria);
 	}
         
-        public void dynamicTreeCut (int MinSize) {
+        public ArrayList<int[]> dynamicTreeCut (int MinSize) {
             // implementation of dynamic tree cut and flashclust from horvath and langfelder et al
             // This will be pretty ham-handed.
             float[] Dist = Dendrogram.getHeights();
@@ -109,16 +109,8 @@ class Cluster {
             }
             System.out.println("Done.");
             System.out.println("Obtained " + Clusters.size() + " Clusters.");
-            Iterator<int[]> it = Clusters.iterator();
-            int iter = 1;
-            while(it.hasNext()){
-                int[] cluster = it.next();
-                if(cluster.length < MinSize) continue;
-                System.out.println("Final cluster size: " + cluster.length);
-                _clustersToFile(cluster,iter);
-                iter++;
-            }
-            System.exit(0);
+            
+            return Clusters;
         }
         
         private GCNMatrix _getDistForCluster (int[] cluster){

@@ -362,6 +362,26 @@ class GCNMatrix {
 		}
 		
 	}
+	
+	public void printMatrixToCytoscape (String path,String Sep,float Mask){
+		try {
+			PrintWriter writer = new PrintWriter(path,"UTF-8");
+			for(int i=0;i<N;i++){
+				for(int j=i+1;j<N;j++){
+					float value = Math.abs(_getValueByEntry(i,j));
+					if(value<Mask) continue;
+					String N1 = getRowName(i);
+					String N2 = getRowName(j);
+					String line = N1 + "\t" + N2 + "\t" + value + "\n";
+					writer.print(line);
+				}
+			}
+			writer.close();
+		} catch (Exception e){
+			// 
+		}
+		
+	}
 
 	public void calculateMeans() {
 		for(int i=0;i<DataFrame.length;i++){

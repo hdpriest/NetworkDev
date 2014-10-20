@@ -1,6 +1,9 @@
 package networkCalcPackage;
 
 import java.io.File;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Scanner;
 import java.io.FileNotFoundException;
 
@@ -242,9 +245,11 @@ public class NetworkCalculator {
         //CurrentMatrix.generateHistogramHM(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
         Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
         //CurrentMatrix.generateHeatmap();
-        Cluster Clusters = new Cluster(CurrentMatrix,4);
-        Clusters.dynamicTreeCut(50);
         System.out.println("Calculating clusters...");
+        int MinSize = 50;
+        Cluster Clustering = new Cluster(CurrentMatrix,4);
+        ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
+        _clustersToFile(CurrentMatrix,Clusters,MinSize,Out);
        // Cluster.getClusters(50); // 50 = min cluster size -- Parameterize
         System.out.println("Done.");
         System.exit(0);
@@ -392,8 +397,10 @@ public class NetworkCalculator {
             //GCNMatrix Difference = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
             GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
             //Difference.maskMatrix(0.02f);
-            Cluster Clusters = new Cluster(Difference,4);
-            Clusters.dynamicTreeCut(50);
+            int MinSize = 50;
+            Cluster Clustering = new Cluster(Difference,4);
+            ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
+            _clustersToFile(Difference,Clusters,MinSize,out);
             String O2 = out + "/Selfwise.actual.jpeg";
             Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
             /*
@@ -902,4 +909,30 @@ public class NetworkCalculator {
         }
         return Matrix;
     }
+	private static void _clustersToFile (GCNMatrix Similarity, ArrayList<int[]> Clusters, int MinSize,String OutDir){
+		Iterator<int[]> it = Clusters.iterator();
+        int iter = 1;
+        while(it.hasNext()){
+            int[] cluster = it.next();
+            if(cluster.length < MinSize) continue;
+            System.out.println("Final cluster size: " + cluster.length);
+            String ClustDir = OutDir + "/Clusters/";
+            Operations.createDirectory(ClustDir);
+            String nPath = ClustDir + "/" + "Cluster." + iter + ".txt";
+            iter++;
+            try {
+            	PrintWriter writer = new PrintWriter(nPath,"UTF-8");
+            	for(int i=0;i<cluster.length;i++){
+            		int node = cluster[i];
+            		String name = Similarity.getRowName(node);
+            		writer.println(name);
+            	}
+            	writer.close();
+            } catch (Exception e){
+            		//
+            }
+        }
+        
+       
+	}
 }
