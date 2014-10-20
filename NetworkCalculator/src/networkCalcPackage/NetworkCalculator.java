@@ -391,7 +391,9 @@ public class NetworkCalculator {
 
             //GCNMatrix Difference = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
             GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
-            Difference.maskMatrix(0.02f);
+            //Difference.maskMatrix(0.02f);
+            Cluster Clusters = new Cluster(Difference,4);
+            Clusters.dynamicTreeCut(50);
             String O2 = out + "/Selfwise.actual.jpeg";
             Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
             /*
