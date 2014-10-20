@@ -221,7 +221,7 @@ public class NetworkCalculator {
         ExpressionFrame DataFrame = loadData(pathIn, FileDimensions, sep);
         String FrameOut = Out + "/InputExpression.matrix.tab";
         DataFrame.printMatrixToFile(FrameOut, sep);
-
+        
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
         System.err.println("Calculating Similarity & Adjacency...\n");
         CurrentMatrix = Operations.calculateAdjacency(DataFrame,corr,"sigmoid",mu,alpha,threads);
