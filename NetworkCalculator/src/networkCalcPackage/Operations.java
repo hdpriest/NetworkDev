@@ -2,7 +2,10 @@ package networkCalcPackage;
 
 import java.awt.Color;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -534,48 +537,59 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
                 NetworkB = Operations.calculateTOM(NetworkB,16);
                 GCNMatrix rDiff = Operations.calculateDifference(NetworkA, NetworkB);
                 TreeMap<Float,Integer> Real = rDiff.generateDistribution();
-                
-                System.err.println("Cutoff\tAverage False\tTrue\tFDR");
-                for(float c=0.0f;c<1.0f;c+=0.01f){
-                    float C = c;
-                    Double Total=0.0d;
-                    for(int a=0;a<Perms.size();a++){
-                        for(Map.Entry<Float,Integer> entry : Perms.get(a).entrySet()) {
-                            Float A;
-                            A = entry.getKey();
-                            Double value;
-                            value = Double.valueOf(entry.getValue());
-                            if(Math.abs(A)>=C){
-                                Total += value;
-                            }
-                        }
-                    }
-                    // Total holds all instances of adj value > C across all perms
-                    Double Average = Total/Perms.size();
-                    Double RealHits = 0.0d;
-                    for(Map.Entry<Float,Integer> entry : Real.entrySet()) {
-                        Float A;
-                        A = entry.getKey();
-                        Double value;
-                        value = Double.valueOf(entry.getValue());
-                        if(Math.abs(A)>=C){
-                            RealHits += value;
-                        }
-                    }
-                    double FDR = Average/RealHits;
-                    if(FDR<=0.15){
-                        System.err.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
-                    }
-                    
-                    if(FDR <= 0.05){
-                        if(CUTOFF==1){
-                            CUTOFF = C;
-                        }else{
-                            
-                        }
-                    }
-                    
-                }
+                String permutePathOut = out +"/PermutationDetails.tab";
+                PrintWriter writer;
+				try {
+					writer = new PrintWriter(permutePathOut,"UTF-8");
+					writer.println("Cutoff\tAverage False\tTrue\tFDR");
+					for(float c=0.0f;c<1.0f;c+=0.01f){
+						float C = c;
+						Double Total=0.0d;
+						for(int a=0;a<Perms.size();a++){
+							for(Map.Entry<Float,Integer> entry : Perms.get(a).entrySet()) {
+								Float A;
+								A = entry.getKey();
+								Double value;
+								value = Double.valueOf(entry.getValue());
+								if(Math.abs(A)>=C){
+									Total += value;
+								}
+							}
+						}
+						// Total holds all instances of adj value > C across all perms
+						Double Average = Total/Perms.size();
+						Double RealHits = 0.0d;
+						for(Map.Entry<Float,Integer> entry : Real.entrySet()) {
+							Float A;
+							A = entry.getKey();
+							Double value;
+							value = Double.valueOf(entry.getValue());
+							if(Math.abs(A)>=C){
+								RealHits += value;
+							}
+						}
+						double FDR = Average/RealHits;
+						if(FDR<=0.25){
+							writer.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
+						}
+
+						if(FDR <= 0.05){
+							if(CUTOFF==1){
+								CUTOFF = C;
+							}else{
+
+							}
+						}
+
+					}
+					writer.close();
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (UnsupportedEncodingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 		// Now have permuted expression frames?
 		// NEEDS TESTING.
                 return CUTOFF;

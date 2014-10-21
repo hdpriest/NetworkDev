@@ -156,7 +156,7 @@ class GCNMatrix {
         private float[] _getRowAsDistance(int I){
 		float[] Row = new float[N];
 		for(int j=0;j<N;j++){
-			Row[j]=1.0f - (_getValueByEntry(I,j));
+			Row[j]=1.0f - Math.abs(_getValueByEntry(I,j));
 		}
 		return Row;
 	}
@@ -247,7 +247,7 @@ class GCNMatrix {
 			for(int j=i;j<N;j++){
 				float v = _getValueByEntry(i,j);
 				if(Math.abs(v)<maskLevel){
-                                        _setValueByEntry(0.0f,i,j);
+					_setValueByEntry(0.0f,i,j);
 				}
 			}
 		}
@@ -368,11 +368,12 @@ class GCNMatrix {
 			PrintWriter writer = new PrintWriter(path,"UTF-8");
 			for(int i=0;i<N;i++){
 				for(int j=i+1;j<N;j++){
-					float value = Math.abs(_getValueByEntry(i,j));
-					if(value<Mask) continue;
+					float value = _getValueByEntry(i,j);
+					if(Math.abs(value)<Mask) continue;
 					String N1 = getRowName(i);
 					String N2 = getRowName(j);
-					String line = N1 + "\t" + N2 + "\t" + value + "\n";
+					float abs = Math.abs(value);
+					String line = N1 + "\t" + N2 + "\t" + value + "\t" + abs + "\n";
 					writer.print(line);
 				}
 			}

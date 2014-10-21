@@ -396,13 +396,16 @@ public class NetworkCalculator {
 
             //GCNMatrix Difference = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
             GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
-            //Difference.maskMatrix(0.02f);
+            Difference.maskMatrix(CUTOFF);
             int MinSize = 50;
             Cluster Clustering = new Cluster(Difference,4);
             ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
             _clustersToFile(Difference,Clusters,MinSize,out);
             String O2 = out + "/Selfwise.actual.jpeg";
             Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
+            String O3 = out + "/Cytoscape.sigEdge.tab";
+            Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
+            
             /*
             NetworkA = Operations.calculateTOM(NetworkA, threads);
             NetworkB = Operations.calculateTOM(NetworkB, threads);
@@ -912,9 +915,11 @@ public class NetworkCalculator {
 	private static void _clustersToFile (GCNMatrix Similarity, ArrayList<int[]> Clusters, int MinSize,String OutDir){
 		Iterator<int[]> it = Clusters.iterator();
         int iter = 1;
+        int count =0;
         while(it.hasNext()){
             int[] cluster = it.next();
             if(cluster.length < MinSize) continue;
+            count++;
             System.out.println("Final cluster size: " + cluster.length);
             String ClustDir = OutDir + "/Clusters/";
             Operations.createDirectory(ClustDir);
@@ -932,6 +937,7 @@ public class NetworkCalculator {
             		//
             }
         }
+        System.err.println("Found " + count + " clusters.");
         
        
 	}

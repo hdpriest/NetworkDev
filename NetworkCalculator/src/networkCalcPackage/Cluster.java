@@ -91,7 +91,7 @@ class Cluster {
                         System.exit(0);
                 }
                 if(new_Clusters.size() == 1){
-                    System.out.println("Found no new clusters");
+                    //System.out.println("Found no new clusters");
                     c++;
                     continue;
                 }else{ 
@@ -99,7 +99,7 @@ class Cluster {
                     Clusters.remove(c);
                     while(n < new_Clusters.size()){
                         int nc = c+n;
-                        System.out.println("Inserting cluster at " + nc);
+                      //  System.out.println("Inserting cluster at " + nc);
                         Clusters.add(nc,new_Clusters.get(n));
                         n++;
                     }
@@ -108,7 +108,7 @@ class Cluster {
                 }
             }
             System.out.println("Done.");
-            System.out.println("Obtained " + Clusters.size() + " Clusters.");
+            //System.out.println("Obtained " + Clusters.size() + " Clusters.");
             
             return Clusters;
         }
@@ -160,16 +160,16 @@ class Cluster {
             	clusters.add(Cluster);
             	return clusters;
             }
-            System.out.println("working on cluster of size "+ Cluster.length);
-            clusters =	_treeCutCore(this_Order,this_Dist,L_naught,Tau);
-            System.out.println("Found " + clusters.size() + " clusters on this iteration (naught) " + L_naught);
+            //System.out.println("working on cluster of size "+ Cluster.length);
+            clusters =	_treeCutCore(this_Order,this_Dist,L_max,Tau);
+         //   System.out.println("Found " + clusters.size() + " clusters on this iteration (naught) " + L_naught);
             if(clusters.size() <= 1){
-                clusters = _treeCutCore(this_Order,this_Dist,L_min,Tau);
-                System.out.println("Found " + clusters.size() + " clusters on this iteration (lower) " + L_min );
+                clusters = _treeCutCore(this_Order,this_Dist,L_naught,Tau);
+           //     System.out.println("Found " + clusters.size() + " clusters on this iteration (lower) " + L_min );
             }
             if(clusters.size() <= 1){
-                clusters = _treeCutCore(this_Order,this_Dist,L_max,Tau);
-                System.out.println("Found " + clusters.size() + " clusters on this iteration (upper) " + L_max);
+                clusters = _treeCutCore(this_Order,this_Dist,L_min,Tau);
+           //     System.out.println("Found " + clusters.size() + " clusters on this iteration (upper) " + L_max);
             }
             
             if(clusters.size() == 0){
@@ -181,7 +181,7 @@ class Cluster {
             	return clusters;
             }else{
             	for(int c=0;c<clusters.size();c++){
-            		System.out.println("\t Sub Cluster size: " + clusters.get(c).length);
+            	//	System.out.println("\t Sub Cluster size: " + clusters.get(c).length);
             		int[] cluster = clusters.get(c);
             		for(int i=0;i<cluster.length;i++){
             			cluster[i]=Cluster[cluster[i]];
@@ -196,7 +196,7 @@ class Cluster {
             float[] S = new float[this_Order.length];
             for(int o=0;o<this_Order.length;o++){
                 S[o] = this_Dist[this_Order[o]]-L;
-                System.out.println(o + "\t" + this_Order[o] +"\t" + S[o] + "\t" + L);
+           //     System.out.println(o + "\t" + this_Order[o] +"\t" + S[o] + "\t" + L);
             }
             return S;
         }
@@ -232,7 +232,7 @@ class Cluster {
             		ForwardRuns.add(FR);
             		Breakpoints.add(s);
                         ReverseRuns.add(RR);
-                        System.err.println("adding " + s + " as a breakpoint, and " + FR + " as the forward run and " + RR + " as the reverse run");
+            //            System.err.println("adding " + s + " as a breakpoint, and " + FR + " as the forward run and " + RR + " as the reverse run");
             		last = s;
             	}else if(s==S.length-2){
                     int RR = S.length - last -1; 
@@ -242,7 +242,7 @@ class Cluster {
                     ForwardRuns.add(FR);
                     Breakpoints.add(t);
                     ReverseRuns.add(RR);
-                    System.err.println("adding " + t + " as a breakpoint, and " + FR + " as the forward run and " + RR + " as the reverse run");
+              //      System.err.println("adding " + t + " as a breakpoint, and " + FR + " as the forward run and " + RR + " as the reverse run");
                 }else{
             		
             	}
@@ -250,22 +250,22 @@ class Cluster {
             ForwardRuns.add(S.length-last);
 
             int b = 0; 
-            System.err.println("iterating through breakpoints...");
+            //System.err.println("iterating through breakpoints...");
             while(b < Breakpoints.size()){
-            	System.err.println("working on " + b);
+            	//System.err.println("working on " + b);
                 //if((ForwardRuns.get(b) > tau) && (ReverseRuns.get(b) > tau)){
                 if(ReverseRuns.get(b) > tau){
-                    System.err.println("Significant breakpoint at " + Breakpoints.get(b) + " with FR: " + ForwardRuns.get(b) + " And RR: " + ReverseRuns.get(b));
+                  //  System.err.println("Significant breakpoint at " + Breakpoints.get(b) + " with FR: " + ForwardRuns.get(b) + " And RR: " + ReverseRuns.get(b));
                     b++;
                 }else{
-                    System.err.println("Removing breakpoint at " + Breakpoints.get(b) + " with FR: " + ForwardRuns.get(b) + " And RR: " + ReverseRuns.get(b));
+                    //System.err.println("Removing breakpoint at " + Breakpoints.get(b) + " with FR: " + ForwardRuns.get(b) + " And RR: " + ReverseRuns.get(b));
                     Breakpoints.remove(b);
                     ForwardRuns.remove(b);
                     ReverseRuns.remove(b);
             	}
             }
-            System.err.println("Done.\nAdding Clusters");
-            //
+          //  System.err.println("Done.\nAdding Clusters");
+            
             
             last = 0;
             b=0;
@@ -278,12 +278,12 @@ class Cluster {
             		int index=i-begin;
             		cluster[index]=i;
             	}
-                System.err.println("adding cluster of size " + cluster.length);
+            //    System.err.println("adding cluster of size " + cluster.length);
             	Clusters.add(cluster);
             	b++;
                 last = this_s;
             }
-            System.err.println("done.");
+            //System.err.println("done.");
                       
             int c = 0;
             while(c < Clusters.size()-1){
@@ -299,7 +299,7 @@ class Cluster {
                         int[] new_Cluster = ArrayUtils.addAll(this_Cluster,next_Cluster);
                         Clusters.set(c, new_Cluster);
                         Clusters.remove(c+1);
-                        System.out.println("merging");
+              //          System.out.println("merging");
                     }else{
                         c++;
                     }
@@ -307,13 +307,13 @@ class Cluster {
                     int[] new_Cluster = ArrayUtils.addAll(this_Cluster,next_Cluster);
                     Clusters.set(c, new_Cluster);
                     Clusters.remove(c+1);
-                    System.out.println("merging");
+                //    System.out.println("merging");
                 }else if((this_n < T) && (next_n > T)){
                     if(next_Mean <= main_Mean){
                         int[] new_Cluster = ArrayUtils.addAll(this_Cluster,next_Cluster);
                         Clusters.set(c+1, new_Cluster);
                         Clusters.remove(c);
-                        System.out.println("merging");
+                  //      System.out.println("merging");
                     }else{
                         c++;
                     }
@@ -327,7 +327,7 @@ class Cluster {
                     int[] this_Cluster = Clusters.get(c);
                     if(this_Cluster.length < T){
                         Clusters.remove(c);
-                        System.err.println("Removing cluster of size " + this_Cluster.length);
+                    //    System.err.println("Removing cluster of size " + this_Cluster.length);
                     }else{
                         c++;
                     }
