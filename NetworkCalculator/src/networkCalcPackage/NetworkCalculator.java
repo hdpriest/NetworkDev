@@ -363,7 +363,8 @@ public class NetworkCalculator {
             String Exp2 = dir2 + "/InputExpression.matrix.tab";
             String matrix1 = dir1 + "/Adj.matrix.tab";
             String matrix2 = dir2 + "/Adj.matrix.tab";
-            
+            float mu = 0.8f;
+            float alpha=20f;
             String sep = "\t";
 
             int[] FD_1 = new int[2];
@@ -385,18 +386,17 @@ public class NetworkCalculator {
             ExpressionFrame ExpF2 = loadData(Exp2,ExpDim,sep);
             
             System.err.println("Beginning permuation analysis...");
-            float CUTOFF = Operations.permuteData(ExpF1,ExpF2,permutations,out,threads);
+            float CUTOFF = Operations.permuteData(ExpF1,ExpF2,permutations,out,mu,alpha,threads);
             System.err.println("Permutations done. Obtained Cutoff of dTOM = " + CUTOFF);
             
             System.err.println("Calculating actual values...");
-            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1,"pcc","sigmoid",0.8f,20.0f,16);
-            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2,"pcc","sigmoid",0.8f,20.0f,16);
+            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1,"pcc","sigmoid",mu,alpha,threads);
+            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2,"pcc","sigmoid",mu,alpha,threads);
             NetworkA.calculateKs();
             NetworkB.calculateKs();
 
             //GCNMatrix Difference = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
             GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
-            Difference.maskMatrix(CUTOFF);
             int MinSize = 50;
             Cluster Clustering = new Cluster(Difference,4);
             ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
@@ -405,6 +405,8 @@ public class NetworkCalculator {
             Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
             String O3 = out + "/Cytoscape.sigEdge.tab";
             Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
+            O3 = out + "/Cytoscape.raw.tab";
+            Difference.printMatrixToCytoscape(O3, "\t", 0.0f);
             
             /*
             NetworkA = Operations.calculateTOM(NetworkA, threads);

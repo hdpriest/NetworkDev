@@ -391,7 +391,7 @@ public class Operations {
 				float v1=mat1.getValueByEntry(i, j);
 				float v2=mat2.getValueByEntry(i, j);
 				//if((v1 != 0) & (v2 != 0)){
-				float d1 =v1-v2;
+				float d1 =v2-v1;
 //                                System.out.println("Val1: " + v1 +" Val2: " + v2 + " diff " + d1);
 				Difference.setValueByEntry(d1,i,j);
 				//}
@@ -457,7 +457,7 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 	}
 }
 
-	public static float permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P,String out,int threads) {
+	public static float permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P,String out,float mu,float alpha,int threads) {
 		int s1 = expF1.getNumColumns();
 		int s2 = expF2.getNumColumns();
 		int R = expF1.getNumRows();
@@ -509,12 +509,12 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 				}
 				pF2.addRow(nR2);
 			}	
-			GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1,"pcc","sigmoid",0.8f,20.0f,threads);
-			GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2,"pcc","sigmoid",0.8f,20.0f,threads);
+			GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1,"pcc","sigmoid",mu,alpha,threads);
+			GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2,"pcc","sigmoid",mu,alpha,threads);
 			CurrentMatrix1.calculateKs();
 			CurrentMatrix2.calculateKs();
-                        CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1,16);
-                        CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2,16);
+                        CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1,threads);
+                        CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2,threads);
 			GCNMatrix Difference = Operations.calculateDifference(CurrentMatrix1,CurrentMatrix2);
                         TreeMap<Float,Integer> Distribution = Difference.generateDistribution();
                         Perms.add(Distribution);
@@ -529,12 +529,12 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
                         Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", false);
                         */
 		}
-                GCNMatrix NetworkA = Operations.calculateAdjacency(expF1,"pcc","sigmoid",0.8f,20.0f,16);
-                GCNMatrix NetworkB = Operations.calculateAdjacency(expF2,"pcc","sigmoid",0.8f,20.0f,16);
+                GCNMatrix NetworkA = Operations.calculateAdjacency(expF1,"pcc","sigmoid",mu,alpha,threads);
+                GCNMatrix NetworkB = Operations.calculateAdjacency(expF2,"pcc","sigmoid",mu,alpha,threads);
                 NetworkA.calculateKs();
                 NetworkB.calculateKs();
-                NetworkA = Operations.calculateTOM(NetworkA,16);
-                NetworkB = Operations.calculateTOM(NetworkB,16);
+                NetworkA = Operations.calculateTOM(NetworkA,threads);
+                NetworkB = Operations.calculateTOM(NetworkB,threads);
                 GCNMatrix rDiff = Operations.calculateDifference(NetworkA, NetworkB);
                 TreeMap<Float,Integer> Real = rDiff.generateDistribution();
                 String permutePathOut = out +"/PermutationDetails.tab";
