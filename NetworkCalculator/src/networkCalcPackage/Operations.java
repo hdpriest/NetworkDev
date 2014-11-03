@@ -26,7 +26,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
@@ -85,87 +84,7 @@ public class Operations {
 
 	    return result;
 	}
-	/*
-	public static GCNMatrix calculateGINIcoefficient (GCNMatrix InputFrame){
-		int D = InputFrame.getNumRows();
-		GCNMatrix Similarity = new GCNMatrix(D,D);
-                Similarity = Operations.copyNames(InputFrame, Similarity);
-		for(int i=0;i<D;i++){
-			for(int j=i;j<D;j++){
-				float GCC1=(float) 0.0;
-				float GCC2=(float) 0.0;
-				if(i==j){
-					GCC1 = (float) 1.0;
-					GCC2 = (float) 0.0;
-				}else{
-					float[] I_data = InputFrame.getRowByIndex(i);
-					float[] J_data = InputFrame.getRowByIndex(j);
-					GCC1 = GINI(I_data,J_data);
-					GCC2 = GINI(J_data,I_data);
-					//System.err.println();
-				}
-				if(Math.abs(GCC1)<Math.abs(GCC2)){
-					Similarity.setValueByEntry(GCC1,i,j);
-					Similarity.setValueByEntry(GCC1,j,i);
-				}else if (Math.abs(GCC2)<Math.abs(GCC1)){
-					Similarity.setValueByEntry(GCC2,i,j);
-					Similarity.setValueByEntry(GCC2,j,i);
-				}else{
-					Similarity.setValueByEntry(GCC1,i,j);
-					Similarity.setValueByEntry(GCC1,j,i);
-				}
-			}
-		}
-		return Similarity;
-	}
 	
-	public static GCNMatrix calculateGINIcoefficient (GCNMatrix Expression,int Threads){ 
-		//// it really seems as though all these concurrent methods
-		//// could be condensed - the matrix handling is all fairly uniform, its the calls that differ.
-		int D = Expression.getNumRows();
-		GCNMatrix Similarity = new GCNMatrix(D,D);
-                Similarity = Operations.copyNames(Expression, Similarity);
-		ExecutorService pool = Executors.newFixedThreadPool(Threads);
-		ExecutorCompletionService<HashMap<String,Float>> completionService = new ExecutorCompletionService<>(pool);
-		List<Future<HashMap<String,Float>>> taskList = new ArrayList<Future<HashMap<String,Float>>>();
-		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
-		for(int i=0;i<D;i++){
-			for(int j=i;j<D;j++){
-				String S = i+"-"+j;
-				queue.add(S);
-			}
-		}
-		for ( int i = 0; i < Threads; i++ ) {
-			Callable<HashMap<String,Float>> worker = new ConcurrentProcessing(Expression,queue,"gini");
-			Future<HashMap<String,Float>> submit = completionService.submit(worker);
-			taskList.add(submit);  
-		}
-		
-		
-		
-		for(int t=0;t<Threads;t++){
-			try{
-				HashMap<String,Float> hm = completionService.take().get();
-				for(Map.Entry<String,Float> entry : hm.entrySet()){
-					String s = entry.getKey();
-					String[] S = s.split("-");
-					Float d = entry.getValue();
-					int i = Integer.parseInt(S[0]);
-					int j = Integer.parseInt(S[1]);
-					Similarity.setValueByEntry((float) d,i,j);
-					Similarity.setValueByEntry((float) d,j,i);
-				}
-			}catch(InterruptedException e){
-				e.printStackTrace();
-			}catch (ExecutionException e){
-				e.printStackTrace();
-			}
-			
-		}
-		pool.shutdown();
-		return Similarity;
-	}
-	*/
 	public static GCNMatrix compareNetworksViaTOM (GCNMatrix Net1, GCNMatrix Net2){
 		int D = Net1.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
@@ -520,14 +439,11 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
                         Perms.add(Distribution);
                         Difference.maskMatrix(0.02f);
 			String O2 = out + "/Selfwise."+ p + ".testing.jpeg";
-                        Operations.generateHistogramHM(Difference, O2, "Cross-network Adjacency diffs Zm vs Sv", "selfwise TOM", "Count", false);
-                        /*CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
-                        CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2, threads);
-                        Difference = Operations.calculateDifference(CurrentMatrix1,CurrentMatrix2);
-                        String O1 = out + "/Pairwise." + p + ".jpeg";
-                        Difference.maskMatrix(0.02f);
-                        Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", false);
-                        */
+                        Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
+                        Difference = Operations.compareNetworksViaTOM(CurrentMatrix1,CurrentMatrix2);
+                        O2 = out + "/CrossTOM."+ p + ".testing.jpeg";
+                        Operations.generateHistogramHM(Difference, O2, "Cross-network selfwiseTOM", "selfwise TOM", "Count", false);
+                       
 		}
                 GCNMatrix NetworkA = Operations.calculateAdjacency(expF1,"pcc","sigmoid",mu,alpha,threads);
                 GCNMatrix NetworkB = Operations.calculateAdjacency(expF2,"pcc","sigmoid",mu,alpha,threads);

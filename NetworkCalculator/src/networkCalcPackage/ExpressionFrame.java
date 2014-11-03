@@ -1,22 +1,7 @@
 package networkCalcPackage;
 
-import java.awt.Color;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+
 import java.io.PrintWriter;
-import java.text.DecimalFormat;
-import java.util.Scanner;
-import java.math.RoundingMode;
-
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.ChartUtilities;
-import org.jfree.chart.plot.Plot;
-import org.jfree.chart.plot.PlotOrientation;
-
 
 class ExpressionFrame {
 	private int N;
