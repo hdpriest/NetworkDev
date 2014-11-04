@@ -232,21 +232,22 @@ public class NetworkCalculator {
         System.err.println("Calculating Similarity & Adjacency...\n");
         CurrentMatrix = Operations.calculateAdjacency(DataFrame,corr,"sigmoid",mu,alpha,threads);
         
-        String ThisOut = Out + "/Adjacency.dist.jpeg";
-        CurrentMatrix.maskMatrix(Mask);
-        Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Adjacency Distribution", "Sigmoid Adjacency Value", "# Edges", false);
+        String ThisOut = Out + "/Adjacency.dist.tab";
+        CurrentMatrix.generateDistributionToFile(ThisOut);
         String MatrixOut = Out + "/Adj.matrix.tab";
         CurrentMatrix.printMatrixToFile(MatrixOut, sep);
 
         System.err.println("Calculating TOM...\n");
         CurrentMatrix.calculateKs();
         CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
-        CurrentMatrix.maskMatrix(Mask);
-        ThisOut = Out + "/TOM.dist.jpeg";
+        ThisOut = Out + "/TOM.dist.tab";
         
         //CurrentMatrix.generateHistogramHM(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
-        Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
+        //Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
         //CurrentMatrix.generateHeatmap();
+        CurrentMatrix.generateDistributionToFile(ThisOut);
+        MatrixOut = Out + "/TOM.matrix.tab";
+        CurrentMatrix.printMatrixToFile(MatrixOut,sep);
         System.out.println("Calculating clusters...");
         int MinSize = 50;
         Cluster Clustering = new Cluster(CurrentMatrix,4);

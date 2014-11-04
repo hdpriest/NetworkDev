@@ -106,14 +106,14 @@ public class ConcurrentProcessing implements Callable<HashMap<String,float[]>> {
 				float GCC1=0.0f;
 				float GCC2=0.0f;
 				for(int x=0;x<J_data.length;x++){
-					I_num += ((2*(i+1))-I_data.length-1) * I_data[J_ranks[i]];
-					J_num += ((2*(i+1))-J_data.length-1) * J_data[I_ranks[i]];
+					I_num += ((2*(x+1))-I_data.length-1) * I_data[J_ranks[x]];
+					J_num += ((2*(x+1))-J_data.length-1) * J_data[I_ranks[x]];
 				}
 				GCC1=I_num/Exp.getGiniDenom(j);
 				GCC2=J_num/Exp.getGiniDenom(i);
-				if(Math.abs(GCC1)>Math.abs(GCC2)){
+				if(Math.abs(GCC1)<Math.abs(GCC2)){
 					gcc=GCC1;
-				}else if (Math.abs(GCC2)>Math.abs(GCC1)){
+				}else if (Math.abs(GCC2)<Math.abs(GCC1)){
 					gcc=GCC2;
 				}else{
 					gcc=GCC1;

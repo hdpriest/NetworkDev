@@ -4,8 +4,10 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
@@ -13,8 +15,10 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
+
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
@@ -253,7 +257,55 @@ class GCNMatrix {
 		}
 	}
         
-       
+	public void generateDistributionToFile (String Path) {
+	int H = N;
+	DecimalFormat df = new DecimalFormat("#.##");
+	df.setRoundingMode(RoundingMode.HALF_UP);
+	TreeMap<Float,Integer> HMHistogram = new TreeMap<Float,Integer>();
+	for(int i=0;i<H;i++){
+		for(int j=i;j<H;j++){
+			//System.out.println("Val: "+DataFrame[i][j]+"\n");
+			if(_getValueByEntry(i,j) != 0){
+				try{
+					Float V = (Float.valueOf(df.format(_getValueByEntry(i,j))));
+					if(HMHistogram.containsKey(V)){
+						Integer I = HMHistogram.get(V);
+                                               // System.out.println("Putting " + V+ " and " + I);
+						HMHistogram.put(V,I+1);
+					}else{
+						HMHistogram.put(V,1);
+                                               // System.out.println("Putting " + V+ " and 1");
+					}
+				}catch(NumberFormatException ex){
+					System.out.println("Obtain " + _getValueByEntry(i,j) +" from matrix.");
+					System.exit(1);
+				}
+			}
+		}
+	}
+	PrintWriter writer;
+	try {
+		writer = new PrintWriter(Path,"UTF-8");
+		writer.println("Value\tOccurrence");
+		for(Map.Entry<Float,Integer> entry : HMHistogram.entrySet()) {
+			Float A;
+			A = entry.getKey();
+			Double value;
+			value = Double.valueOf(entry.getValue());
+			writer.println(A+"\t"+value);
+		}
+		writer.close();
+	} catch (FileNotFoundException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	} catch (UnsupportedEncodingException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	} 
+	
+			
+	
+}       
         
 	public TreeMap<Float,Integer> generateDistribution () {
 	int H = N;
