@@ -152,14 +152,6 @@ class ExpressionFrame {
 	}
 	
 	public float findK (int R,int j){
-		/*for(int i=0;i<DataFrame[R].length;i++){
-			if(i==j){
-				/// do not add DataFrame[R][j] to the k of R
-			}else{
-				K+=DataFrame[R][i];
-			}
-		}
-		return K;*/
 		float K=k[R];
 		return K;
 	}

@@ -85,10 +85,11 @@ public class Operations {
 	    return result;
 	}
 	
-	public static GCNMatrix compareNetworksViaTOM (GCNMatrix Net1, GCNMatrix Net2){
+	public static float[] compareNetworksViaTOM (GCNMatrix Net1, GCNMatrix Net2){
 		int D = Net1.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
-                ReturnFrame = Operations.copyNames(Net1.getRowNames(), ReturnFrame);
+                float[] TOMS = new float[D];
+                //ReturnFrame = Operations.copyNames(Net1.getRowNames(), ReturnFrame);
 		for(int i=0;i<D;i++){
 			
 			for(int j=0;j<D;j++){
@@ -111,12 +112,14 @@ public class Operations {
 					T=(product+DFIJ)/(k_min + 1 - DFIJ); // if one node unconnected, = 0+0/0+1-0
 					// if IJ are totally connected, all products > 0, but < kmin
 					//T=(product+DFIJ)/(k_min + 1);
+                                        TOMS[i] = T;
 				}else{
 				}
-				ReturnFrame.setValueByEntry(T, i, j);
+                                
+				//ReturnFrame.setValueByEntry(T, i, j);
 			}
 		}
-		return ReturnFrame;
+		return TOMS;
 	}
 
 	public static GCNMatrix calculateTOM (GCNMatrix Adjacency, int Threads){
@@ -389,8 +392,9 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 		// for all i in Sets p, obtain values of i<s from exp1, values of i>s
                 
                 float CUTOFF = 1.0f;
-                
+                float[][] TOMpermutations = new float[P][R];
                 ArrayList<TreeMap<Float,Integer>> Perms = new ArrayList<>();
+                
 		for(int p=0;p<P;p++){
 			System.out.println("Permutation: " + p);
 			ExpressionFrame pF1 = new ExpressionFrame(R,M);
@@ -432,23 +436,31 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 			GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2,"pcc","sigmoid",mu,alpha,threads);
 			CurrentMatrix1.calculateKs();
 			CurrentMatrix2.calculateKs();
+                        
+                        TOMpermutations[p] = Operations.compareNetworksViaTOM(CurrentMatrix1,CurrentMatrix2);
+                        String O2 = out + "/CrossTOM."+ p + ".testing.jpeg";
+                        //Operations.generateHistogramHM(Difference, O2, "Cross-network selfwiseTOM", "selfwise TOM", "Count", false);
+                        
                         CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1,threads);
                         CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2,threads);
+                        
 			GCNMatrix Difference = Operations.calculateDifference(CurrentMatrix1,CurrentMatrix2);
                         TreeMap<Float,Integer> Distribution = Difference.generateDistribution();
                         Perms.add(Distribution);
                         Difference.maskMatrix(0.02f);
-			String O2 = out + "/Selfwise."+ p + ".testing.jpeg";
+			O2 = out + "/Selfwise."+ p + ".testing.jpeg";
                         Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
-                        Difference = Operations.compareNetworksViaTOM(CurrentMatrix1,CurrentMatrix2);
-                        O2 = out + "/CrossTOM."+ p + ".testing.jpeg";
-                        Operations.generateHistogramHM(Difference, O2, "Cross-network selfwiseTOM", "selfwise TOM", "Count", false);
+                        
                        
 		}
                 GCNMatrix NetworkA = Operations.calculateAdjacency(expF1,"pcc","sigmoid",mu,alpha,threads);
                 GCNMatrix NetworkB = Operations.calculateAdjacency(expF2,"pcc","sigmoid",mu,alpha,threads);
                 NetworkA.calculateKs();
                 NetworkB.calculateKs();
+                
+                float[] rTOMS = Operations.compareNetworksViaTOM(NetworkA,NetworkB);
+                Operations._tempPrintPermsToFile(rTOMS,TOMpermutations,out);
+                
                 NetworkA = Operations.calculateTOM(NetworkA,threads);
                 NetworkB = Operations.calculateTOM(NetworkB,threads);
                 GCNMatrix rDiff = Operations.calculateDifference(NetworkA, NetworkB);
@@ -616,6 +628,25 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
             }
         }
 	}
+
+    private static void _tempPrintPermsToFile(float[] rTOMS, float[][] TOMpermutations,String outBase) {
+        try {
+            String path = outBase +"/Selfwise.pergene.TOM.tab";
+            String Sep = "\t";
+            PrintWriter writer = new PrintWriter(path,"UTF-8");
+            for(int g=0;g<rTOMS.length;g++){
+                writer.print(rTOMS[g]);
+                for(int p=0;p<TOMpermutations.length;p++){
+                    writer.print(Sep+TOMpermutations[p][g]);
+                }
+                writer.print("\n");
+            }
+            
+            writer.close();
+	} catch (Exception e){
+			// 
+	}
+    }
 	
 }
 
