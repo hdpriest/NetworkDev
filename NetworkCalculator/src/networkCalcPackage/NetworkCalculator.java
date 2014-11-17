@@ -9,12 +9,10 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-
 import org.apache.commons.cli.*;
 
-
 public class NetworkCalculator {
-   
+
     private static void speedtest(String[] args) {
         CommandLineParser parser = new BasicParser();
         Options options = buildConstructOptions();
@@ -108,88 +106,46 @@ public class NetworkCalculator {
         System.err.println("done");
         System.exit(0);
     }
-    private static void _checkCompareOptions (CommandLine cmd,Options options) {
-            HelpFormatter formatter = new HelpFormatter();
-            if (cmd.hasOption("h")) {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("d1")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("d2")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("t")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("o")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("t")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("p")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
+
+    private static void _checkCompareOptions(CommandLine cmd, Options options) {
+        HelpFormatter formatter = new HelpFormatter();
+        if (cmd.hasOption("h")) {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("d1")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("d2")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("t")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("o")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("t")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("p")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
     }
-    private static void _checkConstructOptions (CommandLine cmd,Options options) {
-            HelpFormatter formatter = new HelpFormatter();
-            if (cmd.hasOption("h")) {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("d")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                
-                System.exit(0);
-            }
-            if (cmd.hasOption("c")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("o")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("a")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("m")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("M")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("t")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-    }
-    
-    private static void _checkTestOptions (CommandLine cmd,Options options) {
+
+    private static void _checkConstructOptions(CommandLine cmd, Options options) {
         HelpFormatter formatter = new HelpFormatter();
         if (cmd.hasOption("h")) {
             formatter.printHelp("java -jar jarfile.jar", options);
@@ -198,7 +154,7 @@ public class NetworkCalculator {
         if (cmd.hasOption("d")) {
         } else {
             formatter.printHelp("java -jar jarfile.jar", options);
-            
+
             System.exit(0);
         }
         if (cmd.hasOption("c")) {
@@ -231,7 +187,52 @@ public class NetworkCalculator {
             formatter.printHelp("java -jar jarfile.jar", options);
             System.exit(0);
         }
-}
+    }
+
+    private static void _checkTestOptions(CommandLine cmd, Options options) {
+        HelpFormatter formatter = new HelpFormatter();
+        if (cmd.hasOption("h")) {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("d")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+
+            System.exit(0);
+        }
+        if (cmd.hasOption("c")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("o")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("a")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("m")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("M")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("t")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+    }
+
     private static void constructNetwork(String[] args) {
         String IAM = "Construction";
         CommandLineParser parser = new BasicParser();
@@ -245,7 +246,7 @@ public class NetworkCalculator {
         String corr = null;
         try {
             CommandLine cmd = parser.parse(options, args);
-            _checkConstructOptions(cmd,options);
+            _checkConstructOptions(cmd, options);
             threads = Integer.parseInt(cmd.getOptionValue("t"));
             pathIn = cmd.getOptionValue("d");
             Out = cmd.getOptionValue("o");
@@ -253,13 +254,13 @@ public class NetworkCalculator {
             alpha = Float.parseFloat(cmd.getOptionValue("a"));
             mu = Float.parseFloat(cmd.getOptionValue("m"));
             Mask = Float.parseFloat(cmd.getOptionValue("M"));
-            
+
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
             System.err.println("Exiting...\n");
             System.exit(0);
         }
-        
+
         String sep = "\t";
 
         int[] FileDimensions = new int[2];
@@ -270,11 +271,11 @@ public class NetworkCalculator {
         ExpressionFrame DataFrame = _loadData(pathIn, FileDimensions, sep);
         String FrameOut = Out + "/InputExpression.matrix.tab";
         DataFrame.printMatrixToFile(FrameOut, sep);
-        
+
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
-        System.err.println("Calculating Similarity & Adjacency...\nMu : "+ mu +"\nAlpha: "+ alpha +"\n");
-        CurrentMatrix = Operations.calculateAdjacency(DataFrame,corr,"sigmoid",mu,alpha,threads);
-        
+        System.err.println("Calculating Similarity & Adjacency...\nMu : " + mu + "\nAlpha: " + alpha + "\n");
+        CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", mu, alpha, threads);
+
         String ThisOut = Out + "/Adjacency.dist.tab";
         CurrentMatrix.generateDistributionToFile(ThisOut);
         String MatrixOut = Out + "/Adj.matrix.tab";
@@ -283,22 +284,22 @@ public class NetworkCalculator {
         System.err.println("Calculating TOM...\n");
         CurrentMatrix.calculateKs();
         CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
-        
+
         ThisOut = Out + "/TOM.dist.tab";
         CurrentMatrix.generateDistributionToFile(ThisOut);
         MatrixOut = Out + "/TOM.matrix.tab";
-        CurrentMatrix.printMatrixToFile(MatrixOut,sep);
-        
+        CurrentMatrix.printMatrixToFile(MatrixOut, sep);
+
         System.out.println("Calculating clusters...");
         int MinSize = 50;
-        Cluster Clustering = new Cluster(CurrentMatrix,4);
+        Cluster Clustering = new Cluster(CurrentMatrix, 4);
         ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
-        _clustersToFile(CurrentMatrix,Clusters,MinSize,Out);
-       // Cluster.getClusters(50); // 50 = min cluster size -- Parameterize
+        _clustersToFile(CurrentMatrix, Clusters, MinSize, Out);
+        // Cluster.getClusters(50); // 50 = min cluster size -- Parameterize
         System.out.println("Done.");
         System.exit(0);
     }
-    
+
     private static void testMetrics(String[] args) {
         String IAM = "test";
         CommandLineParser parser = new BasicParser();
@@ -312,7 +313,7 @@ public class NetworkCalculator {
         String corr = null;
         try {
             CommandLine cmd = parser.parse(options, args);
-            _checkTestOptions(cmd,options);
+            _checkTestOptions(cmd, options);
             threads = Integer.parseInt(cmd.getOptionValue("t"));
             pathIn = cmd.getOptionValue("d");
             Out = cmd.getOptionValue("o");
@@ -320,13 +321,13 @@ public class NetworkCalculator {
             alpha = Float.parseFloat(cmd.getOptionValue("a"));
             mu = Float.parseFloat(cmd.getOptionValue("m"));
             Mask = Float.parseFloat(cmd.getOptionValue("M"));
-            
+
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
             System.err.println("Exiting...\n");
             System.exit(0);
         }
-        
+
         String sep = "\t";
 
         int[] FileDimensions = new int[2];
@@ -337,10 +338,10 @@ public class NetworkCalculator {
         ExpressionFrame DataFrame = _loadData(pathIn, FileDimensions, sep);
         String FrameOut = Out + "/InputExpression.matrix.tab";
         DataFrame.printMatrixToFile(FrameOut, sep);
-        
+
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
-        System.err.println("Calculating Similarity & Adjacency...\nMu : "+ mu +"\nAlpha: "+ alpha +"\n");
-        CurrentMatrix = Operations.calculateAdjacency(DataFrame,corr,"sigmoid",mu,alpha,threads);
+        System.err.println("Calculating Similarity & Adjacency...\nMu : " + mu + "\nAlpha: " + alpha + "\n");
+        CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", mu, alpha, threads);
         // TODO : implement K distribution printing
         String ThisOut = Out + "/Test.dist.txt";
         CurrentMatrix.generateDistributionToFile(ThisOut);
@@ -349,7 +350,7 @@ public class NetworkCalculator {
         System.out.println("Done.");
         System.exit(0);
     }
-    
+
     private static void test(String[] args) {
         CommandLineParser parser = new BasicParser();
         Options options = buildConstructOptions();
@@ -361,35 +362,33 @@ public class NetworkCalculator {
         int threads = 0;
         String corr = null;
         threads = 16;
-        
+
         Out = "test";
         corr = "pcc";
         alpha = 20;
         mu = 0.8f;
         Mask = 0.0f;
 
-        GCNMatrix CurrentMatrix = new GCNMatrix(10,10);
+        GCNMatrix CurrentMatrix = new GCNMatrix(10, 10);
         System.err.println("Calculating Similarity & Adjacency...\n");
-        float[] Row = {0.91f,0.92f,0.93f,0.1f,0.1f,0.1f,0.1f,0.15f,0.15f,0.15f};
+        float[] Row = {0.91f, 0.92f, 0.93f, 0.1f, 0.1f, 0.1f, 0.1f, 0.15f, 0.15f, 0.15f};
         CurrentMatrix.addRow(Row); // 0
         CurrentMatrix.addRow(Row); // 1
         CurrentMatrix.addRow(Row); // 2
-        float[] Row1 = {0.1f,0.1f,0.1f,0.91f,0.92f,0.93f,0.94f,0.15f,0.15f,0.15f};
+        float[] Row1 = {0.1f, 0.1f, 0.1f, 0.91f, 0.92f, 0.93f, 0.94f, 0.15f, 0.15f, 0.15f};
         CurrentMatrix.addRow(Row1); // 3
         CurrentMatrix.addRow(Row1); // 4
         CurrentMatrix.addRow(Row1); // 5
         CurrentMatrix.addRow(Row1); // 6
-        float[] Row2 = {0.15f,0.15f,0.15f,0.1f,0.1f,0.1f,0.1f,0.91f,0.92f,0.93f};
+        float[] Row2 = {0.15f, 0.15f, 0.15f, 0.1f, 0.1f, 0.1f, 0.1f, 0.91f, 0.92f, 0.93f};
         CurrentMatrix.addRow(Row2); // 7 
         CurrentMatrix.addRow(Row2); // 8
         CurrentMatrix.addRow(Row2); // 9
-        
+
         //CurrentMatrix.calculateKs();
         //CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
         //CurrentMatrix.maskMatrix(Mask);
-        
-        
-        Cluster Clusters = new Cluster(CurrentMatrix,4);
+        Cluster Clusters = new Cluster(CurrentMatrix, 4);
         System.out.println("Calculating clusters...");
         Clusters.dynamicTreeCut(25);
         //Dendrogram.getDendrogram(4); // Method for clustering 4 == average -- Parameterize
@@ -397,7 +396,7 @@ public class NetworkCalculator {
         System.out.println("Done.");
         System.exit(0);
     }
-    
+
     private static void compareNetworks(String[] args) {
         String IAM = "Comparison";
         CommandLineParser parser = new BasicParser();
@@ -409,7 +408,7 @@ public class NetworkCalculator {
         int permutations;
         try {
             CommandLine cmd = parser.parse(options, args);
-            _checkCompareOptions(cmd,options);
+            _checkCompareOptions(cmd, options);
             dir1 = cmd.getOptionValue("d1");
             dir2 = cmd.getOptionValue("d2");
             permutations = Integer.parseInt(cmd.getOptionValue("p"));
@@ -420,13 +419,13 @@ public class NetworkCalculator {
              * TODO : need to implement a few things 
              * 1: print and load expression 
              */
-            
+
             String Exp1 = dir1 + "/InputExpression.matrix.tab";
             String Exp2 = dir2 + "/InputExpression.matrix.tab";
             String matrix1 = dir1 + "/Adj.matrix.tab";
             String matrix2 = dir2 + "/Adj.matrix.tab";
             float mu = 0.8f;
-            float alpha=20f;
+            float alpha = 20f;
             String sep = "\t";
 
             int[] FD_1 = new int[2];
@@ -441,24 +440,24 @@ public class NetworkCalculator {
             }
             System.err.println("Comparing Networks...\n\n");
             System.err.println("Loading original Expression data... (1)");
-            int[] ExpDim = _getFileDimensions(Exp1,sep);
-            ExpressionFrame ExpF1 = _loadData(Exp1,ExpDim,sep);
+            int[] ExpDim = _getFileDimensions(Exp1, sep);
+            ExpressionFrame ExpF1 = _loadData(Exp1, ExpDim, sep);
             System.err.println("Loading original Expression data... (2)");
-            ExpDim = _getFileDimensions(Exp2,sep);
-            ExpressionFrame ExpF2 = _loadData(Exp2,ExpDim,sep);
-            
+            ExpDim = _getFileDimensions(Exp2, sep);
+            ExpressionFrame ExpF2 = _loadData(Exp2, ExpDim, sep);
+
             System.err.println("Beginning permuation analysis...");
-            float CUTOFF = Operations.permuteData(ExpF1,ExpF2,permutations,out,mu,alpha,threads);
+            float[] RESULT = Operations.permuteData(ExpF1, ExpF2, permutations, out, mu, alpha, threads);
+            float CUTOFF = RESULT[0];
             System.err.println("Permutations done. Obtained Cutoff of dTOM = " + CUTOFF);
-            
+
             System.err.println("Calculating actual values...");
-            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1,"pcc","sigmoid",mu,alpha,threads);
-            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2,"pcc","sigmoid",mu,alpha,threads);
+            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1, "pcc", "sigmoid", mu, alpha, threads);
+            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2, "pcc", "sigmoid", mu, alpha, threads);
             NetworkA.calculateKs();
             NetworkB.calculateKs();
-         
+
             // TODO : add back in self-wise TOM
-            
             String O2 = out + "/Selfwise.actual.jpeg";
             String ThisOut = out + "/dTOM.dist.tab";
             GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
@@ -468,42 +467,41 @@ public class NetworkCalculator {
             Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
             O3 = out + "/Cytoscape.raw.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.0f);
-            
+
             int MinSize = 50;
-            Cluster Clustering = new Cluster(Difference,4);
+            Cluster Clustering = new Cluster(Difference, 4);
             ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
-            _clustersToFile(Difference,Clusters,MinSize,out);
-            
-            
+            _clustersToFile(Difference, Clusters, MinSize, out);
+
             /*
-            NetworkA = Operations.calculateTOM(NetworkA, threads);
-            NetworkB = Operations.calculateTOM(NetworkB, threads);
-            O2 = out + "/TOMA.actual.jpeg";
-            Operations.generateHistogramHM(NetworkA, O2, "Topological Overlaps Network A", "TOM", "Count", false);
-            O2 = out + "/TOMB.actual.jpeg";
-            Operations.generateHistogramHM(NetworkB, O2, "Topological Overlaps Network B", "TOM", "Count", false);
-            Difference = Operations.calculateDifference(NetworkA, NetworkB);
-            String O1 = out + "/Pairwise.actual.jpeg";
-            Operations.generateHistogramHM(Difference, O1, "Pairwise Edge-based TOM Differences Zm vs Sv", "cross-pair Delta-TOM", "Count", false);
-//            Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
-            System.exit(0);
-            System.exit(0);
-            */
+             NetworkA = Operations.calculateTOM(NetworkA, threads);
+             NetworkB = Operations.calculateTOM(NetworkB, threads);
+             O2 = out + "/TOMA.actual.jpeg";
+             Operations.generateHistogramHM(NetworkA, O2, "Topological Overlaps Network A", "TOM", "Count", false);
+             O2 = out + "/TOMB.actual.jpeg";
+             Operations.generateHistogramHM(NetworkB, O2, "Topological Overlaps Network B", "TOM", "Count", false);
+             Difference = Operations.calculateDifference(NetworkA, NetworkB);
+             String O1 = out + "/Pairwise.actual.jpeg";
+             Operations.generateHistogramHM(Difference, O1, "Pairwise Edge-based TOM Differences Zm vs Sv", "cross-pair Delta-TOM", "Count", false);
+             //            Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
+             System.exit(0);
+             System.exit(0);
+             */
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
             System.err.println("Exiting...\n");
-            
+
             System.exit(0);
         }
 
         // *** TODO: make network construction method
     }
 
-    private static void clusterNetwork (String[] args) {
+    private static void clusterNetwork(String[] args) {
         CommandLineParser parser = new BasicParser();
         Options options = buildClusterOptions();
         // **** TODO -- again, what is this for??
-        String directory=null;
+        String directory = null;
         try {
             CommandLine cmd = parser.parse(options, args);
             HelpFormatter formatter = new HelpFormatter();
@@ -567,6 +565,7 @@ public class NetworkCalculator {
             }
         }
     }
+
     private static Options testOptions() {
         Options options = new Options();
         Option help = new Option("h", "print this message");
@@ -641,7 +640,7 @@ public class NetworkCalculator {
         OptionBuilder.hasArg();
         OptionBuilder.withDescription("query a single network for node properties");
         Option view = OptionBuilder.create("view");
-        
+
         OptionBuilder.withArgName("test");
         OptionBuilder.hasArg();
         OptionBuilder.withDescription("test routines");
@@ -685,7 +684,7 @@ public class NetworkCalculator {
         OptionBuilder.hasArg();
         OptionBuilder.withDescription("number of permutations to determine significance");
         Option permutations = OptionBuilder.create("p");
-        
+
         options.addOption(help);
         options.addOption(dir1);
         options.addOption(dir2);
@@ -762,8 +761,7 @@ public class NetworkCalculator {
 
         return options;
     }
-    
-        
+
     private static Options buildTestOptions() {
         Options options = new Options();
         Option help = new Option("h", "print this message");
@@ -808,10 +806,10 @@ public class NetworkCalculator {
 
         return options;
     }
-    
+
     private static int[] _getFileDimensions(String pathIn, String sep) {
         int[] dimensions = new int[2];
-	// pre-declaring sizes allows use of non-dynamic double[][] instead of nested ArrayLists. 
+        // pre-declaring sizes allows use of non-dynamic double[][] instead of nested ArrayLists. 
         // performance gain over ArrayList per-entry is very small, but we have N(N-1)/2 entries...
         try {
             File file = null;
@@ -822,7 +820,7 @@ public class NetworkCalculator {
                 System.err.println("No file found to read.\n");
                 System.exit(0);
             }
-            
+
             Scanner scanner = new Scanner(file);
             String header[] = scanner.nextLine().split(sep);
             dimensions[0] = 0; // Frame height (minus header)
@@ -890,6 +888,7 @@ public class NetworkCalculator {
         }
         return Expression;
     }
+
     private static GCNMatrix _loadNetwork(String pathIn, int[] Dims, String sep) {
         GCNMatrix Matrix = new GCNMatrix(Dims[0], Dims[1]);
         // TODO : Completely change this datatype:
@@ -933,13 +932,16 @@ public class NetworkCalculator {
         }
         return Matrix;
     }
-	private static void _clustersToFile (GCNMatrix Similarity, ArrayList<int[]> Clusters, int MinSize,String OutDir){
-		Iterator<int[]> it = Clusters.iterator();
+
+    private static void _clustersToFile(GCNMatrix Similarity, ArrayList<int[]> Clusters, int MinSize, String OutDir) {
+        Iterator<int[]> it = Clusters.iterator();
         int iter = 1;
-        int count =0;
-        while(it.hasNext()){
+        int count = 0;
+        while (it.hasNext()) {
             int[] cluster = it.next();
-            if(cluster.length < MinSize) continue;
+            if (cluster.length < MinSize) {
+                continue;
+            }
             count++;
             System.out.println("Final cluster size: " + cluster.length);
             String ClustDir = OutDir + "/Clusters/";
@@ -947,17 +949,17 @@ public class NetworkCalculator {
             String nPath = ClustDir + "/" + "Cluster." + iter + ".txt";
             iter++;
             try {
-            	PrintWriter writer = new PrintWriter(nPath,"UTF-8");
-            	for(int i=0;i<cluster.length;i++){
-            		int node = cluster[i];
-            		String name = Similarity.getRowName(node);
-            		writer.println(name);
-            	}
-            	writer.close();
-            } catch (Exception e){
-            		//
+                PrintWriter writer = new PrintWriter(nPath, "UTF-8");
+                for (int i = 0; i < cluster.length; i++) {
+                    int node = cluster[i];
+                    String name = Similarity.getRowName(node);
+                    writer.println(name);
+                }
+                writer.close();
+            } catch (Exception e) {
+                //
             }
         }
         System.err.println("Found " + count + " clusters.");
-	}
+    }
 }

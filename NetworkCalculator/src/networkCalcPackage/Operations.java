@@ -379,164 +379,191 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 	}
 }
 
-	public static float permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P,String out,float mu,float alpha,int threads) {
-		int s1 = expF1.getNumColumns();
-		int s2 = expF2.getNumColumns();
-		int R = expF1.getNumRows();
-		int M = Math.min(expF1.getNumColumns(), expF2.getNumColumns());
-		int S = s1+s2;
-		int s = M * 2;
-		Integer[][] Sets = new Integer[P][];
-		Sets = _getPermutations(s1,s2,P);
+    private static float[] _getSignificantCTOMs (float[] rTOMs, float[][] pTOMs){
+        float[] Sig = new float[rTOMs.length + 1];
+        /*
+        Janky as hell - the zeroth index of Sig is left empty to hold CUTOFF
+        CUTOFF is added within permuteData
+        */
+        for(int r=0;r<rTOMs.length;r++){
+            int index = r+1;
+            
+            int pos_count=0;
+            int neg_count=0;
+            for(int p=0;p<pTOMs.length;p++){
+                if(rTOMs[r] < pTOMs[p][r]) neg_count+=1;
+                if(rTOMs[r] > pTOMs[p][r]) pos_count+=1;
+            }
+            float pos_ratio = pos_count/pTOMs.length; // number of permutations with cTOM > real cTOM
+            float neg_ratio = neg_count/pTOMs.length; // number of permutations with cTOM < real cTOM
+            Sig[index] = Math.min(pos_ratio,neg_ratio); // sets index == to smaller of two ratios. 
+            // needs FDR
+        }
+        return Sig;
+    }
+    public static float[] permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, float mu, float alpha, int threads) {
+        int s1 = expF1.getNumColumns();
+        int s2 = expF2.getNumColumns();
+        int R = expF1.getNumRows();
+        int M = Math.min(expF1.getNumColumns(), expF2.getNumColumns());
+        int S = s1 + s2;
+        int s = M * 2;
+        Integer[][] Sets = new Integer[P][];
+        Sets = _getPermutations(s1, s2, P);
 		//System.out.println("size1: "+s1+"\nsize2: "+s2);
-		// for all i in Sets p, obtain values of i<s from exp1, values of i>s
-                
-                float CUTOFF = 1.0f;
-                float[][] TOMpermutations = new float[P][R];
-                ArrayList<TreeMap<Float,Integer>> Perms = new ArrayList<>();
-                
-		for(int p=0;p<P;p++){
-			System.out.println("Permutation: " + p);
-			ExpressionFrame pF1 = new ExpressionFrame(R,M);
-			ExpressionFrame pF2 = new ExpressionFrame(R,M);
-			for(int r=0;r<R;r++){
-				float[] rF1 = expF1.getRowByIndex(r);
-				float[] rF2 = expF2.getRowByIndex(r);
-				float[] nR1 = new float[M];
-				float[] nR2 = new float[M];
-				for(int m=0;m<M;m++){
-					int ind = Sets[p][m];
-					//System.out.println("getting "+ ind + " ("+ m +")");
-					if(ind<s1){
-						//System.out.println("getting "+ind+" from 1 s1 is " + s1);
-						nR1[m]=rF1[ind];
-					}else if(ind>=s1){
-						ind = ind - s1;
-					//	System.out.println("getting "+ind+" from 2 s1 is " + s1);
-						nR1[m]=rF2[ind];
-					}
-				}
-				pF1.addRow(nR1);
-				for(int m=M;m<s;m++){
-					int Mind = m-M;
-					int ind = Sets[p][m];
-					//System.out.println("getting "+ ind + " ("+ m +")");
-					if(ind<s1){
-						//System.out.println("getting "+ind+" from 1 s1 is " + s1);
-						nR2[Mind]=rF1[ind];
-					}else if(ind>=s1){
-						ind = ind - s1;
-						//System.out.println("getting "+ind+" from 2 s1 is " + s1);
-						nR2[Mind]=rF2[ind];
-					}
-				}
-				pF2.addRow(nR2);
-			}	
-			GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1,"pcc","sigmoid",mu,alpha,threads);
-			GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2,"pcc","sigmoid",mu,alpha,threads);
-			CurrentMatrix1.calculateKs();
-			CurrentMatrix2.calculateKs();
-			float[] cTOMs = Operations.compareNetworksViaTOM(CurrentMatrix1,CurrentMatrix2);
-			String O2 = out + "/CrossTOM."+ p + ".testing.jpeg";
+        // for all i in Sets p, obtain values of i<s from exp1, values of i>s
+
+        float CUTOFF = 1.0f;
+        float[][] TOMpermutations = new float[P][R];
+        float[] ret_val = new float[R + 1];
+        ArrayList<TreeMap<Float, Integer>> Perms = new ArrayList<>();
+
+        for (int p = 0; p < P; p++) {
+            System.out.println("Permutation: " + p);
+            ExpressionFrame pF1 = new ExpressionFrame(R, M);
+            ExpressionFrame pF2 = new ExpressionFrame(R, M);
+            for (int r = 0; r < R; r++) {
+                float[] rF1 = expF1.getRowByIndex(r);
+                float[] rF2 = expF2.getRowByIndex(r);
+                float[] nR1 = new float[M];
+                float[] nR2 = new float[M];
+                for (int m = 0; m < M; m++) {
+                    int ind = Sets[p][m];
+                    //System.out.println("getting "+ ind + " ("+ m +")");
+                    if (ind < s1) {
+                        //System.out.println("getting "+ind+" from 1 s1 is " + s1);
+                        nR1[m] = rF1[ind];
+                    } else if (ind >= s1) {
+                        ind = ind - s1;
+                        //	System.out.println("getting "+ind+" from 2 s1 is " + s1);
+                        nR1[m] = rF2[ind];
+                    }
+                }
+                pF1.addRow(nR1);
+                for (int m = M; m < s; m++) {
+                    int Mind = m - M;
+                    int ind = Sets[p][m];
+                    //System.out.println("getting "+ ind + " ("+ m +")");
+                    if (ind < s1) {
+                        //System.out.println("getting "+ind+" from 1 s1 is " + s1);
+                        nR2[Mind] = rF1[ind];
+                    } else if (ind >= s1) {
+                        ind = ind - s1;
+                        //System.out.println("getting "+ind+" from 2 s1 is " + s1);
+                        nR2[Mind] = rF2[ind];
+                    }
+                }
+                pF2.addRow(nR2);
+            }
+            GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1, "pcc", "sigmoid", mu, alpha, threads);
+            GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2, "pcc", "sigmoid", mu, alpha, threads);
+            CurrentMatrix1.calculateKs();
+            CurrentMatrix2.calculateKs();
+            float[] cTOMs = Operations.compareNetworksViaTOM(CurrentMatrix1, CurrentMatrix2);
+            System.arraycopy(cTOMs, 0, TOMpermutations[p], 0, cTOMs.length);
+            String O2 = out + "/CrossTOM." + p + ".testing.jpeg";
+
             // TODO : figure out what to do with cTOMs.
-			/*
-			 * Here's the answer. Each gene has its specific permuted cTOMs (N floats * P entries)
-			 * Compare that gene's Real CTOM against its specific set of permuted cTOMs.
-			 * a gene which is higher or lower than ALL of its specific cTOMs is 'significantly different'
-			 * This feels like a hackey MWW or similar rank test, but we don't have a pair of populations
-			 * we have a distribution and a single value. 
-			 * 
-			 * I suppose this is just a test against the presumed
-			 * empirical distribution of cTOMs.
-			 * 
-			 * Need a matrix of DxP floats. P <<<<< D so this shouldn't affect memory
-			 * 
-			 * idea: calculate the distributions of node-specific CTOM permuted values
-			 * determine if each node has a normal dist. of permuted CTOMs 
-			 * overall dist is wonky, but node-specific may be regular.
-			 * 
-			 * unfortunately i think this fundamentally re-jiggers this routine.
-			 *  Can't just return a single float anymore...
-			 * 
-			 * this approach requires P >= 20, at the lowest possible level. >= 40 would be better.
-			 * 
-			 * 
-			 */
-            CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1,threads);
-            CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2,threads);
-			GCNMatrix Difference = Operations.calculateDifference(CurrentMatrix1,CurrentMatrix2);
-            TreeMap<Float,Integer> Distribution = Difference.generateDistribution();
+            /*
+             * Here's the answer. Each gene has its specific permuted cTOMs (N floats * P entries)
+             * Compare that gene's Real CTOM against its specific set of permuted cTOMs.
+             * a gene which is higher or lower than ALL of its specific cTOMs is 'significantly different'
+             * This feels like a hackey MWW or similar rank test, but we don't have a pair of populations
+             * we have a distribution and a single value. 
+             * 
+             * I suppose this is just a test against the presumed
+             * empirical distribution of cTOMs.
+             * 
+             * Need a matrix of DxP floats. P <<<<< D so this shouldn't affect memory
+             * 
+             * idea: calculate the distributions of node-specific CTOM permuted values
+             * determine if each node has a normal dist. of permuted CTOMs 
+             * overall dist is wonky, but node-specific may be regular.
+             * 
+             * unfortunately i think this fundamentally re-jiggers this routine.
+             *  Can't just return a single float anymore...
+             * 
+             * this approach requires P >= 20, at the lowest possible level. >= 40 would be better.
+             * 
+             * 
+             */
+            CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
+            CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2, threads);
+            GCNMatrix Difference = Operations.calculateDifference(CurrentMatrix1, CurrentMatrix2);
+            TreeMap<Float, Integer> Distribution = Difference.generateDistribution();
             Perms.add(Distribution);
             Difference.maskMatrix(0.02f);
-			O2 = out + "/Selfwise."+ p + ".testing.jpeg";
+            O2 = out + "/Selfwise." + p + ".testing.jpeg";
             Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
-		}
-                GCNMatrix NetworkA = Operations.calculateAdjacency(expF1,"pcc","sigmoid",mu,alpha,threads);
-                GCNMatrix NetworkB = Operations.calculateAdjacency(expF2,"pcc","sigmoid",mu,alpha,threads);
-                NetworkA.calculateKs();
-                NetworkB.calculateKs();
-                
-                float[] rTOMS = Operations.compareNetworksViaTOM(NetworkA,NetworkB);
-                Operations._tempPrintPermsToFile(rTOMS,TOMpermutations,out);
-                
-                NetworkA = Operations.calculateTOM(NetworkA,threads);
-                NetworkB = Operations.calculateTOM(NetworkB,threads);
-                GCNMatrix rDiff = Operations.calculateDifference(NetworkA, NetworkB);
-                TreeMap<Float,Integer> Real = rDiff.generateDistribution();
-                String permutePathOut = out +"/PermutationDetails.tab";
-                PrintWriter writer;
-				try {
-					writer = new PrintWriter(permutePathOut,"UTF-8");
-					writer.println("Cutoff\tAverage False\tTrue\tFDR");
-					for(float c=0.0f;c<1.0f;c+=0.01f){
-						float C = c;
-						Double Total=0.0d;
-						for(int a=0;a<Perms.size();a++){
-							for(Map.Entry<Float,Integer> entry : Perms.get(a).entrySet()) {
-								Float A;
-								A = entry.getKey();
-								Double value;
-								value = Double.valueOf(entry.getValue());
-								if(Math.abs(A)>=C){
-									Total += value;
-								}
-							}
-						}
-						// Total holds all instances of adj value > C across all perms
-						Double Average = Total/Perms.size();
-						Double RealHits = 0.0d;
-						for(Map.Entry<Float,Integer> entry : Real.entrySet()) {
-							Float A;
-							A = entry.getKey();
-							Double value;
-							value = Double.valueOf(entry.getValue());
-							if(Math.abs(A)>=C){
-								RealHits += value;
-							}
-						}
-						double FDR = Average/RealHits;
-						if(FDR<=0.25){
-							writer.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
-						}
+        }
+        GCNMatrix NetworkA = Operations.calculateAdjacency(expF1, "pcc", "sigmoid", mu, alpha, threads);
+        GCNMatrix NetworkB = Operations.calculateAdjacency(expF2, "pcc", "sigmoid", mu, alpha, threads);
+        NetworkA.calculateKs();
+        NetworkB.calculateKs();
 
-						if(FDR <= 0.05){
-							if(CUTOFF==1){
-								CUTOFF = C;
-							}else{
+        float[] rTOMS = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
+        Operations._tempPrintPermsToFile(rTOMS, TOMpermutations, out);
+        ret_val = _getSignificantCTOMs(rTOMS, TOMpermutations);
 
-							}
-						}
+        NetworkA = Operations.calculateTOM(NetworkA, threads);
+        NetworkB = Operations.calculateTOM(NetworkB, threads);
+        GCNMatrix rDiff = Operations.calculateDifference(NetworkA, NetworkB);
+        TreeMap<Float, Integer> Real = rDiff.generateDistribution();
+        String permutePathOut = out + "/PermutationDetails.tab";
+        PrintWriter writer;
+        try {
+            writer = new PrintWriter(permutePathOut, "UTF-8");
+            writer.println("Cutoff\tAverage False\tTrue\tFDR");
+            for (float c = 0.0f; c < 1.0f; c += 0.01f) {
+                float C = c;
+                Double Total = 0.0d;
+                for (int a = 0; a < Perms.size(); a++) {
+                    for (Map.Entry<Float, Integer> entry : Perms.get(a).entrySet()) {
+                        Float A;
+                        A = entry.getKey();
+                        Double value;
+                        value = Double.valueOf(entry.getValue());
+                        if (Math.abs(A) >= C) {
+                            Total += value;
+                        }
+                    }
+                }
+                // Total holds all instances of adj value > C across all perms
+                Double Average = Total / Perms.size();
+                Double RealHits = 0.0d;
+                for (Map.Entry<Float, Integer> entry : Real.entrySet()) {
+                    Float A;
+                    A = entry.getKey();
+                    Double value;
+                    value = Double.valueOf(entry.getValue());
+                    if (Math.abs(A) >= C) {
+                        RealHits += value;
+                    }
+                }
+                double FDR = Average / RealHits;
+                if (FDR <= 0.25) {
+                    writer.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
+                }
 
-					}
-					writer.close();
-				} catch (FileNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-                return CUTOFF;
+                if (FDR <= 0.05) {
+                    if (CUTOFF == 1) {
+                        CUTOFF = C;
+                    } else {
+
+                    }
+                }
+
+            }
+            writer.close();
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        ret_val[0] = CUTOFF;
+        return ret_val;
 	}
         
 	public static void permuteDataHalf(ExpressionFrame expF1, ExpressionFrame expF2, int P,String out,int threads) {
