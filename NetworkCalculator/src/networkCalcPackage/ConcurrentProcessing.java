@@ -17,7 +17,6 @@ public class ConcurrentProcessing implements Callable<HashMap<String,float[]>> {
 	private int D;
 	private float M;
 	private float A;
-	//private ThreadLocal<HashMap<String, Double>> hm = new ThreadLocal<HashMap<String, Double>>();
 	
 	private void noCall () {
 		System.err.println("Threading called with no method. Should not happen");
@@ -26,15 +25,12 @@ public class ConcurrentProcessing implements Callable<HashMap<String,float[]>> {
 	
 	public HashMap<String, float[]> call() {
 		HashMap<String, float[]> hm = new HashMap<String, float[]>();
-		 	//try {
 		String s = null;
 	        while ( ( s=queue.poll() ) != null ) {
-	            //while ( true ) {
 	        	int L = Integer.valueOf(s);
 	        	int Size;
                         Size = D - L;
 	        	float value[] = new float[Size];
-	                //String s = queue.remove();
 	                switch (smethod) {
 	                	case "gini": value = doWork_gini(s);
 	                	break;
@@ -48,17 +44,8 @@ public class ConcurrentProcessing implements Callable<HashMap<String,float[]>> {
 	                	break;
 	                }
                         hm.put(s, value);
-	                /*for(int j=0;j<Size;j++){
-	                	int coord = j+L;
-	                	String k = L + "-" + coord;
-	                	hm.put(k,value[j]);
-	                }*/
 	        }
-	       // }
-	        /*catch ( InterruptedException ie ) { 
-	            // just terminate
-	        }*/
-		return hm;
+	        return hm;
 	}
 	public ConcurrentProcessing (GCNMatrix Adjacency,ConcurrentLinkedQueue<String> queue, String corr) {
         this.queue = queue;

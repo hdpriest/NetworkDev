@@ -283,14 +283,12 @@ public class NetworkCalculator {
         System.err.println("Calculating TOM...\n");
         CurrentMatrix.calculateKs();
         CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
-        ThisOut = Out + "/TOM.dist.tab";
         
-        //CurrentMatrix.generateHistogramHM(ThisOut,"Masked Distribution of Topological Overlaps","Topological Overlap","# Edges");
-        //Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
-        //CurrentMatrix.generateHeatmap();
+        ThisOut = Out + "/TOM.dist.tab";
         CurrentMatrix.generateDistributionToFile(ThisOut);
         MatrixOut = Out + "/TOM.matrix.tab";
         CurrentMatrix.printMatrixToFile(MatrixOut,sep);
+        
         System.out.println("Calculating clusters...");
         int MinSize = 50;
         Cluster Clustering = new Cluster(CurrentMatrix,4);
@@ -458,19 +456,24 @@ public class NetworkCalculator {
             GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2,"pcc","sigmoid",mu,alpha,threads);
             NetworkA.calculateKs();
             NetworkB.calculateKs();
-
-            //GCNMatrix Difference = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
-            GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
-            int MinSize = 50;
-            Cluster Clustering = new Cluster(Difference,4);
-            ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
-            _clustersToFile(Difference,Clusters,MinSize,out);
+         
+            // TODO : add back in self-wise TOM
+            
             String O2 = out + "/Selfwise.actual.jpeg";
+            String ThisOut = out + "/dTOM.dist.tab";
+            GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
+            Difference.generateDistributionToFile(ThisOut);
             Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
             String O3 = out + "/Cytoscape.sigEdge.tab";
             Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
             O3 = out + "/Cytoscape.raw.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.0f);
+            
+            int MinSize = 50;
+            Cluster Clustering = new Cluster(Difference,4);
+            ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
+            _clustersToFile(Difference,Clusters,MinSize,out);
+            
             
             /*
             NetworkA = Operations.calculateTOM(NetworkA, threads);
