@@ -85,10 +85,11 @@ public class Operations {
 	    return result;
 	}
 	
-	public static GCNMatrix compareNetworksViaTOM (GCNMatrix Net1, GCNMatrix Net2){
+	public static float[] compareNetworksViaTOM (GCNMatrix Net1, GCNMatrix Net2){
 		int D = Net1.getNumRows();
 		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
                 ReturnFrame = Operations.copyNames(Net1.getRowNames(), ReturnFrame);
+        float[] cTOMs = new float[D];
 		for(int i=0;i<D;i++){
 			
 			for(int j=0;j<D;j++){
@@ -111,12 +112,13 @@ public class Operations {
 					T=(product+DFIJ)/(k_min + 1 - DFIJ); // if one node unconnected, = 0+0/0+1-0
 					// if IJ are totally connected, all products > 0, but < kmin
 					//T=(product+DFIJ)/(k_min + 1);
+					cTOMs[i]=T;
 				}else{
 				}
-				ReturnFrame.setValueByEntry(T, i, j);
+				
 			}
 		}
-		return ReturnFrame;
+		return cTOMs;
 	}
 
 	public static GCNMatrix calculateTOM (GCNMatrix Adjacency, int Threads){
@@ -432,18 +434,41 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 			GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2,"pcc","sigmoid",mu,alpha,threads);
 			CurrentMatrix1.calculateKs();
 			CurrentMatrix2.calculateKs();
-                        CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1,threads);
-                        CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2,threads);
+			float[] cTOMs = Operations.compareNetworksViaTOM(CurrentMatrix1,CurrentMatrix2);
+			String O2 = out + "/CrossTOM."+ p + ".testing.jpeg";
+            // TODO : figure out what to do with cTOMs.
+			/*
+			 * Here's the answer. Each gene has its specific permuted cTOMs (N floats * P entries)
+			 * Compare that gene's Real CTOM against its specific set of permuted cTOMs.
+			 * a gene which is higher or lower than ALL of its specific cTOMs is 'significantly different'
+			 * This feels like a hackey MWW or similar rank test, but we don't have a pair of populations
+			 * we have a distribution and a single value. 
+			 * 
+			 * I suppose this is just a test against the presumed
+			 * empirical distribution of cTOMs.
+			 * 
+			 * Need a matrix of DxP floats. P <<<<< D so this shouldn't affect memory
+			 * 
+			 * idea: calculate the distributions of node-specific CTOM permuted values
+			 * determine if each node has a normal dist. of permuted CTOMs 
+			 * overall dist is wonky, but node-specific may be regular.
+			 * 
+			 * unfortunately i think this fundamentally re-jiggers this routine.
+			 *  Can't just return a single float anymore...
+			 * 
+			 * this approach requires P >= 20, at the lowest possible level. >= 40 would be better.
+			 * 
+			 * 
+			 */
+            CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1,threads);
+            CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2,threads);
 			GCNMatrix Difference = Operations.calculateDifference(CurrentMatrix1,CurrentMatrix2);
-                        TreeMap<Float,Integer> Distribution = Difference.generateDistribution();
-                        Perms.add(Distribution);
-                        Difference.maskMatrix(0.02f);
-			String O2 = out + "/Selfwise."+ p + ".testing.jpeg";
-                        Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
-                        Difference = Operations.compareNetworksViaTOM(CurrentMatrix1,CurrentMatrix2);
-                        O2 = out + "/CrossTOM."+ p + ".testing.jpeg";
-                        Operations.generateHistogramHM(Difference, O2, "Cross-network selfwiseTOM", "selfwise TOM", "Count", false);
-                       
+            TreeMap<Float,Integer> Distribution = Difference.generateDistribution();
+            Perms.add(Distribution);
+            Difference.maskMatrix(0.02f);
+			O2 = out + "/Selfwise."+ p + ".testing.jpeg";
+            Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
+                     
 		}
                 GCNMatrix NetworkA = Operations.calculateAdjacency(expF1,"pcc","sigmoid",mu,alpha,threads);
                 GCNMatrix NetworkB = Operations.calculateAdjacency(expF2,"pcc","sigmoid",mu,alpha,threads);
@@ -506,8 +531,6 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-		// Now have permuted expression frames?
-		// NEEDS TESTING.
                 return CUTOFF;
 	}
         

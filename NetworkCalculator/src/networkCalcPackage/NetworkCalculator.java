@@ -188,7 +188,50 @@ public class NetworkCalculator {
                 System.exit(0);
             }
     }
-        
+    
+    private static void _checkTestOptions (CommandLine cmd,Options options) {
+        HelpFormatter formatter = new HelpFormatter();
+        if (cmd.hasOption("h")) {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("d")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            
+            System.exit(0);
+        }
+        if (cmd.hasOption("c")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("o")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("a")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("m")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("M")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("t")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+}
     private static void constructNetwork(String[] args) {
         String IAM = "Construction";
         CommandLineParser parser = new BasicParser();
@@ -221,7 +264,7 @@ public class NetworkCalculator {
 
         int[] FileDimensions = new int[2];
         FileDimensions = _getFileDimensions(pathIn, sep);
-
+        System.err.println("Beginning network construction...\n");
         System.err.println("Loading Data File\n");
         Operations.createDirectory(Out);
         ExpressionFrame DataFrame = _loadData(pathIn, FileDimensions, sep);
@@ -229,7 +272,7 @@ public class NetworkCalculator {
         DataFrame.printMatrixToFile(FrameOut, sep);
         
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
-        System.err.println("Calculating Similarity & Adjacency...\n");
+        System.err.println("Calculating Similarity & Adjacency...\nMu : "+ mu +"\nAlpha: "+ alpha +"\n");
         CurrentMatrix = Operations.calculateAdjacency(DataFrame,corr,"sigmoid",mu,alpha,threads);
         
         String ThisOut = Out + "/Adjacency.dist.tab";
@@ -254,6 +297,57 @@ public class NetworkCalculator {
         ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
         _clustersToFile(CurrentMatrix,Clusters,MinSize,Out);
        // Cluster.getClusters(50); // 50 = min cluster size -- Parameterize
+        System.out.println("Done.");
+        System.exit(0);
+    }
+    
+    private static void testMetrics(String[] args) {
+        String IAM = "test";
+        CommandLineParser parser = new BasicParser();
+        Options options = buildTestOptions();
+        String pathIn = null;
+        String Out = null;
+        float alpha = 0.0f;
+        float mu = 0.0f;
+        float Mask = 0.0f;
+        int threads = 0;
+        String corr = null;
+        try {
+            CommandLine cmd = parser.parse(options, args);
+            _checkTestOptions(cmd,options);
+            threads = Integer.parseInt(cmd.getOptionValue("t"));
+            pathIn = cmd.getOptionValue("d");
+            Out = cmd.getOptionValue("o");
+            corr = cmd.getOptionValue("c");
+            alpha = Float.parseFloat(cmd.getOptionValue("a"));
+            mu = Float.parseFloat(cmd.getOptionValue("m"));
+            Mask = Float.parseFloat(cmd.getOptionValue("M"));
+            
+        } catch (ParseException exp) {
+            System.err.println("Problem parsing arguments:\n" + exp.getMessage());
+            System.err.println("Exiting...\n");
+            System.exit(0);
+        }
+        
+        String sep = "\t";
+
+        int[] FileDimensions = new int[2];
+        FileDimensions = _getFileDimensions(pathIn, sep);
+        System.err.println("Beginning testing run...\n\n");
+        System.err.println("Loading Data File\n");
+        Operations.createDirectory(Out);
+        ExpressionFrame DataFrame = _loadData(pathIn, FileDimensions, sep);
+        String FrameOut = Out + "/InputExpression.matrix.tab";
+        DataFrame.printMatrixToFile(FrameOut, sep);
+        
+        GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
+        System.err.println("Calculating Similarity & Adjacency...\nMu : "+ mu +"\nAlpha: "+ alpha +"\n");
+        CurrentMatrix = Operations.calculateAdjacency(DataFrame,corr,"sigmoid",mu,alpha,threads);
+        // TODO : implement K distribution printing
+        String ThisOut = Out + "/Test.dist.txt";
+        CurrentMatrix.generateDistributionToFile(ThisOut);
+        String MatrixOut = Out + "/Adj.matrix.txt";
+        CurrentMatrix.printMatrixToFile(MatrixOut, sep);
         System.out.println("Done.");
         System.exit(0);
     }
@@ -347,7 +441,7 @@ public class NetworkCalculator {
                 System.err.println("Matrix files are not the same size");
                 System.exit(0);
             }
-
+            System.err.println("Comparing Networks...\n\n");
             System.err.println("Loading original Expression data... (1)");
             int[] ExpDim = _getFileDimensions(Exp1,sep);
             ExpressionFrame ExpF1 = _loadData(Exp1,ExpDim,sep);
@@ -660,6 +754,52 @@ public class NetworkCalculator {
         options.addOption(corr);
         options.addOption(mu);
         options.addOption(Mask);
+        options.addOption(output);
+        options.addOption(threads);
+
+        return options;
+    }
+    
+        
+    private static Options buildTestOptions() {
+        Options options = new Options();
+        Option help = new Option("h", "print this message");
+
+        OptionBuilder.withArgName("datafile");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values");
+        Option datafile = OptionBuilder.create("d");
+
+        OptionBuilder.withArgName("correlation");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("correlation metric to use ('gini' or 'pcc')");
+        Option corr = OptionBuilder.create("c");
+
+        OptionBuilder.withArgName("alpha");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("alpha parameter for sigmoid adjacency calculation (i.e. 20)");
+        Option alpha = OptionBuilder.create("a");
+
+        OptionBuilder.withArgName("mu");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("mu parameter for sigmoid adjacency calculation (i.e. 0.8)");
+        Option mu = OptionBuilder.create("m");
+
+        OptionBuilder.withArgName("output");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Temporary Directory");
+        Option output = OptionBuilder.create("o");
+
+        OptionBuilder.withArgName("threads");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Number of Compute Threads");
+        Option threads = OptionBuilder.create("t");
+
+        options.addOption(help);
+        options.addOption(datafile);
+        options.addOption(alpha);
+        options.addOption(corr);
+        options.addOption(mu);
         options.addOption(output);
         options.addOption(threads);
 
