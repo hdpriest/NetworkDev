@@ -456,7 +456,9 @@ public class NetworkCalculator {
             GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2, "pcc", "sigmoid", mu, alpha, threads);
             NetworkA.calculateKs();
             NetworkB.calculateKs();
-
+            float[] rcTOMs = Operations.compareNetworksViaTOM(NetworkB, NetworkB);
+            String[] names = NetworkA.getRowNames();
+            _cTOMsToFile(rcTOMs, RESULT, names, out);
             // TODO : add back in self-wise TOM
             String O2 = out + "/Selfwise.actual.jpeg";
             String ThisOut = out + "/dTOM.dist.tab";
@@ -961,5 +963,21 @@ public class NetworkCalculator {
             }
         }
         System.err.println("Found " + count + " clusters.");
+    }
+
+    private static void _cTOMsToFile(float[] rTOMs, float[] ratios, String[] names, String OutDir) {
+        String Path = OutDir + "/CrossNetwork.TOM.tab";
+        try {
+            PrintWriter writer = new PrintWriter(Path, "UTF-8");
+            for (int i = 1; i < ratios.length; i++) {
+                int index = i - 1;
+                String line = names[index] + "\t" + rTOMs[index] + "\t" + ratios[i];
+                writer.println(line);
+            }
+            writer.close();
+        } catch (Exception e) {
+            //
+        }
+
     }
 }
