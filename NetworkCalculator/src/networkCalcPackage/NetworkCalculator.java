@@ -445,18 +445,18 @@ public class NetworkCalculator {
             System.err.println("Loading original Expression data... (2)");
             ExpDim = _getFileDimensions(Exp2, sep);
             ExpressionFrame ExpF2 = _loadData(Exp2, ExpDim, sep);
-
+            String corr = "pcc";
             System.err.println("Beginning permuation analysis...");
-            float[] RESULT = Operations.permuteData(ExpF1, ExpF2, permutations, out, mu, alpha, threads);
+            float[] RESULT = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, mu, alpha, threads);
             float CUTOFF = RESULT[0];
             System.err.println("Permutations done. Obtained Cutoff of dTOM = " + CUTOFF);
 
             System.err.println("Calculating actual values...");
-            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1, "pcc", "sigmoid", mu, alpha, threads);
-            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2, "pcc", "sigmoid", mu, alpha, threads);
+            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1, corr, "sigmoid", mu, alpha, threads);
+            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2, corr, "sigmoid", mu, alpha, threads);
             NetworkA.calculateKs();
             NetworkB.calculateKs();
-            float[] rcTOMs = Operations.compareNetworksViaTOM(NetworkB, NetworkB);
+            float[] rcTOMs = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
             String[] names = NetworkA.getRowNames();
             _cTOMsToFile(rcTOMs, RESULT, names, out);
             // TODO : add back in self-wise TOM

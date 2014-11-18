@@ -34,374 +34,380 @@ import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
-
-
-
-
 public class Operations {
-	
-	public static float GINI (float[] array1,float[] array2){
-		float GINI_coeff;
-		float Numerator=0.0f;
-		float Denominator=0.0f;
-		int[] sortRanks1 = getIndicesInOrder(array1);
-		int[] sortRanks2 = getIndicesInOrder(array2);
-		for(int i=0;i<array1.length;i++){
-			float v2=((2*(i+1))-array1.length-1) * array1[sortRanks1[i]];
-			float v1=((2*(i+1))-array1.length-1) * array1[sortRanks2[i]];
-			Denominator+=v2;
-			Numerator += v1;
-		}
-		GINI_coeff=Numerator/Denominator;
-		return GINI_coeff;
-	}
-	
-        public static GCNMatrix copyNames (String[] names, GCNMatrix NetB){
-            /// if you always copy Rows->rows and columns, you can't go wrong
-            NetB.setRowNames(names);
-            NetB.setColumnNames(names);
-            return NetB;
+
+    public static float GINI(float[] array1, float[] array2) {
+        float GINI_coeff;
+        float Numerator = 0.0f;
+        float Denominator = 0.0f;
+        int[] sortRanks1 = getIndicesInOrder(array1);
+        int[] sortRanks2 = getIndicesInOrder(array2);
+        for (int i = 0; i < array1.length; i++) {
+            float v2 = ((2 * (i + 1)) - array1.length - 1) * array1[sortRanks1[i]];
+            float v1 = ((2 * (i + 1)) - array1.length - 1) * array1[sortRanks2[i]];
+            Denominator += v2;
+            Numerator += v1;
         }
-        
-	public static int[] getIndicesInOrder(float[] array) {
-	    Map<Integer, Float> map = new HashMap<Integer, Float>(array.length);
-	    for (int i = 0; i < array.length; i++)
-	        map.put(i, array[i]);
+        GINI_coeff = Numerator / Denominator;
+        return GINI_coeff;
+    }
 
-	    List<Entry<Integer, Float>> l = 
-	                           new ArrayList<Entry<Integer, Float>>(map.entrySet());
+    public static GCNMatrix copyNames(String[] names, GCNMatrix NetB) {
+        /// if you always copy Rows->rows and columns, you can't go wrong
+        NetB.setRowNames(names);
+        NetB.setColumnNames(names);
+        return NetB;
+    }
 
-	    Collections.sort(l, new Comparator<Entry<?, Float>>() {
-	            @Override
-	            public int compare(Entry<?, Float> e1, Entry<?, Float> e2) {
-	                return e2.getValue().compareTo(e1.getValue());
-	            }
-	        });
+    public static int[] getIndicesInOrder(float[] array) {
+        Map<Integer, Float> map = new HashMap<Integer, Float>(array.length);
+        for (int i = 0; i < array.length; i++) {
+            map.put(i, array[i]);
+        }
 
-	    int[] result = new int[array.length];
-	    for (int i = 0; i < result.length; i++)
-	        result[i] = l.get(i).getKey();
+        List<Entry<Integer, Float>> l
+                = new ArrayList<Entry<Integer, Float>>(map.entrySet());
 
-	    return result;
-	}
-	
-	public static float[] compareNetworksViaTOM (GCNMatrix Net1, GCNMatrix Net2){
-		int D = Net1.getNumRows();
-		GCNMatrix ReturnFrame = new GCNMatrix(D,D);
-                ReturnFrame = Operations.copyNames(Net1.getRowNames(), ReturnFrame);
+        Collections.sort(l, new Comparator<Entry<?, Float>>() {
+            @Override
+            public int compare(Entry<?, Float> e1, Entry<?, Float> e2) {
+                return e2.getValue().compareTo(e1.getValue());
+            }
+        });
+
+        int[] result = new int[array.length];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = l.get(i).getKey();
+        }
+
+        return result;
+    }
+
+    public static float[] compareNetworksViaTOM(GCNMatrix Net1, GCNMatrix Net2) {
+        int D = Net1.getNumRows();
+        GCNMatrix ReturnFrame = new GCNMatrix(D, D);
+        ReturnFrame = Operations.copyNames(Net1.getRowNames(), ReturnFrame);
         float[] cTOMs = new float[D];
         //ReturnFrame = Operations.copyNames(Net1.getRowNames(), ReturnFrame);
-		for(int i=0;i<D;i++){
-			for(int j=0;j<D;j++){
-				float T=0;
-				if(i==j){
-					float product=0;
-					float i_k = Net1.findK(i, i);
-					float j_k = Net2.findK(j,j);
-					for(int u=0;u<D;u++){
-						if((u != i) && (u != j) && (Net1.testValue(i, u)) && (Net2.testValue(j, u))){
-							float i_v = Net1.getValueByEntry(i,u);
-							float j_v = Net2.getValueByEntry(j,u);
-							float max = Math.max(i_v,j_v);
-							product += i_v * j_v / max;
-							/// if node is not connected to anything, all products are zero
-						}
-					}
-					float k_min = Math.min(i_k, j_k);
-					float DFIJ=0;
-					T=(product+DFIJ)/(k_min + 1 - DFIJ); // if one node unconnected, = 0+0/0+1-0
-					// if IJ are totally connected, all products > 0, but < kmin
-					//T=(product+DFIJ)/(k_min + 1);
-					cTOMs[i]=T;
-				}else{
-				}
-                                
-				//ReturnFrame.setValueByEntry(T, i, j);
-			}
-		}
-		return cTOMs;
-	}
-
-	public static GCNMatrix calculateTOM (GCNMatrix Adjacency, int Threads){
-		int D = Adjacency.getNumRows();
-		GCNMatrix ReturnMatrix = new GCNMatrix(D,D);
-                ReturnMatrix = Operations.copyNames(Adjacency.getRowNames(), ReturnMatrix);
-		ExecutorService pool = Executors.newFixedThreadPool(Threads);
-		ExecutorCompletionService<HashMap<String,float[]>> completionService = new ExecutorCompletionService<>(pool);
-		List<Future<HashMap<String,float[]>>> taskList = new ArrayList<Future<HashMap<String,float[]>>>();
-		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
-		//System.err.println("Processing topological overlap using " + Threads + " threads.");
-		for(int i=0;i<D;i++){
-			String S = String.valueOf(i);
-			queue.add(S);
-		}
-		for ( int i = 0; i < Threads; i++ ) {
-			Callable<HashMap<String,float[]>> worker = new ConcurrentProcessing(Adjacency,queue,"tom");
-			Future<HashMap<String,float[]>> submit = completionService.submit(worker);
-			taskList.add(submit);  
-                        
-		}
-		
-		
-		
-		for(int t=0;t<Threads;t++){
-			try{
-				HashMap<String,float[]> hm = completionService.take().get();
-				//System.err.println("obtained result for thread " + t);
-				int r = 0;
-				for(Map.Entry<String,float[]> entry : hm.entrySet()){
-                                        String s = entry.getKey();
-                                        int i = Integer.valueOf(s);
-                                        int size = D-i;
-                                        float[] d = new float[size];
-                                        d = entry.getValue();
-                                        for(int j=0;j<d.length;j++){
-                                            int coord = j+i;
-                                            ReturnMatrix.setValueByEntry(d[j],i,coord);
-                                            r++;
-                                        }
-				}
-				//System.err.println("Processed "+ r + " records");
-			}catch(InterruptedException e){
-				e.printStackTrace();
-			}catch (ExecutionException e){
-				e.printStackTrace();
-			}
-			//System.err.println("Thread " + t + " complete.");
-		}
-		//System.err.println("Done.");
-		pool.shutdownNow();
-		return ReturnMatrix;
-	}
-	
-	private static void explode (){
-		System.err.println("No correlation got to this point!?");
-		System.exit(0);
-	}
-	
-	public static GCNMatrix calculateAdjacency (ExpressionFrame Expression,String corr, String adj, float mu, float alpha, int Threads){
-		
-		// prepwork
-		int D = Expression.getNumRows();
-		GCNMatrix Adjacency = new GCNMatrix(D,D);
-                 Adjacency = Operations.copyNames(Expression.getRowNames(), Adjacency);
-                switch (corr) {
-                    case "gini": Expression.calculateGiniSums(); // half of every gini coeff is a pre-calculable value
-                    break;
-                    case "pcc": Expression.calculateMeans(); // most of a pcc is pre-calculateable;
-                    break;
-                    default: explode();
-                    break;
+        for (int i = 0; i < D; i++) {
+            for (int j = 0; j < D; j++) {
+                float T = 0;
+                if (i == j) {
+                    float product = 0;
+                    float i_k = Net1.findK(i, i);
+                    float j_k = Net2.findK(j, j);
+                    for (int u = 0; u < D; u++) {
+                        if ((u != i) && (u != j) && (Net1.testValue(i, u)) && (Net2.testValue(j, u))) {
+                            float i_v = Net1.getValueByEntry(i, u);
+                            float j_v = Net2.getValueByEntry(j, u);
+                            float max = Math.max(i_v, j_v);
+                            product += i_v * j_v / max;
+                            /// if node is not connected to anything, all products are zero
+                        }
+                    }
+                    float k_min = Math.min(i_k, j_k);
+                    float DFIJ = 0;
+                    T = (product + DFIJ) / (k_min + 1 - DFIJ); // if one node unconnected, = 0+0/0+1-0
+                    // if IJ are totally connected, all products > 0, but < kmin
+                    //T=(product+DFIJ)/(k_min + 1);
+                    cTOMs[i] = T;
+                } else {
                 }
-        
-        // thread prep
-		ExecutorService pool = Executors.newFixedThreadPool(Threads);
-		ExecutorCompletionService<HashMap<String,float[]>> completionService = new ExecutorCompletionService<>(pool);
-		List<Future<HashMap<String,float[]>>> taskList = new ArrayList<Future<HashMap<String,float[]>>>();
-		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
-		//System.err.println("Processing adjacency using " + Threads + " threads.");
-		
-		//queue prep
-		for(int i=0;i<D;i++){
-			String S = String.valueOf(i);
-			queue.add(S);
-		}
-		
-		//add the tasks
-		for ( int i = 0; i < Threads; i++ ) {
-			Callable<HashMap<String,float[]>> worker = new ConcurrentProcessing(Expression,queue,corr,"sigmoid",mu,alpha);
-			Future<HashMap<String,float[]>> submit = completionService.submit(worker);
-			taskList.add(submit);  
-		}
-		 
-		// collect results
-		for(int t=0;t<Threads;t++){
-			try{
-				HashMap<String,float[]> hm = completionService.take().get();
-				//System.err.println("obtained result for thread " + t);
-				int r=0;
-				for(Map.Entry<String,float[]> entry : hm.entrySet()){
-										String s = entry.getKey();
-//					String[] S = s.split("-");
-										int i = Integer.valueOf(s);
-										int size = D-i;
-                                        float[] d = new float[size];
-                                        d = entry.getValue();
-                                        for(int j=0;j<d.length;j++){
-                                            int coord = j+i;
-                                            Adjacency.setValueByEntry(d[j],i,coord);
-					//System.out.println(i+"\t"+j+"\t"+d);
-					//Adjacency.setValueByEntry( d,i,j);
-					//Adjacency.setValueByEntry( d,j,i);
-                                            r++;
-                                        }
-					
-				}
-				//System.err.println("Processed "+ r + " records");
-			}catch(InterruptedException e){
-				e.printStackTrace();
-			}catch (ExecutionException e){
-				e.printStackTrace();
-			}
-			//System.err.println("Thread " + t + " complete.");
-		}
-		//System.err.println("Done.");
-		pool.shutdownNow();
-		return Adjacency;
-	}
-	
-	/*
-	public static GCNMatrix calculateSigmoidAdjacency (GCNMatrix Similarity,float mu, float alpha, int Threads){
-		int D = Similarity.getNumRows();
-		GCNMatrix Adjacency = new GCNMatrix(D,D);
-                Adjacency = Operations.copyNames(Similarity, Adjacency);
-		ExecutorService pool = Executors.newFixedThreadPool(Threads);
-		ExecutorCompletionService<HashMap<String,Float>> completionService = new ExecutorCompletionService<>(pool);
-		List<Future<HashMap<String,Float>>> taskList = new ArrayList<Future<HashMap<String,Float>>>();
-		ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
-		System.err.println("Processing adjacency using " + Threads + " threads.");
-		
-		for(int i=0;i<D;i++){
-			for(int j=i;j<D;j++){
-				String S = i+"-"+j;
-				queue.add(S);
-			}
-		}
-		
-		for ( int i = 0; i < Threads; i++ ) {
-			Callable<HashMap<String,Float>> worker = new ConcurrentProcessing(Similarity,queue,"sigmoid",mu,alpha);
-			Future<HashMap<String,Float>> submit = completionService.submit(worker);
-			taskList.add(submit);  
-		}
-		
-	
-		for(int t=0;t<Threads;t++){
-			try{
-				HashMap<String,Float> hm = completionService.take().get();
-				System.err.println("obtained result for thread " + t);
-				int r=0;
-				for(Map.Entry<String,Float> entry : hm.entrySet()){
-					String s = entry.getKey();
-					String[] S = s.split("-");
-					Float d = entry.getValue();
-					int i = Integer.parseInt(S[0]);
-					int j = Integer.parseInt(S[1]);
-					//System.out.println(i+"\t"+j+"\t"+d);
-					Adjacency.setValueByEntry( d,i,j);
-					Adjacency.setValueByEntry( d,j,i);
-					r++;
-				}
-				System.err.println("Processed "+ r + " records");
-			}catch(InterruptedException e){
-				e.printStackTrace();
-			}catch (ExecutionException e){
-				e.printStackTrace();
-			}
-			System.err.println("Thread " + t + " complete.");
-		}
-		System.err.println("Done.");
-		pool.shutdown();
-		return Adjacency;
-	}
-	*/
-	public static GCNMatrix calculateDifference (GCNMatrix mat1, GCNMatrix mat2){
-		int D = mat1.getNumRows();
-		GCNMatrix Difference = new GCNMatrix(D,D);
-                Difference = Operations.copyNames(mat1.getRowNames(), Difference);
-		for(int i=0;i<D;i++){
-			for(int j=i;j<D;j++){
-				float v1=mat1.getValueByEntry(i, j);
-				float v2=mat2.getValueByEntry(i, j);
-				//if((v1 != 0) & (v2 != 0)){
-				float d1 =v2-v1;
-//                                System.out.println("Val1: " + v1 +" Val2: " + v2 + " diff " + d1);
-				Difference.setValueByEntry(d1,i,j);
-				//}
-			}
-		}
-		return Difference;
-	}
-		
-      
-public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, String Title,String Xlab, String Ylab,boolean print) {
-	int H = DataFrame.getNumRows();
-	int W = DataFrame.getNumColumns();
-	DecimalFormat df = new DecimalFormat("#.##");
-	df.setRoundingMode(RoundingMode.HALF_UP);
-	TreeMap<Float,Integer> HMHistogram = new TreeMap<Float,Integer>();
-	for(int i=0;i<H;i++){
-		for(int j=0;j<W;j++){
-			//System.out.println("Val: "+DataFrame[i][j]+"\n");
-			if(DataFrame.getValueByEntry(i,j) != 0){
-				try{
-					Float V = (Float.valueOf(df.format(DataFrame.getValueByEntry(i,j))));
-                                        
-					if(HMHistogram.containsKey(V)){
-						Integer I = HMHistogram.get(V);
-                                               // System.out.println("Putting " + V+ " and " + I);
-						HMHistogram.put(V,I+1);
-					}else{
-						HMHistogram.put(V,1);
-                                               // System.out.println("Putting " + V+ " and 1");
-					}
-				}catch(NumberFormatException ex){
-					System.out.println("Obtain " + DataFrame.getValueByEntry(i,j) +" from matrix.");
-					System.exit(1);
-				}
-			}
-		}
-	}
-	XYSeriesCollection dataset = new XYSeriesCollection();
-	XYSeries series = new XYSeries("Values");
-	for(Map.Entry<Float,Integer> entry : HMHistogram.entrySet()) {
-			  Float A;
-                          A = entry.getKey();
-			  Integer value;
-                          value = entry.getValue();
-                          //System.err.println("Got " + A + " and " + value);
-                          if(print == true){
-                            System.out.println(A +","+value);
-                          }
-			  series.add((double) A, (double) value,true);
-	}
-	dataset.addSeries(series);
-	JFreeChart chart = ChartFactory.createXYLineChart(Title,Xlab,Ylab,dataset, PlotOrientation.VERTICAL, 
-			 false, true, false);
-	chart.setBackgroundPaint(Color.white);
-	chart.setAntiAlias(true);	
-	final Plot plot = chart.getPlot();
-	plot.setBackgroundPaint(Color.white);
-	plot.setOutlinePaint(Color.black);
-	try {
-		ChartUtilities.saveChartAsJPEG(new File(pathOut), chart, 500, 300);
-	} catch (IOException e) {
-		System.err.println("Problem occurred creating chart.");
-	}
-}
 
-    private static float[] _getSignificantCTOMs (float[] rTOMs, float[][] pTOMs){
+                //ReturnFrame.setValueByEntry(T, i, j);
+            }
+        }
+        return cTOMs;
+    }
+
+    public static GCNMatrix calculateTOM(GCNMatrix Adjacency, int Threads) {
+        int D = Adjacency.getNumRows();
+        GCNMatrix ReturnMatrix = new GCNMatrix(D, D);
+        ReturnMatrix = Operations.copyNames(Adjacency.getRowNames(), ReturnMatrix);
+        ExecutorService pool = Executors.newFixedThreadPool(Threads);
+        ExecutorCompletionService<HashMap<String, float[]>> completionService = new ExecutorCompletionService<>(pool);
+        List<Future<HashMap<String, float[]>>> taskList = new ArrayList<Future<HashMap<String, float[]>>>();
+        ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
+        //System.err.println("Processing topological overlap using " + Threads + " threads.");
+        for (int i = 0; i < D; i++) {
+            String S = String.valueOf(i);
+            queue.add(S);
+        }
+        for (int i = 0; i < Threads; i++) {
+            Callable<HashMap<String, float[]>> worker = new ConcurrentProcessing(Adjacency, queue, "tom");
+            Future<HashMap<String, float[]>> submit = completionService.submit(worker);
+            taskList.add(submit);
+
+        }
+
+        for (int t = 0; t < Threads; t++) {
+            try {
+                HashMap<String, float[]> hm = completionService.take().get();
+                //System.err.println("obtained result for thread " + t);
+                int r = 0;
+                for (Map.Entry<String, float[]> entry : hm.entrySet()) {
+                    String s = entry.getKey();
+                    int i = Integer.valueOf(s);
+                    int size = D - i;
+                    float[] d = new float[size];
+                    d = entry.getValue();
+                    for (int j = 0; j < d.length; j++) {
+                        int coord = j + i;
+                        ReturnMatrix.setValueByEntry(d[j], i, coord);
+                        r++;
+                    }
+                }
+                //System.err.println("Processed "+ r + " records");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+            //System.err.println("Thread " + t + " complete.");
+        }
+        //System.err.println("Done.");
+        pool.shutdownNow();
+        return ReturnMatrix;
+    }
+
+    private static void explode() {
+        System.err.println("No correlation got to this point!?");
+        System.exit(0);
+    }
+
+    public static GCNMatrix calculateAdjacency(ExpressionFrame Expression, String corr, String adj, float mu, float alpha, int Threads) {
+
+        // prepwork
+        int D = Expression.getNumRows();
+        GCNMatrix Adjacency = new GCNMatrix(D, D);
+        Adjacency = Operations.copyNames(Expression.getRowNames(), Adjacency);
+        switch (corr) {
+            case "gini":
+                Expression.calculateGiniSums(); // half of every gini coeff is a pre-calculable value
+                break;
+            case "pcc":
+                Expression.calculateMeans(); // most of a pcc is pre-calculateable;
+                break;
+            default:
+                explode();
+                break;
+        }
+
+        // thread prep
+        ExecutorService pool = Executors.newFixedThreadPool(Threads);
+        ExecutorCompletionService<HashMap<String, float[]>> completionService = new ExecutorCompletionService<>(pool);
+        List<Future<HashMap<String, float[]>>> taskList = new ArrayList<Future<HashMap<String, float[]>>>();
+        ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
+		//System.err.println("Processing adjacency using " + Threads + " threads.");
+
+        //queue prep
+        for (int i = 0; i < D; i++) {
+            String S = String.valueOf(i);
+            queue.add(S);
+        }
+
+        //add the tasks
+        for (int i = 0; i < Threads; i++) {
+            Callable<HashMap<String, float[]>> worker = new ConcurrentProcessing(Expression, queue, corr, "sigmoid", mu, alpha);
+            Future<HashMap<String, float[]>> submit = completionService.submit(worker);
+            taskList.add(submit);
+        }
+
+        // collect results
+        for (int t = 0; t < Threads; t++) {
+            try {
+                HashMap<String, float[]> hm = completionService.take().get();
+                //System.err.println("obtained result for thread " + t);
+                int r = 0;
+                for (Map.Entry<String, float[]> entry : hm.entrySet()) {
+                    String s = entry.getKey();
+//					String[] S = s.split("-");
+                    int i = Integer.valueOf(s);
+                    int size = D - i;
+                    float[] d = new float[size];
+                    d = entry.getValue();
+                    for (int j = 0; j < d.length; j++) {
+                        int coord = j + i;
+                        Adjacency.setValueByEntry(d[j], i, coord);
+					//System.out.println(i+"\t"+j+"\t"+d);
+                        //Adjacency.setValueByEntry( d,i,j);
+                        //Adjacency.setValueByEntry( d,j,i);
+                        r++;
+                    }
+
+                }
+                //System.err.println("Processed "+ r + " records");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+            //System.err.println("Thread " + t + " complete.");
+        }
+        //System.err.println("Done.");
+        pool.shutdownNow();
+        return Adjacency;
+    }
+
+    /*
+     public static GCNMatrix calculateSigmoidAdjacency (GCNMatrix Similarity,float mu, float alpha, int Threads){
+     int D = Similarity.getNumRows();
+     GCNMatrix Adjacency = new GCNMatrix(D,D);
+     Adjacency = Operations.copyNames(Similarity, Adjacency);
+     ExecutorService pool = Executors.newFixedThreadPool(Threads);
+     ExecutorCompletionService<HashMap<String,Float>> completionService = new ExecutorCompletionService<>(pool);
+     List<Future<HashMap<String,Float>>> taskList = new ArrayList<Future<HashMap<String,Float>>>();
+     ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
+     System.err.println("Processing adjacency using " + Threads + " threads.");
+		
+     for(int i=0;i<D;i++){
+     for(int j=i;j<D;j++){
+     String S = i+"-"+j;
+     queue.add(S);
+     }
+     }
+		
+     for ( int i = 0; i < Threads; i++ ) {
+     Callable<HashMap<String,Float>> worker = new ConcurrentProcessing(Similarity,queue,"sigmoid",mu,alpha);
+     Future<HashMap<String,Float>> submit = completionService.submit(worker);
+     taskList.add(submit);  
+     }
+		
+	
+     for(int t=0;t<Threads;t++){
+     try{
+     HashMap<String,Float> hm = completionService.take().get();
+     System.err.println("obtained result for thread " + t);
+     int r=0;
+     for(Map.Entry<String,Float> entry : hm.entrySet()){
+     String s = entry.getKey();
+     String[] S = s.split("-");
+     Float d = entry.getValue();
+     int i = Integer.parseInt(S[0]);
+     int j = Integer.parseInt(S[1]);
+     //System.out.println(i+"\t"+j+"\t"+d);
+     Adjacency.setValueByEntry( d,i,j);
+     Adjacency.setValueByEntry( d,j,i);
+     r++;
+     }
+     System.err.println("Processed "+ r + " records");
+     }catch(InterruptedException e){
+     e.printStackTrace();
+     }catch (ExecutionException e){
+     e.printStackTrace();
+     }
+     System.err.println("Thread " + t + " complete.");
+     }
+     System.err.println("Done.");
+     pool.shutdown();
+     return Adjacency;
+     }
+     */
+    public static GCNMatrix calculateDifference(GCNMatrix mat1, GCNMatrix mat2) {
+        int D = mat1.getNumRows();
+        GCNMatrix Difference = new GCNMatrix(D, D);
+        Difference = Operations.copyNames(mat1.getRowNames(), Difference);
+        for (int i = 0; i < D; i++) {
+            for (int j = i; j < D; j++) {
+                float v1 = mat1.getValueByEntry(i, j);
+                float v2 = mat2.getValueByEntry(i, j);
+                //if((v1 != 0) & (v2 != 0)){
+                float d1 = v2 - v1;
+//                                System.out.println("Val1: " + v1 +" Val2: " + v2 + " diff " + d1);
+                Difference.setValueByEntry(d1, i, j);
+                //}
+            }
+        }
+        return Difference;
+    }
+
+    public static void generateHistogramHM(GCNMatrix DataFrame, String pathOut, String Title, String Xlab, String Ylab, boolean print) {
+        int H = DataFrame.getNumRows();
+        int W = DataFrame.getNumColumns();
+        DecimalFormat df = new DecimalFormat("#.##");
+        df.setRoundingMode(RoundingMode.HALF_UP);
+        TreeMap<Float, Integer> HMHistogram = new TreeMap<Float, Integer>();
+        for (int i = 0; i < H; i++) {
+            for (int j = 0; j < W; j++) {
+                //System.out.println("Val: "+DataFrame[i][j]+"\n");
+                if (DataFrame.getValueByEntry(i, j) != 0) {
+                    try {
+                        Float V = (Float.valueOf(df.format(DataFrame.getValueByEntry(i, j))));
+
+                        if (HMHistogram.containsKey(V)) {
+                            Integer I = HMHistogram.get(V);
+                            // System.out.println("Putting " + V+ " and " + I);
+                            HMHistogram.put(V, I + 1);
+                        } else {
+                            HMHistogram.put(V, 1);
+                            // System.out.println("Putting " + V+ " and 1");
+                        }
+                    } catch (NumberFormatException ex) {
+                        System.out.println("Obtain " + DataFrame.getValueByEntry(i, j) + " from matrix.");
+                        System.exit(1);
+                    }
+                }
+            }
+        }
+        XYSeriesCollection dataset = new XYSeriesCollection();
+        XYSeries series = new XYSeries("Values");
+        for (Map.Entry<Float, Integer> entry : HMHistogram.entrySet()) {
+            Float A;
+            A = entry.getKey();
+            Integer value;
+            value = entry.getValue();
+            //System.err.println("Got " + A + " and " + value);
+            if (print == true) {
+                System.out.println(A + "," + value);
+            }
+            series.add((double) A, (double) value, true);
+        }
+        dataset.addSeries(series);
+        JFreeChart chart = ChartFactory.createXYLineChart(Title, Xlab, Ylab, dataset, PlotOrientation.VERTICAL,
+                false, true, false);
+        chart.setBackgroundPaint(Color.white);
+        chart.setAntiAlias(true);
+        final Plot plot = chart.getPlot();
+        plot.setBackgroundPaint(Color.white);
+        plot.setOutlinePaint(Color.black);
+        try {
+            ChartUtilities.saveChartAsJPEG(new File(pathOut), chart, 500, 300);
+        } catch (IOException e) {
+            System.err.println("Problem occurred creating chart.");
+        }
+    }
+
+    private static float[] _getSignificantCTOMs(float[] rTOMs, float[][] pTOMs) {
         float[] Sig = new float[rTOMs.length + 1];
         /*
-        Janky as hell - the zeroth index of Sig is left empty to hold CUTOFF
-        CUTOFF is added within permuteData
-        */
-        for(int r=0;r<rTOMs.length;r++){
-            int index = r+1;
-            
-            int pos_count=0;
-            int neg_count=0;
-            for(int p=0;p<pTOMs.length;p++){
-                if(rTOMs[r] < pTOMs[p][r]) neg_count+=1;
-                if(rTOMs[r] > pTOMs[p][r]) pos_count+=1;
+         Janky as hell - the zeroth index of Sig is left empty to hold CUTOFF
+         CUTOFF is added within permuteData
+         */
+        for (int r = 0; r < rTOMs.length; r++) {
+            int index = r + 1;
+
+            float pos_count = 0.0f;
+            float neg_count = 0.0f;
+            for (int p = 0; p < pTOMs.length; p++) {
+                if (rTOMs[r] < pTOMs[p][r]) {
+                    neg_count += 1;
+                }
+                if (rTOMs[r] > pTOMs[p][r]) {
+                    pos_count += 1;
+                }
             }
-            float pos_ratio = pos_count/pTOMs.length; // number of permutations with cTOM > real cTOM
-            float neg_ratio = neg_count/pTOMs.length; // number of permutations with cTOM < real cTOM
-            Sig[index] = Math.min(pos_ratio,neg_ratio); // sets index == to smaller of two ratios. 
+            //System.err.println("pos count: "  + pos_count + "  neg count: " + neg_count);
+            float pos_ratio = pos_count / pTOMs.length; // number of permutations with cTOM > real cTOM
+            float neg_ratio = neg_count / pTOMs.length; // number of permutations with cTOM < real cTOM
+            float min = Math.min(pos_ratio,neg_ratio);
+            //System.err.println("min = " + min);
+            Sig[index] = Math.min(pos_ratio, neg_ratio); // sets index == to smaller of two ratios. 
             // needs FDR
         }
         return Sig;
     }
-    public static float[] permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, float mu, float alpha, int threads) {
+
+    public static float[] permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, String corr, float mu, float alpha, int threads) {
         int s1 = expF1.getNumColumns();
         int s2 = expF2.getNumColumns();
         int R = expF1.getNumRows();
@@ -410,7 +416,7 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
         int s = M * 2;
         Integer[][] Sets = new Integer[P][];
         Sets = _getPermutations(s1, s2, P);
-		//System.out.println("size1: "+s1+"\nsize2: "+s2);
+        //System.out.println("size1: "+s1+"\nsize2: "+s2);
         // for all i in Sets p, obtain values of i<s from exp1, values of i>s
 
         float CUTOFF = 1.0f;
@@ -455,8 +461,8 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
                 }
                 pF2.addRow(nR2);
             }
-            GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1, "pcc", "sigmoid", mu, alpha, threads);
-            GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2, "pcc", "sigmoid", mu, alpha, threads);
+            GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1, corr, "sigmoid", mu, alpha, threads);
+            GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2, corr, "sigmoid", mu, alpha, threads);
             CurrentMatrix1.calculateKs();
             CurrentMatrix2.calculateKs();
             float[] cTOMs = Operations.compareNetworksViaTOM(CurrentMatrix1, CurrentMatrix2);
@@ -496,8 +502,8 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
             O2 = out + "/Selfwise." + p + ".testing.jpeg";
             Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
         }
-        GCNMatrix NetworkA = Operations.calculateAdjacency(expF1, "pcc", "sigmoid", mu, alpha, threads);
-        GCNMatrix NetworkB = Operations.calculateAdjacency(expF2, "pcc", "sigmoid", mu, alpha, threads);
+        GCNMatrix NetworkA = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu, alpha, threads);
+        GCNMatrix NetworkB = Operations.calculateAdjacency(expF2, corr, "sigmoid", mu, alpha, threads);
         NetworkA.calculateKs();
         NetworkB.calculateKs();
 
@@ -564,104 +570,105 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
         }
         ret_val[0] = CUTOFF;
         return ret_val;
-	}
-        
-	public static void permuteDataHalf(ExpressionFrame expF1, ExpressionFrame expF2, int P,String out,int threads) {
-		int s1 = expF1.getNumColumns();
-		int s2 = expF2.getNumColumns();
-		int R = expF1.getNumRows();
-		int M = Math.min(expF1.getNumColumns(), expF2.getNumColumns());
-		int S = s1+s2;
-		int s = M * 2;
-		Integer[][] Sets = new Integer[P][];
-		Sets = _getPermutations(s1,s2,P);
+    }
+
+    public static void permuteDataHalf(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, int threads) {
+        int s1 = expF1.getNumColumns();
+        int s2 = expF2.getNumColumns();
+        int R = expF1.getNumRows();
+        int M = Math.min(expF1.getNumColumns(), expF2.getNumColumns());
+        int S = s1 + s2;
+        int s = M * 2;
+        Integer[][] Sets = new Integer[P][];
+        Sets = _getPermutations(s1, s2, P);
 		//System.out.println("size1: "+s1+"\nsize2: "+s2);
-		// for all i in Sets p, obtain values of i<s from exp1, values of i>s
-                GCNMatrix RealAdj = Operations.calculateAdjacency(expF1,"pcc","sigmoid",0.8f,16.0f,threads);
-                RealAdj.calculateKs();
-                GCNMatrix RealTom = Operations.calculateTOM(RealAdj, threads);
-		for(int p=0;p<P;p++){
-			System.out.println("Permutation: " + p);
-			ExpressionFrame pF1 = new ExpressionFrame(R,M);
-			for(int r=0;r<R;r++){
-				float[] rF1 = expF1.getRowByIndex(r);
-				float[] rF2 = expF2.getRowByIndex(r);
-				float[] nR1 = new float[M];
-				float[] nR2 = new float[M];
-				for(int m=0;m<M;m++){
-					int ind = Sets[p][m];
-					//System.out.println("getting "+ ind + " ("+ m +")");
-					if(ind<s1){
-						//System.out.println("getting "+ind+" from 1 s1 is " + s1);
-						nR1[m]=rF1[ind];
-					}else if(ind>=s1){
-						ind = ind - s1;
-					//	System.out.println("getting "+ind+" from 2 s1 is " + s1);
-						nR1[m]=rF2[ind];
-					}
-				}
-				pF1.addRow(nR1);
-			}
-                       	GCNMatrix CurrentMatrix = Operations.calculateAdjacency(pF1,"pcc","sigmoid",0.8f,16.0f,threads);
+        // for all i in Sets p, obtain values of i<s from exp1, values of i>s
+        GCNMatrix RealAdj = Operations.calculateAdjacency(expF1, "pcc", "sigmoid", 0.8f, 16.0f, threads);
+        RealAdj.calculateKs();
+        GCNMatrix RealTom = Operations.calculateTOM(RealAdj, threads);
+        for (int p = 0; p < P; p++) {
+            System.out.println("Permutation: " + p);
+            ExpressionFrame pF1 = new ExpressionFrame(R, M);
+            for (int r = 0; r < R; r++) {
+                float[] rF1 = expF1.getRowByIndex(r);
+                float[] rF2 = expF2.getRowByIndex(r);
+                float[] nR1 = new float[M];
+                float[] nR2 = new float[M];
+                for (int m = 0; m < M; m++) {
+                    int ind = Sets[p][m];
+                    //System.out.println("getting "+ ind + " ("+ m +")");
+                    if (ind < s1) {
+                        //System.out.println("getting "+ind+" from 1 s1 is " + s1);
+                        nR1[m] = rF1[ind];
+                    } else if (ind >= s1) {
+                        ind = ind - s1;
+                        //	System.out.println("getting "+ind+" from 2 s1 is " + s1);
+                        nR1[m] = rF2[ind];
+                    }
+                }
+                pF1.addRow(nR1);
+            }
+            GCNMatrix CurrentMatrix = Operations.calculateAdjacency(pF1, "pcc", "sigmoid", 0.8f, 16.0f, threads);
+
+            CurrentMatrix.calculateKs();
+
+            GCNMatrix Difference = Operations.calculateDifference(RealAdj, CurrentMatrix);
+            Difference.maskMatrix(0.02f);
+            String O2 = out + "/Selfwise." + p + ".testing.jpeg";
+            Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
+
+            /*
+             CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
                         
-			CurrentMatrix.calculateKs();
-                        
-			GCNMatrix Difference = Operations.calculateDifference(RealAdj,CurrentMatrix);
-                        Difference.maskMatrix(0.02f);
-			String O2 = out + "/Selfwise."+ p + ".testing.jpeg";
-                        Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
-                        
-                        /*
-                        CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
-                        
-                        Difference = Operations.calculateDifference(RealTom,CurrentMatrix);
-                        String O1 = out + "/Pairwise." + p + ".jpeg";
-                        Difference.maskMatrix(0.02f);
-                        Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", false);
-                        */
-		}
+             Difference = Operations.calculateDifference(RealTom,CurrentMatrix);
+             String O1 = out + "/Pairwise." + p + ".jpeg";
+             Difference.maskMatrix(0.02f);
+             Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", false);
+             */
+        }
 		// Now have permuted expression frames?
-		// NEEDS TESTING.
-	}
-        
-	private static Integer[][] _getPermutations(int s1,int s2,int p) {
-		Integer[][] Sets = new Integer[p][];
-		int m = Math.min(s1,s2);
-		int S = s1+s2;
-		int s = m * 2;
-		Integer ind[] = new Integer[S];
-		for(int i=0;i<S;i++){
-			ind[i]=i;
-		}
-		for(int i=0;i<p;i++){
-			
-			// obtain a array of random order indicies, i-> [0,123,2,5,3,1]
-			Integer shuffled[] = fisherYates(ind);
-			Integer[] perms = Arrays.copyOfRange(shuffled, 0, s);
-			/*for(int x=0;x<perms.length;x++){
-				System.out.print(perms[x]+",");
-			}
-			System.out.print("\n");*/
-			Sets[i]=perms;
-		}
-		//System.exit(0);
-		return Sets;
-	}
-	
-	/// shuffle some primitives
-	private static Integer[] fisherYates (Integer[] array){
-	    Random rnd = new Random();
-	    for (int i = array.length - 1; i > 0; i--){
-	      int index = rnd.nextInt(i + 1);
-	      // Simple swap
-	      int a = array[index];
-	      array[index] = array[i];
-	      array[i] = a;
-	    }
-	    return array;
-	  }
-	public static void createDirectory (String dir){
-		File theDir = new File(dir);
+        // NEEDS TESTING.
+    }
+
+    private static Integer[][] _getPermutations(int s1, int s2, int p) {
+        Integer[][] Sets = new Integer[p][];
+        int m = Math.min(s1, s2);
+        int S = s1 + s2;
+        int s = m * 2;
+        Integer ind[] = new Integer[S];
+        for (int i = 0; i < S; i++) {
+            ind[i] = i;
+        }
+        for (int i = 0; i < p; i++) {
+
+            // obtain a array of random order indicies, i-> [0,123,2,5,3,1]
+            Integer shuffled[] = fisherYates(ind);
+            Integer[] perms = Arrays.copyOfRange(shuffled, 0, s);
+            /*for(int x=0;x<perms.length;x++){
+             System.out.print(perms[x]+",");
+             }
+             System.out.print("\n");*/
+            Sets[i] = perms;
+        }
+        //System.exit(0);
+        return Sets;
+    }
+
+    /// shuffle some primitives
+    private static Integer[] fisherYates(Integer[] array) {
+        Random rnd = new Random();
+        for (int i = array.length - 1; i > 0; i--) {
+            int index = rnd.nextInt(i + 1);
+            // Simple swap
+            int a = array[index];
+            array[index] = array[i];
+            array[i] = a;
+        }
+        return array;
+    }
+
+    public static void createDirectory(String dir) {
+        File theDir = new File(dir);
         if (!theDir.exists()) {
             System.out.println("creating directory: " + dir);
             try {
@@ -670,28 +677,25 @@ public static void generateHistogramHM (GCNMatrix DataFrame, String pathOut, Str
                 //TODO handle it
             }
         }
-	}
+    }
 
-    private static void _tempPrintPermsToFile(float[] rTOMS, float[][] TOMpermutations,String outBase) {
+    private static void _tempPrintPermsToFile(float[] rTOMS, float[][] TOMpermutations, String outBase) {
         try {
-            String path = outBase +"/Selfwise.pergene.TOM.tab";
+            String path = outBase + "/Selfwise.pergene.TOM.tab";
             String Sep = "\t";
-            PrintWriter writer = new PrintWriter(path,"UTF-8");
-            for(int g=0;g<rTOMS.length;g++){
+            PrintWriter writer = new PrintWriter(path, "UTF-8");
+            for (int g = 0; g < rTOMS.length; g++) {
                 writer.print(rTOMS[g]);
-                for(int p=0;p<TOMpermutations.length;p++){
-                    writer.print(Sep+TOMpermutations[p][g]);
+                for (int p = 0; p < TOMpermutations.length; p++) {
+                    writer.print(Sep + TOMpermutations[p][g]);
                 }
                 writer.print("\n");
             }
-            
+
             writer.close();
-	} catch (Exception e){
-			// 
-	}
+        } catch (Exception e) {
+            // 
+        }
     }
-	
+
 }
-
-
-
