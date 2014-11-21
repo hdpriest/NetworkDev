@@ -456,7 +456,8 @@ public class NetworkCalculator {
             GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2, corr, "sigmoid", mu, alpha, threads);
             NetworkA.calculateKs();
             NetworkB.calculateKs();
-            float[] rcTOMs = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
+            //float[] rcTOMs = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
+            float[] rcTOMs = Operations.compareNetworksViaAverage(NetworkA, NetworkB);
             String[] names = NetworkA.getRowNames();
             _cTOMsToFile(rcTOMs, RESULT, names, out);
             // TODO : add back in self-wise TOM

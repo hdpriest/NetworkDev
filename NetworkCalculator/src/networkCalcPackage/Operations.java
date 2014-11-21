@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.commons.math3.stat.inference.MannWhitneyUTest;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
@@ -111,6 +112,86 @@ public class Operations {
                     // if IJ are totally connected, all products > 0, but < kmin
                     //T=(product+DFIJ)/(k_min + 1);
                     cTOMs[i] = T;
+                } else {
+                }
+
+                //ReturnFrame.setValueByEntry(T, i, j);
+            }
+        }
+        return cTOMs;
+    }
+    
+    public static float[] compareNetworksViaAverage(GCNMatrix Net1, GCNMatrix Net2) {
+        int D = Net1.getNumRows();
+        float[] cTOMs = new float[D];
+        for (int i = 0; i < D; i++) {
+            for (int j = 0; j < D; j++) {
+                float T = 0;
+                if (i == j) {
+                    float sum = 0.0f;
+                    float i_k = Net1.findK(i, i);
+                    float j_k = Net2.findK(j, j);
+                    float a_k = 0.0f;
+                    for (int u = 0; u < D; u++) {
+                        if ((u != i) && (u != j) && ((Net1.testValue(i, u)) || (Net2.testValue(j, u)))) {
+                            float i_v = Net1.getValueByEntry(i, u);
+                            float j_v = Net2.getValueByEntry(j, u);
+                            float max = Math.max(i_v, j_v);
+                            sum += max * Math.abs(j_v - i_v);
+                            a_k += max;
+                        }
+                    }
+                    float avg = sum / a_k; // Per union-edge weighted average difference b - a
+                    System.err.println("Sum: " + sum + " k_a: " + a_k + " avg: " + avg);
+                    cTOMs[i] = avg;
+                } else {
+                }
+
+                //ReturnFrame.setValueByEntry(T, i, j);
+            }
+        }
+        return cTOMs;
+    }
+    public static float[] compareNetworksViaMWW(GCNMatrix Net1, GCNMatrix Net2) {
+        int D = Net1.getNumRows();
+        float[] cTOMs = new float[D];
+        for (int i = 0; i < D; i++) {
+            for (int j = 0; j < D; j++) {
+                float T = 0;
+                if (i == j) {
+                    float sum = 0.0f;
+                    ArrayList<Double> Net1Values = new ArrayList<Double>();
+                    ArrayList<Double> Net2Values = new ArrayList<Double>();
+                    float i_k = Net1.findK(i, i);
+                    float j_k = Net2.findK(j, j);
+                    float a_k = 0.0f;
+                    for (int u = 0; u < D; u++) {
+                        if ((u != i) && (u != j) && ((Net1.testValue(i, u)) || (Net2.testValue(j, u)))) {
+                            float i_v = Net1.getValueByEntry(i, u);
+                            float j_v = Net2.getValueByEntry(j, u);
+                            if((i_v<0.05) && (j_v <0.05)) continue;
+                            Net1Values.add(Double.valueOf(i_v));
+                            Net2Values.add(Double.valueOf(j_v));
+                            a_k += 1.0f;
+                        }
+                    }
+                    if(a_k <= 10.0f)continue;
+                    double[] net1values = new double[Net1Values.size()];
+                    double[] net2values = new double[Net2Values.size()];
+                    int X =0;
+                    for(Double value : Net1Values){
+                    	net1values[X]= (double) value;
+                    	X++;
+                    }
+                    X=0;
+                    for(Double value : Net2Values){
+                    	net2values[X]=(double) value;
+                    	X++;
+                    }
+                    MannWhitneyUTest MWW = new MannWhitneyUTest();
+                    double PofU = MWW.mannWhitneyUTest(net1values, net2values);
+                    System.err.println("node " +i + " MWWUP: " + PofU);
+                    cTOMs[i] = (float) PofU;
                 } else {
                 }
 
@@ -465,7 +546,8 @@ public class Operations {
             GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2, corr, "sigmoid", mu, alpha, threads);
             CurrentMatrix1.calculateKs();
             CurrentMatrix2.calculateKs();
-            float[] cTOMs = Operations.compareNetworksViaTOM(CurrentMatrix1, CurrentMatrix2);
+            //float[] cTOMs = Operations.compareNetworksViaTOM(CurrentMatrix1, CurrentMatrix2);
+            float[] cTOMs = Operations.compareNetworksViaAverage(CurrentMatrix1, CurrentMatrix2);
             System.arraycopy(cTOMs, 0, TOMpermutations[p], 0, cTOMs.length);
             String O2 = out + "/CrossTOM." + p + ".testing.jpeg";
 
@@ -493,6 +575,7 @@ public class Operations {
              * 
              * 
              */
+            System.out.println("Calculating permuted TOMs on iteration " + p +"...");
             CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
             CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2, threads);
             GCNMatrix Difference = Operations.calculateDifference(CurrentMatrix1, CurrentMatrix2);
@@ -507,7 +590,9 @@ public class Operations {
         NetworkA.calculateKs();
         NetworkB.calculateKs();
 
-        float[] rTOMS = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
+        //float[] rTOMS = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
+        // AVERAGE MAY HAVE WORKED SEE LLHY VS COL
+        float[] rTOMS = Operations.compareNetworksViaAverage(NetworkA, NetworkB);
         Operations._tempPrintPermsToFile(rTOMS, TOMpermutations, out);
         ret_val = _getSignificantCTOMs(rTOMS, TOMpermutations);
 
