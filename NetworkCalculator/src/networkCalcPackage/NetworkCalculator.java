@@ -289,7 +289,8 @@ public class NetworkCalculator {
         CurrentMatrix.generateDistributionToFile(ThisOut);
         MatrixOut = Out + "/TOM.matrix.tab";
         CurrentMatrix.printMatrixToFile(MatrixOut, sep);
-
+        MatrixOut = Out + "/Network.Cytoscape.Raw.tab";
+        CurrentMatrix.printMatrixToCytoscape(MatrixOut, "\t", 0.0f);
         System.out.println("Calculating clusters...");
         int MinSize = 50;
         Cluster Clustering = new Cluster(CurrentMatrix, 4);
