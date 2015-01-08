@@ -42,7 +42,40 @@ class GCNMatrix {
     private String[] X_lab;
     private String[] Y_lab;
     private int X_iterator;
-
+    
+    public GCNMatrix(GCNMatrix G) {
+        DataFrame = G.DataFrame;
+        N = G.N;
+        k = G.k;
+        means = G.means;
+        gccSums = G.gccSums;
+        X_lab = G.X_lab;
+        Y_lab = G.Y_lab;
+        X_iterator = G.X_iterator;
+    }
+    
+    public float[] getMeans () {
+        return means;
+    }
+    public float[] getGccSums() {
+        return gccSums;
+    }
+    public float[] getK(){
+        return k;
+    }
+    public int getN (){
+        return N;
+    }
+    public float[][] getDataFrame(){
+        return DataFrame;
+    }
+    public String[] getColumnNames(){
+        return Y_lab;
+    }
+    public int getX_iterator(){
+        return X_iterator;
+    }
+    
     public void generateHeatmap() {
         double[][] newDF = new double[N][N];
         FloatMatrix2D nat = FloatMatrix2D.factory.dense(N, N);
@@ -235,17 +268,35 @@ class GCNMatrix {
         Y_lab = Cols;
     }
 
-    public float[][] getDataFrame() {
-        return DataFrame;
-    }
-
     public float[] getNextRow() {
         float[] thisRow = new float[DataFrame[0].length];
         thisRow = DataFrame[X_iterator + 1];
         X_iterator++;
         return thisRow;
     }
-
+    
+    public void maskAbove(float maskLevel){
+        int H = N;
+        for (int i = 0; i < H; i++) {
+            for (int j = i; j < N; j++) {
+                float v = _getValueByEntry(i, j);
+                if (v > maskLevel) {
+                    _setValueByEntry(0.0f, i, j);
+                }
+            }
+        }
+    }
+    public void maskBelow(float maskLevel){
+        int H = N;
+        for (int i = 0; i < H; i++) {
+            for (int j = i; j < N; j++) {
+                float v = _getValueByEntry(i, j);
+                if (v < maskLevel) {
+                    _setValueByEntry(0.0f, i, j);
+                }
+            }
+        }
+    }
     public void maskMatrix(float maskLevel) {
         int H = N;
         for (int i = 0; i < H; i++) {

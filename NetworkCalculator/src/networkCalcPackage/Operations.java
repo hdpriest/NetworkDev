@@ -142,7 +142,7 @@ public class Operations {
                         }
                     }
                     float avg = sum / a_k; // Per union-edge weighted average difference b - a
-                    System.err.println("Sum: " + sum + " k_a: " + a_k + " avg: " + avg);
+                    //System.err.println("Sum: " + sum + " k_a: " + a_k + " avg: " + avg);
                     cTOMs[i] = avg;
                 } else {
                 }
@@ -214,13 +214,15 @@ public class Operations {
             String S = String.valueOf(i);
             queue.add(S);
         }
+        int Number = D * D;
+        System.err.println("Added "+ Number +" Tasks To Multithreaded Processing Engine");
         for (int i = 0; i < Threads; i++) {
             Callable<HashMap<String, float[]>> worker = new ConcurrentProcessing(Adjacency, queue, "tom");
             Future<HashMap<String, float[]>> submit = completionService.submit(worker);
             taskList.add(submit);
 
         }
-
+        
         for (int t = 0; t < Threads; t++) {
             try {
                 HashMap<String, float[]> hm = completionService.take().get();
@@ -286,14 +288,15 @@ public class Operations {
             String S = String.valueOf(i);
             queue.add(S);
         }
-
+        int Number = D * D;
+        System.err.println("Added "+ Number +" Tasks To Multithreaded Processing Engine");
         //add the tasks
         for (int i = 0; i < Threads; i++) {
             Callable<HashMap<String, float[]>> worker = new ConcurrentProcessing(Expression, queue, corr, "sigmoid", mu, alpha);
             Future<HashMap<String, float[]>> submit = completionService.submit(worker);
             taskList.add(submit);
         }
-
+        
         // collect results
         for (int t = 0; t < Threads; t++) {
             try {
@@ -506,7 +509,7 @@ public class Operations {
         ArrayList<TreeMap<Float, Integer>> Perms = new ArrayList<>();
 
         for (int p = 0; p < P; p++) {
-            System.out.println("Permutation: " + p);
+            System.out.println("Permutation: " + p + " of " + P);
             ExpressionFrame pF1 = new ExpressionFrame(R, M);
             ExpressionFrame pF2 = new ExpressionFrame(R, M);
             for (int r = 0; r < R; r++) {
@@ -542,6 +545,7 @@ public class Operations {
                 }
                 pF2.addRow(nR2);
             }
+            System.out.println("Calculating Adjacencies on iteration " + p +"...");
             GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1, corr, "sigmoid", mu, alpha, threads);
             GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2, corr, "sigmoid", mu, alpha, threads);
             CurrentMatrix1.calculateKs();
@@ -550,32 +554,8 @@ public class Operations {
             float[] cTOMs = Operations.compareNetworksViaAverage(CurrentMatrix1, CurrentMatrix2);
             System.arraycopy(cTOMs, 0, TOMpermutations[p], 0, cTOMs.length);
             String O2 = out + "/CrossTOM." + p + ".testing.jpeg";
-
-            // TODO : figure out what to do with cTOMs.
-            /*
-             * Here's the answer. Each gene has its specific permuted cTOMs (N floats * P entries)
-             * Compare that gene's Real CTOM against its specific set of permuted cTOMs.
-             * a gene which is higher or lower than ALL of its specific cTOMs is 'significantly different'
-             * This feels like a hackey MWW or similar rank test, but we don't have a pair of populations
-             * we have a distribution and a single value. 
-             * 
-             * I suppose this is just a test against the presumed
-             * empirical distribution of cTOMs.
-             * 
-             * Need a matrix of DxP floats. P <<<<< D so this shouldn't affect memory
-             * 
-             * idea: calculate the distributions of node-specific CTOM permuted values
-             * determine if each node has a normal dist. of permuted CTOMs 
-             * overall dist is wonky, but node-specific may be regular.
-             * 
-             * unfortunately i think this fundamentally re-jiggers this routine.
-             *  Can't just return a single float anymore...
-             * 
-             * this approach requires P >= 20, at the lowest possible level. >= 40 would be better.
-             * 
-             * 
-             */
-            System.out.println("Calculating permuted TOMs on iteration " + p +"...");
+            System.out.println("");
+            System.out.println("Calculating Toplogical Overlaps on iteration " + p +"...");
             CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
             CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2, threads);
             GCNMatrix Difference = Operations.calculateDifference(CurrentMatrix1, CurrentMatrix2);
@@ -584,6 +564,7 @@ public class Operations {
             Difference.maskMatrix(0.02f);
             O2 = out + "/Selfwise." + p + ".testing.jpeg";
             Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
+            System.out.println("Iteration "+ p +" complete.\n");
         }
         GCNMatrix NetworkA = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu, alpha, threads);
         GCNMatrix NetworkB = Operations.calculateAdjacency(expF2, corr, "sigmoid", mu, alpha, threads);
@@ -593,7 +574,7 @@ public class Operations {
         //float[] rTOMS = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
         // AVERAGE MAY HAVE WORKED SEE LLHY VS COL
         float[] rTOMS = Operations.compareNetworksViaAverage(NetworkA, NetworkB);
-        Operations._tempPrintPermsToFile(rTOMS, TOMpermutations, out);
+        Operations._tempPrintPermsToFile(rTOMS, TOMpermutations, out,expF1.getRowNames());
         ret_val = _getSignificantCTOMs(rTOMS, TOMpermutations);
 
         NetworkA = Operations.calculateTOM(NetworkA, threads);
@@ -632,10 +613,7 @@ public class Operations {
                     }
                 }
                 double FDR = Average / RealHits;
-                if (FDR <= 0.25) {
-                    writer.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
-                }
-
+                writer.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
                 if (FDR <= 0.05) {
                     if (CUTOFF == 1) {
                         CUTOFF = C;
@@ -764,13 +742,13 @@ public class Operations {
         }
     }
 
-    private static void _tempPrintPermsToFile(float[] rTOMS, float[][] TOMpermutations, String outBase) {
+    private static void _tempPrintPermsToFile(float[] rTOMS, float[][] TOMpermutations, String outBase, String[] names) {
         try {
             String path = outBase + "/Selfwise.pergene.TOM.tab";
             String Sep = "\t";
             PrintWriter writer = new PrintWriter(path, "UTF-8");
             for (int g = 0; g < rTOMS.length; g++) {
-                writer.print(rTOMS[g]);
+                writer.print(names[g] + Sep + rTOMS[g]);
                 for (int p = 0; p < TOMpermutations.length; p++) {
                     writer.print(Sep + TOMpermutations[p][g]);
                 }

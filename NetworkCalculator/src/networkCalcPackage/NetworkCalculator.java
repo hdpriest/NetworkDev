@@ -428,7 +428,7 @@ public class NetworkCalculator {
             float mu = 0.8f;
             float alpha = 20f;
             String sep = "\t";
-
+            System.err.println("Identifying run parameters...");
             int[] FD_1 = new int[2];
             FD_1 = _getFileDimensions(matrix1, sep);
             int[] FD_2 = new int[2];
@@ -447,9 +447,13 @@ public class NetworkCalculator {
             ExpDim = _getFileDimensions(Exp2, sep);
             ExpressionFrame ExpF2 = _loadData(Exp2, ExpDim, sep);
             String corr = "pcc";
-            System.err.println("Beginning permuation analysis...");
-            float[] RESULT = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, mu, alpha, threads);
-            float CUTOFF = RESULT[0];
+            float CUTOFF = 0.0f;
+            float[] RESULT =  new float[ExpDim[0]+1];
+            if(permutations >0){
+                System.err.println("Beginning permuation analysis...");
+                RESULT = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, mu, alpha, threads);
+                CUTOFF = RESULT[0];
+            }
             System.err.println("Permutations done. Obtained Cutoff of dTOM = " + CUTOFF);
 
             System.err.println("Calculating actual values...");
@@ -460,7 +464,7 @@ public class NetworkCalculator {
             //float[] rcTOMs = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
             float[] rcTOMs = Operations.compareNetworksViaAverage(NetworkA, NetworkB);
             String[] names = NetworkA.getRowNames();
-            _cTOMsToFile(rcTOMs, RESULT, names, out);
+            if(permutations >0) _cTOMsToFile(rcTOMs, RESULT, names, out);
             // TODO : add back in self-wise TOM
             String O2 = out + "/Selfwise.actual.jpeg";
             String ThisOut = out + "/dTOM.dist.tab";
@@ -471,26 +475,23 @@ public class NetworkCalculator {
             Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
             O3 = out + "/Cytoscape.raw.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.0f);
-
+            System.err.println("Clustering negative plasticity...");
+            Difference.maskAbove(0.0f);
             int MinSize = 50;
+            String ClustOut = out+"/Clusters_Neg/";
             Cluster Clustering = new Cluster(Difference, 4);
             ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
-            _clustersToFile(Difference, Clusters, MinSize, out);
+            _clustersToFile(Difference, Clusters, MinSize, ClustOut);            
+ // For some reason, using the same variable and overwriting below did not work
+            // Not sure why... even copy constructors don't seem to work. hacking.
+            Difference = Operations.calculateDifference(NetworkA, NetworkB);
+            System.err.println("Clustering positive plasticity...");
+            Difference.maskBelow(0.0f); // MaskedDif is now the pos matrix
+            ClustOut = out+"/Clusters_Pos/";
+            Clustering = new Cluster(Difference, 4);
+            Clusters = Clustering.dynamicTreeCut(MinSize);
+            _clustersToFile(Difference, Clusters, MinSize, ClustOut);
 
-            /*
-             NetworkA = Operations.calculateTOM(NetworkA, threads);
-             NetworkB = Operations.calculateTOM(NetworkB, threads);
-             O2 = out + "/TOMA.actual.jpeg";
-             Operations.generateHistogramHM(NetworkA, O2, "Topological Overlaps Network A", "TOM", "Count", false);
-             O2 = out + "/TOMB.actual.jpeg";
-             Operations.generateHistogramHM(NetworkB, O2, "Topological Overlaps Network B", "TOM", "Count", false);
-             Difference = Operations.calculateDifference(NetworkA, NetworkB);
-             String O1 = out + "/Pairwise.actual.jpeg";
-             Operations.generateHistogramHM(Difference, O1, "Pairwise Edge-based TOM Differences Zm vs Sv", "cross-pair Delta-TOM", "Count", false);
-             //            Operations.generateHistogramHM(CurrentMatrix, ThisOut, "Masked Distribution of Topological Overlaps", "Topological Overlap", "# Edges", false);
-             System.exit(0);
-             System.exit(0);
-             */
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
             System.err.println("Exiting...\n");
@@ -937,7 +938,7 @@ public class NetworkCalculator {
         return Matrix;
     }
 
-    private static void _clustersToFile(GCNMatrix Similarity, ArrayList<int[]> Clusters, int MinSize, String OutDir) {
+    private static void _clustersToFile(GCNMatrix Similarity, ArrayList<int[]> Clusters, int MinSize, String ClustDir) {
         Iterator<int[]> it = Clusters.iterator();
         int iter = 1;
         int count = 0;
@@ -948,7 +949,7 @@ public class NetworkCalculator {
             }
             count++;
             System.out.println("Final cluster size: " + cluster.length);
-            String ClustDir = OutDir + "/Clusters/";
+            //String ClustDir = OutDir + "/Clusters/";
             Operations.createDirectory(ClustDir);
             String nPath = ClustDir + "/" + "Cluster." + iter + ".txt";
             iter++;

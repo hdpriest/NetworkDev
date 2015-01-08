@@ -163,14 +163,16 @@ class Cluster {
             return clusters;
         }
         //System.out.println("working on cluster of size "+ Cluster.length);
-        clusters = _treeCutCore(this_Order, this_Dist, L_naught, Tau);
+        // max -> naught -> min continues to cut based on the distances until more than 1 cluster is obtained.
+        // Basically, it biases for larger clusters.
+        clusters = _treeCutCore(this_Order, this_Dist, L_max, Tau);
         //   System.out.println("Found " + clusters.size() + " clusters on this iteration (naught) " + L_naught);
         if (clusters.size() <= 1) {
-            clusters = _treeCutCore(this_Order, this_Dist, L_min, Tau);
+            clusters = _treeCutCore(this_Order, this_Dist, L_naught, Tau);
             //     System.out.println("Found " + clusters.size() + " clusters on this iteration (lower) " + L_min );
         }
         if (clusters.size() <= 1) {
-            clusters = _treeCutCore(this_Order, this_Dist, L_max, Tau);
+            clusters = _treeCutCore(this_Order, this_Dist, L_min, Tau);
             //     System.out.println("Found " + clusters.size() + " clusters on this iteration (upper) " + L_max);
         }
 

@@ -28,6 +28,13 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
         HashMap<String, float[]> hm = new HashMap<String, float[]>();
         String s = null;
         while ((s = queue.poll()) != null) {
+            double proc = queue.size() * .001;
+            double IntProc = java.lang.Math.ceil(proc);
+            if((IntProc == proc) && (proc != 0.0f)){
+                int rec = (int) proc * 1000 * D;
+                //int rec = (int) proc * 1000;
+                System.err.println(rec+ " records remaining... ");
+            }
             int L = Integer.valueOf(s);
             int Size;
             Size = D - L;
@@ -78,44 +85,75 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
         this.D = Adj.getNumRows();
 
     }
-
+    private boolean _checkData (float[] Data){
+        // We preclude loading of all null/zero data rows
+        // However, permutation of datasets could result in a all-zero expression set
+        // in this case, return 0, no correlation
+        // Also need to handle no-variance dataset (all 1s, all anything, this will throw many correlations for a loop)
+        float max = 0.0f;
+        float min = Float.POSITIVE_INFINITY;
+        //System.err.println("Checking Row");
+        for(int i=0;i<Data.length;i++){
+            if(Data[i] > max){
+                max = Data[i];    
+            }
+            if(Data[i] < min){
+                min = Data[i];
+            }
+            
+        }
+        if(max == min) return false;
+        return true;
+    }
     public float[] doWork_gini(String s) {
         int i = Integer.parseInt(s);
         int size = Exp.getNumRows() - i;
         float[] GINIS = new float[size];
         float[] I_data = Exp.getRowByIndex(i);
         int[] I_ranks = Operations.getIndicesInOrder(I_data);
-        for (int j = i; j < Exp.getNumRows(); j++) {
+        if(_checkData(I_data)){
+            for (int j = i; j < Exp.getNumRows(); j++) {
 
-            float gcc = (float) 0.0;
-            int coord = j - i;
+                float gcc = 0.0f;
+                int coord = j - i;
 
-            if (i == j) {
-                gcc = 1.0f;
-            } else {
-                float[] J_data = Exp.getRowByIndex(j);
-                int[] J_ranks = Operations.getIndicesInOrder(J_data);
-                float I_num = 0.0f;
-                float J_num = 0.0f;
-                float GCC1 = 0.0f;
-                float GCC2 = 0.0f;
-                for (int x = 0; x < J_data.length; x++) {
-                    I_num += ((2 * (x + 1)) - I_data.length - 1) * I_data[J_ranks[x]];
-                    J_num += ((2 * (x + 1)) - J_data.length - 1) * J_data[I_ranks[x]];
-                }
-                GCC1 = I_num / Exp.getGiniDenom(j);
-                GCC2 = J_num / Exp.getGiniDenom(i);
-                if (Math.abs(GCC1) < Math.abs(GCC2)) {
-                    gcc = GCC1;
-                } else if (Math.abs(GCC2) < Math.abs(GCC1)) {
-                    gcc = GCC2;
+                if (i == j) {
+                    gcc = 1.0f;
                 } else {
-                    gcc = GCC1;
+                    float[] J_data = Exp.getRowByIndex(j);
+                    if(_checkData(J_data)){
+                        int[] J_ranks = Operations.getIndicesInOrder(J_data);
+                        float I_num = 0.0f;
+                        float J_num = 0.0f;
+                        float GCC1 = 0.0f;
+                        float GCC2 = 0.0f;
+                        for (int x = 0; x < J_data.length; x++) {
+                            I_num += ((2 * (x + 1)) - I_data.length - 1) * I_data[J_ranks[x]];
+                            J_num += ((2 * (x + 1)) - J_data.length - 1) * J_data[I_ranks[x]];
+                        }
+                        GCC1 = I_num / Exp.getGiniDenom(j);
+                        GCC2 = J_num / Exp.getGiniDenom(i);
+                        if (Math.abs(GCC1) < Math.abs(GCC2)) {
+                            gcc = GCC1;
+                        } else if (Math.abs(GCC2) < Math.abs(GCC1)) {
+                            gcc = GCC2;
+                        } else {
+                            gcc = GCC1;
+                        }
+                    }
                 }
+                GINIS[coord] = _getSigmoid(gcc);
 
             }
-            GINIS[coord] = _getSigmoid(gcc);
-
+        }else{
+            for (int j = i; j < Exp.getNumRows(); j++) {
+                int coord = j - i;
+                if(j == i){
+                    GINIS[coord] = 1.0f;
+                }else{
+                    GINIS[coord] = 0.0f;    
+                }
+            }
         }
         return GINIS;
     }
@@ -125,29 +163,42 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
         int size = Exp.getNumRows() - i;
         float[] correlations = new float[size];
         float[] I_data = Exp.getRowByIndex(i);
-        float I_mean = Exp.getMean(i);
-        for (int j = i; j < Exp.getNumRows(); j++) {
-            float correlation = 0.0f;
-            int coord = j - i;
-            if (i == j) {
-                correlation = 1.0f;
-            } else {
-                float[] J_data = Exp.getRowByIndex(j);
-                float J_mean = Exp.getMean(j);
-                double SQR1 = 0.0;
-                double SQR2 = 0.0;
-                double Na = 0.0;
-                for (int n = 0; n < J_data.length; n++) {
-                    double v1 = (double) I_data[n] - I_mean;
-                    double v2 = (double) J_data[n] - J_mean;
-                    Na += (v1 * v2);
-                    SQR1 += (v1 * v1);
-                    SQR2 += (v2 * v2);
+        if(_checkData(I_data)){
+            float I_mean = Exp.getMean(i);
+            for (int j = i; j < Exp.getNumRows(); j++) {
+                float correlation = 0.0f;
+                int coord = j - i;
+                if (i == j) {
+                    correlation = 1.0f;
+                } else {
+                    float[] J_data = Exp.getRowByIndex(j);
+                    if(_checkData(J_data)){
+                        float J_mean = Exp.getMean(j);
+                        double SQR1 = 0.0;
+                        double SQR2 = 0.0;
+                        double Na = 0.0;
+                        for (int n = 0; n < J_data.length; n++) {
+                            double v1 = (double) I_data[n] - I_mean;
+                            double v2 = (double) J_data[n] - J_mean;
+                            Na += (v1 * v2);
+                            SQR1 += (v1 * v1);
+                            SQR2 += (v2 * v2);
+                        }
+                        correlation = (float) (Na / (Math.sqrt(SQR1) * Math.sqrt(SQR2)));
+                        correlation = _getSigmoid(correlation);
+                    }
                 }
-                correlation = (float) (Na / (Math.sqrt(SQR1) * Math.sqrt(SQR2)));
-                correlation = _getSigmoid(correlation);
+                correlations[coord] = correlation;
             }
-            correlations[coord] = correlation;
+        }else{
+            for (int j = i; j < Exp.getNumRows(); j++) {;
+                int coord = j - i;
+                if (i == j) {
+                    correlations[coord]=1.0f;
+                }else{
+                    correlations[coord]=0.0f;
+                }
+            }
         }
         return correlations;
     }

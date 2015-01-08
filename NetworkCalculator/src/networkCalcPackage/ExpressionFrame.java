@@ -156,10 +156,38 @@ class ExpressionFrame {
         float K = k[R];
         return K;
     }
-
+    private boolean _checkRow (float[] Data){
+        // We preclude loading of all null/zero data rows
+        // Also need to handle no-variance dataset (all 1's, all anything, this will throw many correlations for a loop)
+        return true;
+        // Added handling of these rows at similarity calculation
+        /*
+        float max = 0.0f;
+        float min = Float.POSITIVE_INFINITY;
+        //System.err.println("Checking Row");
+        for(int i=0;i<Data.length;i++){
+            if(Data[i] > max){
+                max = Data[i];    
+            }
+            if(Data[i] < min){
+                min = Data[i];
+            }
+            
+        }
+        if(max == min) return false; // occurrs on all-zero rows
+        return true;
+                */
+    }
     public void addRow(float[] Row) {
         int I = X_iterator;
-        System.arraycopy(Row, 0, DataFrame[I + 1], 0, Row.length);
+        if(_checkRow(Row)){
+            System.arraycopy(Row, 0, DataFrame[I + 1], 0, Row.length);    
+        }else{
+            System.err.println("Row of null expression loaded. Handling for this occurrence is not implemented. Please add pseudocounts to null rows");
+            System.err.println("Closing...");
+            System.exit(0);
+        }
+        
         X_iterator++;
     }
 
