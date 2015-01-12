@@ -294,8 +294,9 @@ public class NetworkCalculator {
         System.out.println("Calculating clusters...");
         int MinSize = 50;
         Cluster Clustering = new Cluster(CurrentMatrix, 4);
+        String ClustOut = Out+"/Clusters/";
         ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
-        _clustersToFile(CurrentMatrix, Clusters, MinSize, Out);
+        _clustersToFile(CurrentMatrix, Clusters, MinSize, ClustOut);
         // Cluster.getClusters(50); // 50 = min cluster size -- Parameterize
         System.out.println("Done.");
         System.exit(0);
