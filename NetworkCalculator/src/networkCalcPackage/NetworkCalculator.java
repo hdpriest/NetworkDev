@@ -290,7 +290,7 @@ public class NetworkCalculator {
         MatrixOut = Out + "/TOM.matrix.tab";
         CurrentMatrix.printMatrixToFile(MatrixOut, sep);
         MatrixOut = Out + "/Network.Cytoscape.Raw.tab";
-        CurrentMatrix.printMatrixToCytoscape(MatrixOut, "\t", 0.0f);
+        CurrentMatrix.printMatrixToCytoscape(MatrixOut, "\t", Mask);
         System.out.println("Calculating clusters...");
         int MinSize = 50;
         Cluster Clustering = new Cluster(CurrentMatrix, 4);
@@ -405,6 +405,10 @@ public class NetworkCalculator {
         Options options = buildCompareOptions();
         String dir1;
         String dir2;
+        float mu1;
+        float mu2;
+        float alpha1;
+        float alpha2;
         String out;
         int threads;
         int permutations;
@@ -413,6 +417,10 @@ public class NetworkCalculator {
             _checkCompareOptions(cmd, options);
             dir1 = cmd.getOptionValue("d1");
             dir2 = cmd.getOptionValue("d2");
+            mu1  = Float.parseFloat(cmd.getOptionValue("m1"));
+            mu2  = Float.parseFloat(cmd.getOptionValue("m2"));
+            alpha1=Float.parseFloat(cmd.getOptionValue("a1"));
+            alpha2=Float.parseFloat(cmd.getOptionValue("a2"));
             permutations = Integer.parseInt(cmd.getOptionValue("p"));
             threads = Integer.parseInt(cmd.getOptionValue("t"));
             out = cmd.getOptionValue("o");
@@ -448,18 +456,20 @@ public class NetworkCalculator {
             ExpDim = _getFileDimensions(Exp2, sep);
             ExpressionFrame ExpF2 = _loadData(Exp2, ExpDim, sep);
             String corr = "pcc";
+            float pmu = (mu1+mu2)/2;
+            float pa  = (alpha1+alpha2)/2;
             float CUTOFF = 0.0f;
             float[] RESULT =  new float[ExpDim[0]+1];
             if(permutations >0){
                 System.err.println("Beginning permuation analysis...");
-                RESULT = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, mu, alpha, threads);
+                RESULT = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, pmu, pa, threads);
                 CUTOFF = RESULT[0];
             }
             System.err.println("Permutations done. Obtained Cutoff of dTOM = " + CUTOFF);
 
             System.err.println("Calculating actual values...");
-            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1, corr, "sigmoid", mu, alpha, threads);
-            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2, corr, "sigmoid", mu, alpha, threads);
+            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1, corr, "sigmoid", mu1, alpha1, threads);
+            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2, corr, "sigmoid", mu2, alpha2, threads);
             NetworkA.calculateKs();
             NetworkB.calculateKs();
             //float[] rcTOMs = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
@@ -471,11 +481,11 @@ public class NetworkCalculator {
             String ThisOut = out + "/dTOM.dist.tab";
             GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
             Difference.generateDistributionToFile(ThisOut);
-            Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
+            //Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
             String O3 = out + "/Cytoscape.sigEdge.tab";
             Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
             O3 = out + "/Cytoscape.raw.tab";
-            Difference.printMatrixToCytoscape(O3, "\t", 0.0f);
+            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             System.err.println("Clustering negative plasticity...");
             Difference.maskAbove(0.0f);
             int MinSize = 50;
@@ -681,6 +691,26 @@ public class NetworkCalculator {
         OptionBuilder.withDescription("output file");
         Option output = OptionBuilder.create("o");
 
+        OptionBuilder.withArgName("mu1");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("mu for network 1");
+        Option mu1 = OptionBuilder.create("m1");
+
+        OptionBuilder.withArgName("mu2");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("mu for network 2");
+        Option mu2 = OptionBuilder.create("m2");
+        
+        OptionBuilder.withArgName("alpha1");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("alpha for network 1");
+        Option alpha1 = OptionBuilder.create("a1");
+        
+        OptionBuilder.withArgName("alpha2");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("alpha for network 2");
+        Option alpha2 = OptionBuilder.create("a2");
+        
         OptionBuilder.withArgName("threads");
         OptionBuilder.hasArg();
         OptionBuilder.withDescription("number of processing threads");
@@ -694,6 +724,10 @@ public class NetworkCalculator {
         options.addOption(help);
         options.addOption(dir1);
         options.addOption(dir2);
+        options.addOption(mu1);
+        options.addOption(mu2);
+        options.addOption(alpha1);
+        options.addOption(alpha2);
         options.addOption(output);
         options.addOption(threads);
         options.addOption(permutations);

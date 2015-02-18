@@ -563,7 +563,7 @@ public class Operations {
             Perms.add(Distribution);
             Difference.maskMatrix(0.02f);
             O2 = out + "/Selfwise." + p + ".testing.jpeg";
-            Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
+            //Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
             System.out.println("Iteration "+ p +" complete.\n");
         }
         GCNMatrix NetworkA = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu, alpha, threads);
