@@ -334,21 +334,23 @@ public class NetworkCalculator {
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
         System.err.println("Calculating Similarity & Adjacency...\nMu : " + mu + "\nAlpha: " + alpha + "\n");
         CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", mu, alpha, threads);
-
+/*
         String ThisOut = Out + "/Adjacency.dist.tab";
         CurrentMatrix.generateDistributionToFile(ThisOut);
         String MatrixOut = Out + "/Adj.matrix.tab";
         CurrentMatrix.printMatrixToFile(MatrixOut, sep);
-
+*/
         System.err.println("Calculating TOM...\n");
         CurrentMatrix.calculateKs();
         CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
-
+/*
         ThisOut = Out + "/TOM.dist.tab";
         CurrentMatrix.generateDistributionToFile(ThisOut);
         MatrixOut = Out + "/TOM.matrix.tab";
         CurrentMatrix.printMatrixToFile(MatrixOut, sep);
-        MatrixOut = Out + "/Network.Cytoscape.Raw.tab";
+*/
+        
+        String MatrixOut = Out + "/Network.Cytoscape.Raw.tab";
         CurrentMatrix.printMatrixToCytoscape(MatrixOut, "\t", Mask);
         System.out.println("Calculating clusters...");
         int MinSize = 50;
@@ -356,7 +358,6 @@ public class NetworkCalculator {
         String ClustOut = Out+"/Clusters/";
         ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
         _clustersToFile(CurrentMatrix, Clusters, MinSize, ClustOut);
-        // Cluster.getClusters(50); // 50 = min cluster size -- Parameterize
         System.out.println("Done.");
         System.exit(0);
     }
@@ -400,7 +401,7 @@ public class NetworkCalculator {
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
         System.err.println("Calculating Initial Similarity...\n");
         CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", 0.0f, 0.0f, threads);
-        CurrentMatrix.maskMatrix(0.05f);
+        //CurrentMatrix.maskMatrix(0.05f);
         DecimalFormat df = new DecimalFormat("#.###");
         df.setRoundingMode(RoundingMode.HALF_UP);
         String header="";
@@ -520,34 +521,30 @@ public class NetworkCalculator {
 
             String Exp1 = dir1 + "/InputExpression.matrix.tab";
             String Exp2 = dir2 + "/InputExpression.matrix.tab";
-            String matrix1 = dir1 + "/Adj.matrix.tab";
-            String matrix2 = dir2 + "/Adj.matrix.tab";
             float mu = 0.8f;
             float alpha = 20f;
             String sep = "\t";
             System.err.println("Identifying run parameters...");
             int[] FD_1 = new int[2];
-            FD_1 = _getFileDimensions(matrix1, sep);
+            FD_1 = _getFileDimensions(Exp1, sep);
             int[] FD_2 = new int[2];
-            FD_2 = _getFileDimensions(matrix2, sep);
+            FD_2 = _getFileDimensions(Exp2, sep);
 
-            if ((FD_1[0] == FD_2[0]) & (FD_1[1] == FD_2[1])) {
+            if (FD_1[0] == FD_2[0]) {
             } else {
                 System.err.println("Matrix files are not the same size");
                 System.exit(0);
             }
             System.err.println("Comparing Networks...\n\n");
             System.err.println("Loading original Expression data... (1)");
-            int[] ExpDim = _getFileDimensions(Exp1, sep);
-            ExpressionFrame ExpF1 = _loadData(Exp1, ExpDim, sep);
+            ExpressionFrame ExpF1 = _loadData(Exp1, FD_1, sep);
             System.err.println("Loading original Expression data... (2)");
-            ExpDim = _getFileDimensions(Exp2, sep);
-            ExpressionFrame ExpF2 = _loadData(Exp2, ExpDim, sep);
+            ExpressionFrame ExpF2 = _loadData(Exp2, FD_2, sep);
             String corr = "pcc";
             float pmu = (mu1+mu2)/2;
             float pa  = (alpha1+alpha2)/2;
             float CUTOFF = 0.0f;
-            float[] RESULT =  new float[ExpDim[0]+1];
+            float[] RESULT =  new float[FD_1[0]+1];
             if(permutations >0){
                 System.err.println("Beginning permuation analysis...");
                 RESULT = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, pmu, pa, threads);
@@ -564,12 +561,9 @@ public class NetworkCalculator {
             float[] rcTOMs = Operations.compareNetworksViaAverage(NetworkA, NetworkB);
             String[] names = NetworkA.getRowNames();
             if(permutations >0) _cTOMsToFile(rcTOMs, RESULT, names, out);
-            // TODO : add back in self-wise TOM
-            String O2 = out + "/Selfwise.actual.jpeg";
             String ThisOut = out + "/dTOM.dist.tab";
             GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
             Difference.generateDistributionToFile(ThisOut);
-            //Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
             String O3 = out + "/Cytoscape.sigEdge.tab";
             Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
             O3 = out + "/Cytoscape.raw.tab";

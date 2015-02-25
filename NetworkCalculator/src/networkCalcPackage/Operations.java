@@ -554,7 +554,6 @@ public class Operations {
             //float[] cTOMs = Operations.compareNetworksViaTOM(CurrentMatrix1, CurrentMatrix2);
             float[] cTOMs = Operations.compareNetworksViaAverage(CurrentMatrix1, CurrentMatrix2);
             System.arraycopy(cTOMs, 0, TOMpermutations[p], 0, cTOMs.length);
-            String O2 = out + "/CrossTOM." + p + ".testing.jpeg";
             System.out.println("");
             System.out.println("Calculating Toplogical Overlaps on iteration " + p +"...");
             CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
@@ -563,7 +562,6 @@ public class Operations {
             TreeMap<Float, Integer> Distribution = Difference.generateDistribution();
             Perms.add(Distribution);
             Difference.maskMatrix(0.02f);
-            O2 = out + "/Selfwise." + p + ".testing.jpeg";
             //Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
             System.out.println("Iteration "+ p +" complete.\n");
         }
