@@ -257,7 +257,62 @@ public class Operations {
         System.err.println("No correlation got to this point!?");
         System.exit(0);
     }
+    
+    public static GCNMatrix applySigmoid(GCNMatrix Similarity, float mu, float alpha, int Threads) {
+        // prepwork
+        int D = Similarity.getNumRows();
+        String adjacency = "sigmoid";
+        GCNMatrix Adjacency = new GCNMatrix(D, D);
+        Adjacency = Operations.copyNames(Similarity.getRowNames(), Adjacency);
 
+        // thread prep
+        ExecutorService pool = Executors.newFixedThreadPool(Threads);
+        ExecutorCompletionService<HashMap<String, float[]>> completionService = new ExecutorCompletionService<>(pool);
+        List<Future<HashMap<String, float[]>>> taskList = new ArrayList<Future<HashMap<String, float[]>>>();
+        ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
+
+        //queue prep
+        for (int i = 0; i < D; i++) {
+            String S = String.valueOf(i);
+            queue.add(S);
+        }
+        int Number = D * D;
+        System.err.println("Added "+ Number +" Tasks To Multithreaded Processing Engine");
+        //add the tasks
+        for (int i = 0; i < Threads; i++) {
+            Callable<HashMap<String, float[]>> worker = new ConcurrentProcessing(Similarity, queue, adjacency, mu, alpha);
+            Future<HashMap<String, float[]>> submit = completionService.submit(worker);
+            taskList.add(submit);
+        }
+        
+        // collect results
+        for (int t = 0; t < Threads; t++) {
+            try {
+                HashMap<String, float[]> hm = completionService.take().get();
+                int r = 0;
+                for (Map.Entry<String, float[]> entry : hm.entrySet()) {
+                    String s = entry.getKey();
+                    int i = Integer.valueOf(s);
+                    int size = D - i;
+                    float[] d = new float[size];
+                    d = entry.getValue();
+                    for (int j = 0; j < d.length; j++) {
+                        int coord = j + i;
+                        Adjacency.setValueByEntry(d[j], i, coord);
+                        r++;
+                    }
+
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
+        pool.shutdownNow();
+        return Adjacency;
+    }
+    
     public static GCNMatrix calculateAdjacency(ExpressionFrame Expression, String corr, String adj, float mu, float alpha, int Threads) {
 
         // prepwork
@@ -333,60 +388,6 @@ public class Operations {
         return Adjacency;
     }
 
-    /*
-     public static GCNMatrix calculateSigmoidAdjacency (GCNMatrix Similarity,float mu, float alpha, int Threads){
-     int D = Similarity.getNumRows();
-     GCNMatrix Adjacency = new GCNMatrix(D,D);
-     Adjacency = Operations.copyNames(Similarity, Adjacency);
-     ExecutorService pool = Executors.newFixedThreadPool(Threads);
-     ExecutorCompletionService<HashMap<String,Float>> completionService = new ExecutorCompletionService<>(pool);
-     List<Future<HashMap<String,Float>>> taskList = new ArrayList<Future<HashMap<String,Float>>>();
-     ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
-     System.err.println("Processing adjacency using " + Threads + " threads.");
-		
-     for(int i=0;i<D;i++){
-     for(int j=i;j<D;j++){
-     String S = i+"-"+j;
-     queue.add(S);
-     }
-     }
-		
-     for ( int i = 0; i < Threads; i++ ) {
-     Callable<HashMap<String,Float>> worker = new ConcurrentProcessing(Similarity,queue,"sigmoid",mu,alpha);
-     Future<HashMap<String,Float>> submit = completionService.submit(worker);
-     taskList.add(submit);  
-     }
-		
-	
-     for(int t=0;t<Threads;t++){
-     try{
-     HashMap<String,Float> hm = completionService.take().get();
-     System.err.println("obtained result for thread " + t);
-     int r=0;
-     for(Map.Entry<String,Float> entry : hm.entrySet()){
-     String s = entry.getKey();
-     String[] S = s.split("-");
-     Float d = entry.getValue();
-     int i = Integer.parseInt(S[0]);
-     int j = Integer.parseInt(S[1]);
-     //System.out.println(i+"\t"+j+"\t"+d);
-     Adjacency.setValueByEntry( d,i,j);
-     Adjacency.setValueByEntry( d,j,i);
-     r++;
-     }
-     System.err.println("Processed "+ r + " records");
-     }catch(InterruptedException e){
-     e.printStackTrace();
-     }catch (ExecutionException e){
-     e.printStackTrace();
-     }
-     System.err.println("Thread " + t + " complete.");
-     }
-     System.err.println("Done.");
-     pool.shutdown();
-     return Adjacency;
-     }
-     */
     public static GCNMatrix calculateDifference(GCNMatrix mat1, GCNMatrix mat2) {
         int D = mat1.getNumRows();
         GCNMatrix Difference = new GCNMatrix(D, D);

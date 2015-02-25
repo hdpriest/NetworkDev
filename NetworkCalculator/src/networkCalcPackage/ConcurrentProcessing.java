@@ -1,11 +1,8 @@
 package networkCalcPackage;
 
 import java.util.HashMap;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
 //public class SimilarityConcurrent implements Runnable {
 public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> {
@@ -81,6 +78,8 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
     public ConcurrentProcessing(GCNMatrix Similarity, ConcurrentLinkedQueue<String> queue, String Method, float mu, float a) {
         this.queue = queue;
         this.smethod = Method;
+        this.M = mu;
+        this.A = a;
         this.Adj = Similarity;
         this.D = Adj.getNumRows();
 
@@ -204,19 +203,26 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
     }
 
     private float _getSigmoid(float V) {
-        return (float) (1.0f / (1 + Math.exp(A * -1 * (Math.abs(V) - M))));
+        if((A == 0.0f) && (M == 0.0f)){
+            return V; // passthrough - must be notated in manual as A=0,M=0 =/= sigmoid(V)=V
+        }else{
+            return (float) (1.0f / (1 + Math.exp(A * -1 * (Math.abs(V) - M))));
+        }
+        
     }
 
     public float[] doWork_sigmoid(String s) {
         int i = Integer.parseInt(s);
-        int size = Exp.getNumRows() - i;
+        int size = Adj.getNumRows() - i;
         float[] adjacency = new float[size];
-        for (int j = i; j < Exp.getNumRows(); j++) {
+        float[] I_data = Adj.getRowByIndex(i);
+        for (int j = i; j < Adj.getNumRows(); j++) {
             int coord = j - i;
             if (i == j) {
                 adjacency[coord] = 1.0f;
             } else {
-                adjacency[coord] = _getSigmoid(Exp.getValueByEntry(i, j));
+                float value = I_data[j];
+                adjacency[coord] = _getSigmoid(value);
             }
         }
         return adjacency;

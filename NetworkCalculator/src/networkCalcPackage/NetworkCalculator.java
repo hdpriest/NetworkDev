@@ -3,11 +3,11 @@ package networkCalcPackage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.apache.commons.cli.*;
 
@@ -189,6 +189,61 @@ public class NetworkCalculator {
         }
     }
 
+    private static void _checkDetermineOptions(CommandLine cmd, Options options) {
+        HelpFormatter formatter = new HelpFormatter();
+        if (cmd.hasOption("h")) {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("d")) {
+        } else {
+            System.err.println("Please specify datafile via -d option.");
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("c")) {
+        } else {
+            System.err.println("Please specify similarity method via -c option.");
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("o")) {
+        } else {
+            System.err.println("Please specify output directory via -o option.");
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("aL")) {
+        } else {
+            System.err.println("Please specify lower bound for alpha parameter via -aL option.");
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("aH")) {
+        } else {
+            System.err.println("Please specify upper bound for alpha parameter via -aH option.");
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("mL")) {
+        } else {
+            System.err.println("Please specify lower bound for mu parameter via -mL option.");
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("mH")) {
+        } else {
+            System.err.println("Please specify upper bound for mu parameter via -mH option.");
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("t")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+    }
+
     private static void _checkTestOptions(CommandLine cmd, Options options) {
         HelpFormatter formatter = new HelpFormatter();
         if (cmd.hasOption("h")) {
@@ -211,12 +266,22 @@ public class NetworkCalculator {
             formatter.printHelp("java -jar jarfile.jar", options);
             System.exit(0);
         }
-        if (cmd.hasOption("a")) {
+        if (cmd.hasOption("aL")) {
         } else {
             formatter.printHelp("java -jar jarfile.jar", options);
             System.exit(0);
         }
-        if (cmd.hasOption("m")) {
+        if (cmd.hasOption("aH")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("mL")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("mH")) {
         } else {
             formatter.printHelp("java -jar jarfile.jar", options);
             System.exit(0);
@@ -302,28 +367,30 @@ public class NetworkCalculator {
         System.exit(0);
     }
 
-    private static void testMetrics(String[] args) {
-        String IAM = "test";
+    private static void determine(String[] args) {
+        String IAM = "determine";
         CommandLineParser parser = new BasicParser();
-        Options options = buildTestOptions();
+        Options options = buildDetermineOptions();
         String pathIn = null;
         String Out = null;
-        float alpha = 0.0f;
-        float mu = 0.0f;
+        float alpha_Low = 0.0f;
+        float alpha_High = 0.0f;
+        float mu_Low = 0.0f;
+        float mu_High= 0.0f;
         float Mask = 0.0f;
         int threads = 0;
         String corr = null;
         try {
             CommandLine cmd = parser.parse(options, args);
-            _checkTestOptions(cmd, options);
+            _checkDetermineOptions(cmd, options);
             threads = Integer.parseInt(cmd.getOptionValue("t"));
             pathIn = cmd.getOptionValue("d");
             Out = cmd.getOptionValue("o");
             corr = cmd.getOptionValue("c");
-            alpha = Float.parseFloat(cmd.getOptionValue("a"));
-            mu = Float.parseFloat(cmd.getOptionValue("m"));
-            Mask = Float.parseFloat(cmd.getOptionValue("M"));
-
+            alpha_Low = Float.parseFloat(cmd.getOptionValue("aL"));
+            alpha_High= Float.parseFloat(cmd.getOptionValue("aH"));
+            mu_Low = Float.parseFloat(cmd.getOptionValue("mL"));
+            mu_High= Float.parseFloat(cmd.getOptionValue("mH"));
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
             System.err.println("Exiting...\n");
@@ -334,21 +401,55 @@ public class NetworkCalculator {
 
         int[] FileDimensions = new int[2];
         FileDimensions = _getFileDimensions(pathIn, sep);
-        System.err.println("Beginning testing run...\n\n");
+        System.err.println("Beginning parameter testing\n\n");
         System.err.println("Loading Data File\n");
         Operations.createDirectory(Out);
         ExpressionFrame DataFrame = _loadData(pathIn, FileDimensions, sep);
-        String FrameOut = Out + "/InputExpression.matrix.tab";
-        DataFrame.printMatrixToFile(FrameOut, sep);
 
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
-        System.err.println("Calculating Similarity & Adjacency...\nMu : " + mu + "\nAlpha: " + alpha + "\n");
-        CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", mu, alpha, threads);
+        System.err.println("Calculating Initial Similarity...\n");
+        CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", 0.0f, 0.0f, threads);
         // TODO : implement K distribution printing
-        String ThisOut = Out + "/Test.dist.txt";
+        String ThisOut = Out + "/Similarity.dist.txt";
         CurrentMatrix.generateDistributionToFile(ThisOut);
-        String MatrixOut = Out + "/Adj.matrix.txt";
-        CurrentMatrix.printMatrixToFile(MatrixOut, sep);
+        CurrentMatrix.maskMatrix(0.05f);
+        DecimalFormat df = new DecimalFormat("#.###");
+        df.setRoundingMode(RoundingMode.HALF_UP);
+        String header="";
+        String rsq_all = "";
+        String mean_all = "";
+        for(float MU=mu_Low;MU<=mu_High;MU+=0.05f){
+            Float V = (Float.valueOf(df.format(MU)));
+            String rsq_Line=V +" : ";
+            String mean_Line= rsq_Line;
+            for(float A=alpha_Low;A<=alpha_High;A+=2.0f){
+                if(MU==mu_Low){
+                    header = header + "\t" + A;
+                }
+                GCNMatrix this_Adjacency = Operations.applySigmoid(CurrentMatrix, V, A, threads);
+                this_Adjacency.calculateKs();
+                String ThisFile = Out+ "/Adj."+A+"."+V+".txt";
+                this_Adjacency.generateDistributionToFile(ThisFile);
+                
+                double RSquared = this_Adjacency.determineScaleFreeCritereon();
+                float mean = this_Adjacency.getMeanK();
+                
+                RSquared=(Double.valueOf(df.format(RSquared)));
+                mean = (Float.valueOf(df.format(mean)));
+                
+                //System.out.println("Mu: " + MU + " Alpha: " + A + " RSQ " + RSquared);
+                rsq_Line = rsq_Line + "\t" + RSquared;
+                mean_Line = mean_Line + "\t" + mean;
+            }
+            rsq_all = rsq_all + rsq_Line + "\n";
+            mean_all = mean_all + mean_Line + "\n";
+        }
+        rsq_all = header + "\n" + rsq_all;
+        mean_all = header + "\n" + mean_all;
+        System.out.println(rsq_all);
+        System.out.println();
+        System.out.println();
+        System.out.println(mean_all);
         System.out.println("Done.");
         System.exit(0);
     }
@@ -575,6 +676,10 @@ public class NetworkCalculator {
                     break;
                 case "test":
                     test(args);
+                    break;
+                case "determine":
+                    determine(args);
+                    break;
                 default:
                     baseOptions(args);
                     break;
@@ -657,6 +762,11 @@ public class NetworkCalculator {
         OptionBuilder.withDescription("query a single network for node properties");
         Option view = OptionBuilder.create("view");
 
+        OptionBuilder.withArgName("determine");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Determine best parameters for dataset");
+        Option determine = OptionBuilder.create("determine");        
+        
         OptionBuilder.withArgName("test");
         OptionBuilder.hasArg();
         OptionBuilder.withDescription("test routines");
@@ -668,6 +778,7 @@ public class NetworkCalculator {
         options.addOption(compare);
         options.addOption(view);
         options.addOption(test);
+        options.addOption(determine);
 
         return options;
     }
@@ -816,16 +927,26 @@ public class NetworkCalculator {
         OptionBuilder.withDescription("correlation metric to use ('gini' or 'pcc')");
         Option corr = OptionBuilder.create("c");
 
-        OptionBuilder.withArgName("alpha");
+        OptionBuilder.withArgName("alpha low");
         OptionBuilder.hasArg();
-        OptionBuilder.withDescription("alpha parameter for sigmoid adjacency calculation (i.e. 20)");
-        Option alpha = OptionBuilder.create("a");
+        OptionBuilder.withDescription("Lower bound for alpha parameter - must be a mutliple of 2");
+        Option alpha_low = OptionBuilder.create("aL");
 
-        OptionBuilder.withArgName("mu");
+        OptionBuilder.withArgName("alpha high");
         OptionBuilder.hasArg();
-        OptionBuilder.withDescription("mu parameter for sigmoid adjacency calculation (i.e. 0.8)");
-        Option mu = OptionBuilder.create("m");
+        OptionBuilder.withDescription("Upper bound for alpha parameter - must be a multiple of 2");
+        Option alpha_high = OptionBuilder.create("aH");
+        
+        OptionBuilder.withArgName("mu low");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Lower bound for mu parameter - must be a multiple of .1, on the interval [0,1]");
+        Option mu_low = OptionBuilder.create("mL");
 
+        OptionBuilder.withArgName("mu high");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Upper bound for mu parameter - must be a multiple of .1, on the interval [0,1]");
+        Option mu_high = OptionBuilder.create("mH");             
+        
         OptionBuilder.withArgName("output");
         OptionBuilder.hasArg();
         OptionBuilder.withDescription("Temporary Directory");
@@ -838,9 +959,68 @@ public class NetworkCalculator {
 
         options.addOption(help);
         options.addOption(datafile);
-        options.addOption(alpha);
+        options.addOption(alpha_low);
+        options.addOption(alpha_high);
         options.addOption(corr);
-        options.addOption(mu);
+        options.addOption(mu_low);
+        options.addOption(mu_high);
+        options.addOption(output);
+        options.addOption(threads);
+
+        return options;
+    }
+    
+    private static Options buildDetermineOptions() {
+        Options options = new Options();
+        Option help = new Option("h", "print this message");
+
+        OptionBuilder.withArgName("datafile");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Data frame, tab delimited, with header, of per-gene, per-condition expression values");
+        Option datafile = OptionBuilder.create("d");
+
+        OptionBuilder.withArgName("correlation");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("correlation metric to use ('gini' or 'pcc')");
+        Option corr = OptionBuilder.create("c");
+
+        OptionBuilder.withArgName("alpha low");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Lower bound for alpha parameter - must be a mutliple of 2");
+        Option alpha_low = OptionBuilder.create("aL");
+
+        OptionBuilder.withArgName("alpha high");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Upper bound for alpha parameter - must be a multiple of 2");
+        Option alpha_high = OptionBuilder.create("aH");
+        
+        OptionBuilder.withArgName("mu low");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Lower bound for mu parameter - must be a multiple of .1, on the interval [0,1]");
+        Option mu_low = OptionBuilder.create("mL");
+
+        OptionBuilder.withArgName("mu high");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Upper bound for mu parameter - must be a multiple of .1, on the interval [0,1]");
+        Option mu_high = OptionBuilder.create("mH");             
+        
+        OptionBuilder.withArgName("output");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Temporary Directory");
+        Option output = OptionBuilder.create("o");
+
+        OptionBuilder.withArgName("threads");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Number of Compute Threads");
+        Option threads = OptionBuilder.create("t");
+
+        options.addOption(help);
+        options.addOption(datafile);
+        options.addOption(alpha_low);
+        options.addOption(alpha_high);
+        options.addOption(corr);
+        options.addOption(mu_low);
+        options.addOption(mu_high);
         options.addOption(output);
         options.addOption(threads);
 

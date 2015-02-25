@@ -8,14 +8,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import org.apache.commons.math3.stat.regression.SimpleRegression;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 
@@ -26,11 +25,8 @@ import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-import org.ujmp.core.enums.FileFormat;
-import org.ujmp.core.exceptions.MatrixException;
 import org.ujmp.core.floatmatrix.FloatMatrix2D;
 import org.ujmp.core.interfaces.GUIObject;
-import org.ujmp.gui.io.ExportPNG;
 
 class GCNMatrix {
 
@@ -404,22 +400,62 @@ class GCNMatrix {
                 if (i == j) {
 
                 } else {
-                    thisK += _getValueByEntry(i, j);
+                    thisK += Math.abs(_getValueByEntry(i, j));
                 }
             }
             k[i] = thisK;
+            //System.out.println(thisK);
         }
     }
+    
+    public float getMeanK (){
+        float mean=0.0f;
+        for(int i=0;i<k.length;i++){
+            mean = mean + k[i];
+        }
+        mean = mean / N;
+        return mean;
+    }
+   
+    private double[] _findKHistogram () {
+        // inefficient use of memory, but saves legwork for little real cost
+        double[] dist = new double[N]; 
+        // will need to test for null when used.
+        for(int i=0;i<k.length;i++){
+            int this_k = Math.round(k[i]);
+            dist[this_k]+= 1.0d;
+        }
+        return dist;
+    }
 
+    public double determineScaleFreeCritereon (){
+        double correlation = 0.0d;
+        double histogram[] = _findKHistogram();
+        SimpleRegression regression = new SimpleRegression();
+        for(int f=2;f<200;f++){
+            //if(histogram[f] == 0.0d) continue;
+            if(histogram[f] == 0.0d) break;
+            // If histogram[k] k =1 or 2, network is almost certainly too dense
+            // After first zero, mostly have 1 or 2 counts at each K. Either bin, or ignore, as these can cause FP high RSQ
+            // Here, break after first zero histogram entry
+            double K = (double) f;
+            double pK = histogram[f]/N;
+            double logK = Math.log10(K)+Math.log10(Math.log10(K)); // Loglog
+            //double logK = Math.log10(K); // Log
+            //double logK = Math.log10(K) + K; // truncated exp model
+            double logpK= Math.log10(pK);
+            //System.out.println(f+"," + logK + "," + logpK);
+            regression.addData(logK,logpK);
+        }
+        long Num = regression.getN();
+        //System.out.println("added " + Num + " observations to model");
+        correlation = regression.getRSquare();
+        double slope = regression.getSlope();
+        //System.out.println("correlation: " + correlation + " slope: "+ slope);
+        return correlation;
+    }
+    
     public float findK(int R, int j) {
-        /*for(int i=0;i<DataFrame[R].length;i++){
-         if(i==j){
-         /// do not add DataFrame[R][j] to the k of R
-         }else{
-         K+=DataFrame[R][i];
-         }
-         }
-         return K;*/
         float K = k[R];
         return K;
     }
