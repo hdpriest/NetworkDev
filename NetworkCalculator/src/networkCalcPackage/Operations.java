@@ -398,9 +398,7 @@ public class Operations {
                 float v2 = mat2.getValueByEntry(i, j);
                 //if((v1 != 0) & (v2 != 0)){
                 float d1 = v2 - v1;
-//                                System.out.println("Val1: " + v1 +" Val2: " + v2 + " diff " + d1);
                 Difference.setValueByEntry(d1, i, j);
-                //}
             }
         }
         return Difference;
@@ -549,6 +547,8 @@ public class Operations {
             System.out.println("Calculating Adjacencies on iteration " + p +"...");
             GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1, corr, "sigmoid", mu, alpha, threads);
             GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2, corr, "sigmoid", mu, alpha, threads);
+            CurrentMatrix1.maskMatrix(0.01f);
+            CurrentMatrix2.maskMatrix(0.01f);
             CurrentMatrix1.calculateKs();
             CurrentMatrix2.calculateKs();
             //float[] cTOMs = Operations.compareNetworksViaTOM(CurrentMatrix1, CurrentMatrix2);
@@ -569,6 +569,8 @@ public class Operations {
         }
         GCNMatrix NetworkA = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu, alpha, threads);
         GCNMatrix NetworkB = Operations.calculateAdjacency(expF2, corr, "sigmoid", mu, alpha, threads);
+        NetworkA.maskMatrix(0.01f);
+        NetworkB.maskMatrix(0.01f);
         NetworkA.calculateKs();
         NetworkB.calculateKs();
 

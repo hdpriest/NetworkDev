@@ -207,12 +207,6 @@ public class NetworkCalculator {
             formatter.printHelp("java -jar jarfile.jar", options);
             System.exit(0);
         }
-        if (cmd.hasOption("o")) {
-        } else {
-            System.err.println("Please specify output directory via -o option.");
-            formatter.printHelp("java -jar jarfile.jar", options);
-            System.exit(0);
-        }
         if (cmd.hasOption("aL")) {
         } else {
             System.err.println("Please specify lower bound for alpha parameter via -aL option.");
@@ -372,7 +366,6 @@ public class NetworkCalculator {
         CommandLineParser parser = new BasicParser();
         Options options = buildDetermineOptions();
         String pathIn = null;
-        String Out = null;
         float alpha_Low = 0.0f;
         float alpha_High = 0.0f;
         float mu_Low = 0.0f;
@@ -385,7 +378,6 @@ public class NetworkCalculator {
             _checkDetermineOptions(cmd, options);
             threads = Integer.parseInt(cmd.getOptionValue("t"));
             pathIn = cmd.getOptionValue("d");
-            Out = cmd.getOptionValue("o");
             corr = cmd.getOptionValue("c");
             alpha_Low = Float.parseFloat(cmd.getOptionValue("aL"));
             alpha_High= Float.parseFloat(cmd.getOptionValue("aH"));
@@ -403,15 +395,11 @@ public class NetworkCalculator {
         FileDimensions = _getFileDimensions(pathIn, sep);
         System.err.println("Beginning parameter testing\n\n");
         System.err.println("Loading Data File\n");
-        Operations.createDirectory(Out);
         ExpressionFrame DataFrame = _loadData(pathIn, FileDimensions, sep);
 
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
         System.err.println("Calculating Initial Similarity...\n");
         CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", 0.0f, 0.0f, threads);
-        // TODO : implement K distribution printing
-        String ThisOut = Out + "/Similarity.dist.txt";
-        CurrentMatrix.generateDistributionToFile(ThisOut);
         CurrentMatrix.maskMatrix(0.05f);
         DecimalFormat df = new DecimalFormat("#.###");
         df.setRoundingMode(RoundingMode.HALF_UP);
@@ -420,16 +408,14 @@ public class NetworkCalculator {
         String mean_all = "";
         for(float MU=mu_Low;MU<=mu_High;MU+=0.05f){
             Float V = (Float.valueOf(df.format(MU)));
-            String rsq_Line=V +" : ";
+            String rsq_Line=String.valueOf(V);
             String mean_Line= rsq_Line;
             for(float A=alpha_Low;A<=alpha_High;A+=2.0f){
                 if(MU==mu_Low){
-                    header = header + "\t" + A;
+                    header = header + "," + A;
                 }
                 GCNMatrix this_Adjacency = Operations.applySigmoid(CurrentMatrix, V, A, threads);
                 this_Adjacency.calculateKs();
-                String ThisFile = Out+ "/Adj."+A+"."+V+".txt";
-                this_Adjacency.generateDistributionToFile(ThisFile);
                 
                 double RSquared = this_Adjacency.determineScaleFreeCritereon();
                 float mean = this_Adjacency.getMeanK();
@@ -438,17 +424,18 @@ public class NetworkCalculator {
                 mean = (Float.valueOf(df.format(mean)));
                 
                 //System.out.println("Mu: " + MU + " Alpha: " + A + " RSQ " + RSquared);
-                rsq_Line = rsq_Line + "\t" + RSquared;
-                mean_Line = mean_Line + "\t" + mean;
+                rsq_Line = rsq_Line + "," + RSquared;
+                mean_Line = mean_Line + "," + mean;
             }
             rsq_all = rsq_all + rsq_Line + "\n";
             mean_all = mean_all + mean_Line + "\n";
         }
         rsq_all = header + "\n" + rsq_all;
         mean_all = header + "\n" + mean_all;
+        System.out.println("Scale Free Criterion:\nCorrelation to Log-Log model");
         System.out.println(rsq_all);
         System.out.println();
-        System.out.println();
+        System.out.println("Mean node connectivity");
         System.out.println(mean_all);
         System.out.println("Done.");
         System.exit(0);
@@ -1003,11 +990,6 @@ public class NetworkCalculator {
         OptionBuilder.hasArg();
         OptionBuilder.withDescription("Upper bound for mu parameter - must be a multiple of .1, on the interval [0,1]");
         Option mu_high = OptionBuilder.create("mH");             
-        
-        OptionBuilder.withArgName("output");
-        OptionBuilder.hasArg();
-        OptionBuilder.withDescription("Temporary Directory");
-        Option output = OptionBuilder.create("o");
 
         OptionBuilder.withArgName("threads");
         OptionBuilder.hasArg();
@@ -1021,7 +1003,6 @@ public class NetworkCalculator {
         options.addOption(corr);
         options.addOption(mu_low);
         options.addOption(mu_high);
-        options.addOption(output);
         options.addOption(threads);
 
         return options;
