@@ -133,6 +133,11 @@ public class NetworkCalculator {
             formatter.printHelp("java -jar jarfile.jar", options);
             System.exit(0);
         }
+        if (cmd.hasOption("c")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
         if (cmd.hasOption("t")) {
         } else {
             formatter.printHelp("java -jar jarfile.jar", options);
@@ -420,7 +425,7 @@ public class NetworkCalculator {
                 
                 double RSquared = this_Adjacency.determineScaleFreeCritereon();
                 float mean = this_Adjacency.getMeanK();
-                
+                if(Double.isNaN(RSquared)) RSquared=0.0d;
                 RSquared=(Double.valueOf(df.format(RSquared)));
                 mean = (Float.valueOf(df.format(mean)));
                 
@@ -494,6 +499,7 @@ public class NetworkCalculator {
         Options options = buildCompareOptions();
         String dir1;
         String dir2;
+        String corr = "pcc";
         float mu1;
         float mu2;
         float alpha1;
@@ -510,6 +516,7 @@ public class NetworkCalculator {
             mu2  = Float.parseFloat(cmd.getOptionValue("m2"));
             alpha1=Float.parseFloat(cmd.getOptionValue("a1"));
             alpha2=Float.parseFloat(cmd.getOptionValue("a2"));
+            corr = cmd.getOptionValue("c");
             permutations = Integer.parseInt(cmd.getOptionValue("p"));
             threads = Integer.parseInt(cmd.getOptionValue("t"));
             out = cmd.getOptionValue("o");
@@ -540,7 +547,7 @@ public class NetworkCalculator {
             ExpressionFrame ExpF1 = _loadData(Exp1, FD_1, sep);
             System.err.println("Loading original Expression data... (2)");
             ExpressionFrame ExpF2 = _loadData(Exp2, FD_2, sep);
-            String corr = "pcc";
+            
             float pmu = (mu1+mu2)/2;
             float pa  = (alpha1+alpha2)/2;
             float CUTOFF = 0.0f;
@@ -562,12 +569,28 @@ public class NetworkCalculator {
             String[] names = NetworkA.getRowNames();
             if(permutations >0) _cTOMsToFile(rcTOMs, RESULT, names, out);
             String ThisOut = out + "/dTOM.dist.tab";
+            NetworkA = Operations.calculateTOM(NetworkA, threads);
+            NetworkB = Operations.calculateTOM(NetworkB, threads);
             GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
+            
+            DecimalFormat df = new DecimalFormat("#.###");
+            df.setRoundingMode(RoundingMode.HALF_UP);
+            Difference.calculateKs();
+            double RSquared = Difference.determineScaleFreeCritereon();
+            float mean = Difference.getMeanK();
+            if(Double.isNaN(RSquared)) RSquared=0.0d;
+            RSquared=(Double.valueOf(df.format(RSquared)));
+            mean = (Float.valueOf(df.format(mean)));
+            System.out.println("Scale Free Criteron of resultant plasticity matrix: " + RSquared);
+            System.out.println("Average Connectivity of resultant plasticity matrix: " + mean);
+            
             Difference.generateDistributionToFile(ThisOut);
             String O3 = out + "/Cytoscape.sigEdge.tab";
             Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
             O3 = out + "/Cytoscape.raw.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
+            
+            // Clustering
             System.err.println("Clustering negative plasticity...");
             Difference.maskAbove(0.0f);
             int MinSize = 50;
@@ -575,7 +598,7 @@ public class NetworkCalculator {
             Cluster Clustering = new Cluster(Difference, 4);
             ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
             _clustersToFile(Difference, Clusters, MinSize, ClustOut);            
- // For some reason, using the same variable and overwriting below did not work
+            // For some reason, using the same variable and overwriting below did not work
             // Not sure why... even copy constructors don't seem to work. hacking.
             Difference = Operations.calculateDifference(NetworkA, NetworkB);
             System.err.println("Clustering positive plasticity...");
@@ -803,6 +826,11 @@ public class NetworkCalculator {
         OptionBuilder.withDescription("alpha for network 2");
         Option alpha2 = OptionBuilder.create("a2");
         
+        OptionBuilder.withArgName("correlation");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("correlation metric used for both networks");
+        Option c = OptionBuilder.create("c");
+        
         OptionBuilder.withArgName("threads");
         OptionBuilder.hasArg();
         OptionBuilder.withDescription("number of processing threads");
@@ -820,6 +848,7 @@ public class NetworkCalculator {
         options.addOption(mu2);
         options.addOption(alpha1);
         options.addOption(alpha2);
+        options.addOption(c);
         options.addOption(output);
         options.addOption(threads);
         options.addOption(permutations);

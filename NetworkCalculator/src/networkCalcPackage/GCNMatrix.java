@@ -36,6 +36,7 @@ class GCNMatrix {
     private float[] means;
     private float[] gccSums;
     private String[] X_lab;
+    private String[] Alt_lab;
     private String[] Y_lab;
     private int X_iterator;
     
@@ -46,6 +47,7 @@ class GCNMatrix {
         means = G.means;
         gccSums = G.gccSums;
         X_lab = G.X_lab;
+        Alt_lab = G.Alt_lab;
         Y_lab = G.Y_lab;
         X_iterator = G.X_iterator;
     }
@@ -251,15 +253,27 @@ class GCNMatrix {
     public String[] getRowNames() {
         return X_lab;
     }
+    
+    public String[] getAlternateRowNames() {
+        return Alt_lab;
+    }
 
     public String getRowName(int I) {
         return X_lab[I];
+    }
+    
+    public String getAlternateRowName(int I) {
+        return Alt_lab[I];
     }
 
     public void setRowNames(String[] Rows) {
         X_lab = Rows;
     }
 
+    public void setAlternateRowNames(String[] Names){
+        Alt_lab = Names;
+    }
+    
     public void setColumnNames(String[] Cols) {
         Y_lab = Cols;
     }
@@ -450,8 +464,7 @@ class GCNMatrix {
         long Num = regression.getN();
         //System.out.println("added " + Num + " observations to model");
         correlation = regression.getRSquare();
-        double slope = regression.getSlope();
-        //System.out.println("correlation: " + correlation + " slope: "+ slope);
+        //System.out.println("correlation: " + correlation);
         return correlation;
     }
     
@@ -512,8 +525,10 @@ class GCNMatrix {
                     }
                     String N1 = getRowName(i);
                     String N2 = getRowName(j);
+                    String AN1 = getAlternateRowName(i);
+                    String AN2 = getAlternateRowName(j);
                     float abs = Math.abs(value);
-                    String line = N1 + "\t" + N2 + "\t" + value + "\t" + abs + "\n";
+                    String line = N1 + "\t" + N2 + "\t" + value + "\t" + abs + "\t" +AN1+ "\t" +AN2+ "\n" ;
                     writer.print(line);
                 }
             }

@@ -56,6 +56,7 @@ public class Operations {
     public static GCNMatrix copyNames(String[] names, GCNMatrix NetB) {
         /// if you always copy Rows->rows and columns, you can't go wrong
         NetB.setRowNames(names);
+        NetB.setAlternateRowNames(names);
         NetB.setColumnNames(names);
         return NetB;
     }
@@ -87,7 +88,8 @@ public class Operations {
     public static float[] compareNetworksViaTOM(GCNMatrix Net1, GCNMatrix Net2) {
         int D = Net1.getNumRows();
         GCNMatrix ReturnFrame = new GCNMatrix(D, D);
-        ReturnFrame = Operations.copyNames(Net1.getRowNames(), ReturnFrame);
+        ReturnFrame.setRowNames(Net1.getRowNames());
+        ReturnFrame.setAlternateRowNames(Net2.getRowNames());
         float[] cTOMs = new float[D];
         //ReturnFrame = Operations.copyNames(Net1.getRowNames(), ReturnFrame);
         for (int i = 0; i < D; i++) {
@@ -391,7 +393,9 @@ public class Operations {
     public static GCNMatrix calculateDifference(GCNMatrix mat1, GCNMatrix mat2) {
         int D = mat1.getNumRows();
         GCNMatrix Difference = new GCNMatrix(D, D);
-        Difference = Operations.copyNames(mat1.getRowNames(), Difference);
+        Difference.setRowNames(mat1.getRowNames());
+        Difference.setAlternateRowNames(mat2.getRowNames());
+        Difference.setColumnNames(mat1.getRowNames());
         for (int i = 0; i < D; i++) {
             for (int j = i; j < D; j++) {
                 float v1 = mat1.getValueByEntry(i, j);
@@ -412,18 +416,14 @@ public class Operations {
         TreeMap<Float, Integer> HMHistogram = new TreeMap<Float, Integer>();
         for (int i = 0; i < H; i++) {
             for (int j = 0; j < W; j++) {
-                //System.out.println("Val: "+DataFrame[i][j]+"\n");
                 if (DataFrame.getValueByEntry(i, j) != 0) {
                     try {
                         Float V = (Float.valueOf(df.format(DataFrame.getValueByEntry(i, j))));
-
                         if (HMHistogram.containsKey(V)) {
                             Integer I = HMHistogram.get(V);
-                            // System.out.println("Putting " + V+ " and " + I);
                             HMHistogram.put(V, I + 1);
                         } else {
                             HMHistogram.put(V, 1);
-                            // System.out.println("Putting " + V+ " and 1");
                         }
                     } catch (NumberFormatException ex) {
                         System.out.println("Obtain " + DataFrame.getValueByEntry(i, j) + " from matrix.");
@@ -439,7 +439,6 @@ public class Operations {
             A = entry.getKey();
             Integer value;
             value = entry.getValue();
-            //System.err.println("Got " + A + " and " + value);
             if (print == true) {
                 System.out.println(A + "," + value);
             }
@@ -468,7 +467,6 @@ public class Operations {
          */
         for (int r = 0; r < rTOMs.length; r++) {
             int index = r + 1;
-
             float pos_count = 0.0f;
             float neg_count = 0.0f;
             for (int p = 0; p < pTOMs.length; p++) {
@@ -479,13 +477,9 @@ public class Operations {
                     pos_count += 1;
                 }
             }
-            //System.err.println("pos count: "  + pos_count + "  neg count: " + neg_count);
             float pos_ratio = pos_count / pTOMs.length; // number of permutations with cTOM > real cTOM
             float neg_ratio = neg_count / pTOMs.length; // number of permutations with cTOM < real cTOM
-            float min = Math.min(pos_ratio,neg_ratio);
-            //System.err.println("min = " + min);
             Sig[index] = Math.min(pos_ratio, neg_ratio); // sets index == to smaller of two ratios. 
-            // needs FDR
         }
         return Sig;
     }
@@ -499,9 +493,6 @@ public class Operations {
         int s = M * 2;
         Integer[][] Sets = new Integer[P][];
         Sets = _getPermutations(s1, s2, P);
-        //System.out.println("size1: "+s1+"\nsize2: "+s2);
-        // for all i in Sets p, obtain values of i<s from exp1, values of i>s
-
         float CUTOFF = 1.0f;
         float[][] TOMpermutations = new float[P][R];
         float[] ret_val = new float[R + 1];
@@ -518,13 +509,10 @@ public class Operations {
                 float[] nR2 = new float[M];
                 for (int m = 0; m < M; m++) {
                     int ind = Sets[p][m];
-                    //System.out.println("getting "+ ind + " ("+ m +")");
                     if (ind < s1) {
-                        //System.out.println("getting "+ind+" from 1 s1 is " + s1);
                         nR1[m] = rF1[ind];
                     } else if (ind >= s1) {
                         ind = ind - s1;
-                        //	System.out.println("getting "+ind+" from 2 s1 is " + s1);
                         nR1[m] = rF2[ind];
                     }
                 }
@@ -532,13 +520,10 @@ public class Operations {
                 for (int m = M; m < s; m++) {
                     int Mind = m - M;
                     int ind = Sets[p][m];
-                    //System.out.println("getting "+ ind + " ("+ m +")");
                     if (ind < s1) {
-                        //System.out.println("getting "+ind+" from 1 s1 is " + s1);
                         nR2[Mind] = rF1[ind];
                     } else if (ind >= s1) {
                         ind = ind - s1;
-                        //System.out.println("getting "+ind+" from 2 s1 is " + s1);
                         nR2[Mind] = rF2[ind];
                     }
                 }
@@ -561,7 +546,7 @@ public class Operations {
             GCNMatrix Difference = Operations.calculateDifference(CurrentMatrix1, CurrentMatrix2);
             TreeMap<Float, Integer> Distribution = Difference.generateDistribution();
             Perms.add(Distribution);
-            Difference.maskMatrix(0.02f);
+            //Difference.maskMatrix(0.02f);
             //Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
             System.out.println("Iteration "+ p +" complete.\n");
         }
@@ -571,9 +556,6 @@ public class Operations {
         NetworkB.maskMatrix(0.01f);
         NetworkA.calculateKs();
         NetworkB.calculateKs();
-
-        //float[] rTOMS = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
-        // AVERAGE MAY HAVE WORKED SEE LLHY VS COL
         float[] rTOMS = Operations.compareNetworksViaAverage(NetworkA, NetworkB);
         Operations._tempPrintPermsToFile(rTOMS, TOMpermutations, out,expF1.getRowNames());
         ret_val = _getSignificantCTOMs(rTOMS, TOMpermutations);
@@ -636,64 +618,6 @@ public class Operations {
         return ret_val;
     }
 
-    public static void permuteDataHalf(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, int threads) {
-        int s1 = expF1.getNumColumns();
-        int s2 = expF2.getNumColumns();
-        int R = expF1.getNumRows();
-        int M = Math.min(expF1.getNumColumns(), expF2.getNumColumns());
-        int S = s1 + s2;
-        int s = M * 2;
-        Integer[][] Sets = new Integer[P][];
-        Sets = _getPermutations(s1, s2, P);
-		//System.out.println("size1: "+s1+"\nsize2: "+s2);
-        // for all i in Sets p, obtain values of i<s from exp1, values of i>s
-        GCNMatrix RealAdj = Operations.calculateAdjacency(expF1, "pcc", "sigmoid", 0.8f, 16.0f, threads);
-        RealAdj.calculateKs();
-        GCNMatrix RealTom = Operations.calculateTOM(RealAdj, threads);
-        for (int p = 0; p < P; p++) {
-            System.out.println("Permutation: " + p);
-            ExpressionFrame pF1 = new ExpressionFrame(R, M);
-            for (int r = 0; r < R; r++) {
-                float[] rF1 = expF1.getRowByIndex(r);
-                float[] rF2 = expF2.getRowByIndex(r);
-                float[] nR1 = new float[M];
-                float[] nR2 = new float[M];
-                for (int m = 0; m < M; m++) {
-                    int ind = Sets[p][m];
-                    //System.out.println("getting "+ ind + " ("+ m +")");
-                    if (ind < s1) {
-                        //System.out.println("getting "+ind+" from 1 s1 is " + s1);
-                        nR1[m] = rF1[ind];
-                    } else if (ind >= s1) {
-                        ind = ind - s1;
-                        //	System.out.println("getting "+ind+" from 2 s1 is " + s1);
-                        nR1[m] = rF2[ind];
-                    }
-                }
-                pF1.addRow(nR1);
-            }
-            GCNMatrix CurrentMatrix = Operations.calculateAdjacency(pF1, "pcc", "sigmoid", 0.8f, 16.0f, threads);
-
-            CurrentMatrix.calculateKs();
-
-            GCNMatrix Difference = Operations.calculateDifference(RealAdj, CurrentMatrix);
-            Difference.maskMatrix(0.02f);
-            String O2 = out + "/Selfwise." + p + ".testing.jpeg";
-            Operations.generateHistogramHM(Difference, O2, "Cross-network Selfwise Topological Overlap Zm vs Sv", "selfwise TOM", "Count", false);
-
-            /*
-             CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
-                        
-             Difference = Operations.calculateDifference(RealTom,CurrentMatrix);
-             String O1 = out + "/Pairwise." + p + ".jpeg";
-             Difference.maskMatrix(0.02f);
-             Operations.generateHistogramHM(Difference, O1, "Pairwise Adjacency Differences Zm vs Sv", "cross-pair Delta-Adj", "Count", false);
-             */
-        }
-		// Now have permuted expression frames?
-        // NEEDS TESTING.
-    }
-
     private static Integer[][] _getPermutations(int s1, int s2, int p) {
         Integer[][] Sets = new Integer[p][];
         int m = Math.min(s1, s2);
@@ -704,17 +628,10 @@ public class Operations {
             ind[i] = i;
         }
         for (int i = 0; i < p; i++) {
-
-            // obtain a array of random order indicies, i-> [0,123,2,5,3,1]
             Integer shuffled[] = fisherYates(ind);
             Integer[] perms = Arrays.copyOfRange(shuffled, 0, s);
-            /*for(int x=0;x<perms.length;x++){
-             System.out.print(perms[x]+",");
-             }
-             System.out.print("\n");*/
             Sets[i] = perms;
         }
-        //System.exit(0);
         return Sets;
     }
 

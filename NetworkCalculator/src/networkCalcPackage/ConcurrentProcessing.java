@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-//public class SimilarityConcurrent implements Runnable {
 public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> {
 
     private ConcurrentLinkedQueue<String> queue;
@@ -17,7 +16,7 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
     private float A;
 
     private void noCall() {
-        System.err.println("Threading called with no method. Should not happen");
+        System.err.println("Threading called with no method. Something went very wrong.");
         System.exit(1);
     }
 
@@ -29,7 +28,6 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
             double IntProc = java.lang.Math.ceil(proc);
             if((IntProc == proc) && (proc != 0.0f)){
                 int rec = (int) proc * 1000 * D;
-                //int rec = (int) proc * 1000;
                 System.err.println(rec+ " records remaining... ");
             }
             int L = Integer.valueOf(s);
@@ -91,7 +89,6 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
         // Also need to handle no-variance dataset (all 1s, all anything, this will throw many correlations for a loop)
         float max = 0.0f;
         float min = Float.POSITIVE_INFINITY;
-        //System.err.println("Checking Row");
         for(int i=0;i<Data.length;i++){
             if(Data[i] > max){
                 max = Data[i];    
