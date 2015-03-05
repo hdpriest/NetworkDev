@@ -484,7 +484,7 @@ public class Operations {
         return Sig;
     }
 
-    public static float[] permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, String corr, float mu1, float mu2, float alpha1, float alpha2, int threads, float minFDR) {
+    public static float[] permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, String corr, float mu1, float mu2, float alpha1, float alpha2, int threads) {
         int s1 = expF1.getNumColumns();
         int s2 = expF2.getNumColumns();
         int R = expF1.getNumRows();
@@ -601,7 +601,7 @@ public class Operations {
                 }
                 double FDR = Average / RealHits;
                 writer.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
-                if (FDR <= minFDR) {
+                if (FDR <= 0.05f) {
                     if (CUTOFF == 1) {
                         CUTOFF = C;
                     } else {
