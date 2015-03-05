@@ -307,6 +307,20 @@ class GCNMatrix {
             }
         }
     }
+    
+    public void maskOutside(float maskLevel) {
+        int H = N;
+        float NegMask = -1.0f * maskLevel;
+        for (int i = 0; i < H; i++) {
+            for (int j = i; j < N; j++) {
+                float v = _getValueByEntry(i, j);
+                if ((v > NegMask) && (v < maskLevel)) {
+                    _setValueByEntry(0.0f, i, j);
+                }
+            }
+        }
+    }
+    
     public void maskMatrix(float maskLevel) {
         int H = N;
         for (int i = 0; i < H; i++) {

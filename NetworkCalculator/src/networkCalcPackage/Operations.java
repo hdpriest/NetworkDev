@@ -484,11 +484,13 @@ public class Operations {
         return Sig;
     }
 
-    public static float[] permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, String corr, float mu, float alpha, int threads) {
+    public static float[] permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, String corr, float mu1, float mu2, float alpha1, float alpha2, int threads, float minFDR) {
         int s1 = expF1.getNumColumns();
         int s2 = expF2.getNumColumns();
         int R = expF1.getNumRows();
         int M = Math.min(expF1.getNumColumns(), expF2.getNumColumns());
+        float pmu = (mu1+mu2)/2;
+        float pa  = (alpha1+alpha2)/2;
         int S = s1 + s2;
         int s = M * 2;
         Integer[][] Sets = new Integer[P][];
@@ -530,8 +532,8 @@ public class Operations {
                 pF2.addRow(nR2);
             }
             System.out.println("Calculating Adjacencies on iteration " + p +"...");
-            GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1, corr, "sigmoid", mu, alpha, threads);
-            GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2, corr, "sigmoid", mu, alpha, threads);
+            GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1, corr, "sigmoid", pmu, pa, threads);
+            GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2, corr, "sigmoid", pmu, pa, threads);
             CurrentMatrix1.maskMatrix(0.01f);
             CurrentMatrix2.maskMatrix(0.01f);
             CurrentMatrix1.calculateKs();
@@ -550,8 +552,10 @@ public class Operations {
             //Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
             System.out.println("Iteration "+ p +" complete.\n");
         }
-        GCNMatrix NetworkA = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu, alpha, threads);
-        GCNMatrix NetworkB = Operations.calculateAdjacency(expF2, corr, "sigmoid", mu, alpha, threads);
+        System.out.println("Calculating Observed Networks");
+        System.out.println("Calculating Adjacencies...");
+        GCNMatrix NetworkA = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu1, alpha1, threads);
+        GCNMatrix NetworkB = Operations.calculateAdjacency(expF2, corr, "sigmoid", mu2, alpha2, threads);
         NetworkA.maskMatrix(0.01f);
         NetworkB.maskMatrix(0.01f);
         NetworkA.calculateKs();
@@ -559,7 +563,7 @@ public class Operations {
         float[] rTOMS = Operations.compareNetworksViaAverage(NetworkA, NetworkB);
         Operations._tempPrintPermsToFile(rTOMS, TOMpermutations, out,expF1.getRowNames());
         ret_val = _getSignificantCTOMs(rTOMS, TOMpermutations);
-
+        System.out.println("Calculating Topological Overlaps...");
         NetworkA = Operations.calculateTOM(NetworkA, threads);
         NetworkB = Operations.calculateTOM(NetworkB, threads);
         GCNMatrix rDiff = Operations.calculateDifference(NetworkA, NetworkB);
@@ -597,7 +601,7 @@ public class Operations {
                 }
                 double FDR = Average / RealHits;
                 writer.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
-                if (FDR <= 0.05) {
+                if (FDR <= minFDR) {
                     if (CUTOFF == 1) {
                         CUTOFF = C;
                     } else {

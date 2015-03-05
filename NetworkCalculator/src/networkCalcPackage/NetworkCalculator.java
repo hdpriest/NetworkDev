@@ -20,7 +20,7 @@ public class NetworkCalculator {
         String Out = null;
         float alpha = 0.0f;
         float mu = 0.0f;
-        double Mask = 0.0;
+        double Mask = 0.0d;
         int threads = 0;
         String corr = null;
         try {
@@ -127,6 +127,9 @@ public class NetworkCalculator {
         } else {
             formatter.printHelp("java -jar jarfile.jar", options);
             System.exit(0);
+        }
+        if (cmd.hasOption("f")) {
+        } else {
         }
         if (cmd.hasOption("o")) {
         } else {
@@ -376,7 +379,6 @@ public class NetworkCalculator {
         float alpha_High = 0.0f;
         float mu_Low = 0.0f;
         float mu_High= 0.0f;
-        float Mask = 0.0f;
         int threads = 0;
         String corr = null;
         try {
@@ -429,7 +431,6 @@ public class NetworkCalculator {
                 RSquared=(Double.valueOf(df.format(RSquared)));
                 mean = (Float.valueOf(df.format(mean)));
                 
-                //System.out.println("Mu: " + MU + " Alpha: " + A + " RSQ " + RSquared);
                 rsq_Line = rsq_Line + "," + RSquared;
                 mean_Line = mean_Line + "," + mean;
             }
@@ -504,6 +505,7 @@ public class NetworkCalculator {
         float mu2;
         float alpha1;
         float alpha2;
+        float minFDR;
         String out;
         int threads;
         int permutations;
@@ -516,20 +518,19 @@ public class NetworkCalculator {
             mu2  = Float.parseFloat(cmd.getOptionValue("m2"));
             alpha1=Float.parseFloat(cmd.getOptionValue("a1"));
             alpha2=Float.parseFloat(cmd.getOptionValue("a2"));
+            if(cmd.hasOption("f")){
+                minFDR=Float.parseFloat(cmd.getOptionValue("f"));
+            }else{
+                minFDR=0.05f;
+            }
             corr = cmd.getOptionValue("c");
             permutations = Integer.parseInt(cmd.getOptionValue("p"));
             threads = Integer.parseInt(cmd.getOptionValue("t"));
             out = cmd.getOptionValue("o");
             Operations.createDirectory(out);
-            /*
-             * TODO : need to implement a few things 
-             * 1: print and load expression 
-             */
 
             String Exp1 = dir1 + "/InputExpression.matrix.tab";
             String Exp2 = dir2 + "/InputExpression.matrix.tab";
-            float mu = 0.8f;
-            float alpha = 20f;
             String sep = "\t";
             System.err.println("Identifying run parameters...");
             int[] FD_1 = new int[2];
@@ -548,18 +549,17 @@ public class NetworkCalculator {
             System.err.println("Loading original Expression data... (2)");
             ExpressionFrame ExpF2 = _loadData(Exp2, FD_2, sep);
             
-            float pmu = (mu1+mu2)/2;
-            float pa  = (alpha1+alpha2)/2;
+            
             float CUTOFF = 0.0f;
             float[] RESULT =  new float[FD_1[0]+1];
             if(permutations >0){
                 System.err.println("Beginning permuation analysis...");
-                RESULT = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, pmu, pa, threads);
+                RESULT = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, mu1, mu2, alpha1, alpha2, threads, minFDR);
                 CUTOFF = RESULT[0];
             }
             System.err.println("Permutations done. Obtained Cutoff of dTOM = " + CUTOFF);
 
-            System.err.println("Calculating actual values...");
+            System.err.println("Calculating Final Adjacencies...");
             GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1, corr, "sigmoid", mu1, alpha1, threads);
             GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2, corr, "sigmoid", mu2, alpha2, threads);
             NetworkA.calculateKs();
@@ -569,10 +569,19 @@ public class NetworkCalculator {
             String[] names = NetworkA.getRowNames();
             if(permutations >0) _cTOMsToFile(rcTOMs, RESULT, names, out);
             String ThisOut = out + "/dTOM.dist.tab";
+            System.err.println("Calculating final plasticity network...");
             NetworkA = Operations.calculateTOM(NetworkA, threads);
             NetworkB = Operations.calculateTOM(NetworkB, threads);
             GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
             
+            Difference.generateDistributionToFile(ThisOut);
+            String O3 = out + "/Cytoscape.sigEdge.tab";
+            Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
+            O3 = out + "/Cytoscape.raw.tab";
+            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
+            
+            System.err.println("Masking plasticity network based on significance cutoff: " + CUTOFF);
+            Difference.maskOutside(CUTOFF);
             DecimalFormat df = new DecimalFormat("#.###");
             df.setRoundingMode(RoundingMode.HALF_UP);
             Difference.calculateKs();
@@ -583,12 +592,6 @@ public class NetworkCalculator {
             mean = (Float.valueOf(df.format(mean)));
             System.out.println("Scale Free Criteron of resultant plasticity matrix: " + RSquared);
             System.out.println("Average Connectivity of resultant plasticity matrix: " + mean);
-            
-            Difference.generateDistributionToFile(ThisOut);
-            String O3 = out + "/Cytoscape.sigEdge.tab";
-            Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
-            O3 = out + "/Cytoscape.raw.tab";
-            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             
             // Clustering
             System.err.println("Clustering negative plasticity...");
@@ -607,51 +610,11 @@ public class NetworkCalculator {
             Clustering = new Cluster(Difference, 4);
             Clusters = Clustering.dynamicTreeCut(MinSize);
             _clustersToFile(Difference, Clusters, MinSize, ClustOut);
-
-        } catch (ParseException exp) {
-            System.err.println("Problem parsing arguments:\n" + exp.getMessage());
-            System.err.println("Exiting...\n");
-
-            System.exit(0);
-        }
-
-        // *** TODO: make network construction method
-    }
-
-    private static void clusterNetwork(String[] args) {
-        CommandLineParser parser = new BasicParser();
-        Options options = buildClusterOptions();
-        // **** TODO -- again, what is this for??
-        String directory = null;
-        try {
-            CommandLine cmd = parser.parse(options, args);
-            HelpFormatter formatter = new HelpFormatter();
-            if (cmd.hasOption("h")) {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            if (cmd.hasOption("d")) {
-            } else {
-                formatter.printHelp("java -jar jarfile.jar", options);
-                System.exit(0);
-            }
-            directory = cmd.getOptionValue("d");
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
             System.err.println("Exiting...\n");
             System.exit(0);
         }
-        String pathIn = directory + "/tom.matrix";
-        String sep = ",";
-        int[] FileDimensions = new int[2];
-        FileDimensions = _getFileDimensions(pathIn, sep);
-
-        System.err.println("Loading Data File\n");
-
-        GCNMatrix DataFrame = new GCNMatrix(FileDimensions[0], FileDimensions[1]);
-        DataFrame = _loadNetwork(pathIn, FileDimensions, sep);
-
-        System.exit(0);
     }
 
     private static void baseOptions(String[] args) {
@@ -674,9 +637,6 @@ public class NetworkCalculator {
                     break;
                 case "compare":
                     compareNetworks(args);
-                    break;
-                case "view": // TODO make into query
-                    clusterNetwork(args);
                     break;
                 case "test":
                     test(args);
@@ -826,6 +786,11 @@ public class NetworkCalculator {
         OptionBuilder.withDescription("alpha for network 2");
         Option alpha2 = OptionBuilder.create("a2");
         
+        OptionBuilder.withArgName("minFDR");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("minimum desired FDR cutoff for significance - default 0.05");
+        Option minFDR = OptionBuilder.create("f");
+
         OptionBuilder.withArgName("correlation");
         OptionBuilder.hasArg();
         OptionBuilder.withDescription("correlation metric used for both networks");
@@ -848,27 +813,11 @@ public class NetworkCalculator {
         options.addOption(mu2);
         options.addOption(alpha1);
         options.addOption(alpha2);
+        options.addOption(minFDR);
         options.addOption(c);
         options.addOption(output);
         options.addOption(threads);
         options.addOption(permutations);
-        return options;
-    }
-
-    private static Options buildClusterOptions() {
-        Options options = new Options();
-        Option help = new Option("h", "print this message");
-
-        OptionBuilder.withArgName("Analysis Directory");
-        OptionBuilder.hasArg();
-        OptionBuilder.withDescription("Directory containing the outputs of the Construct command");
-        Option directory = OptionBuilder.create("d");
-
-        options.addOption(help);
-        options.addOption(directory);
-
-        System.out.println("This method is not yet implemented\n");
-        System.exit(0);
         return options;
     }
 
@@ -1167,7 +1116,7 @@ public class NetworkCalculator {
                 continue;
             }
             count++;
-            System.out.println("Final cluster size: " + cluster.length);
+            //System.out.println("Final cluster size: " + cluster.length);
             //String ClustDir = OutDir + "/Clusters/";
             Operations.createDirectory(ClustDir);
             String nPath = ClustDir + "/" + "Cluster." + iter + ".txt";
