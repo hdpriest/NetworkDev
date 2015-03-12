@@ -382,9 +382,11 @@ public class NetworkCalculator {
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
         System.err.println("Calculating Similarity & Adjacency...\nMu : " + mu + "\nAlpha: " + alpha + "\n");
         CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", mu, alpha, threads);
-/*
         String ThisOut = Out + "/Adjacency.dist.tab";
         CurrentMatrix.generateDistributionToFile(ThisOut);
+        ThisOut = Out + "/Adjacency.cyto.tab";
+        CurrentMatrix.printMatrixToCytoscape(ThisOut, "\t", Mask);
+/*        
         String MatrixOut = Out + "/Adj.matrix.tab";
         CurrentMatrix.printMatrixToFile(MatrixOut, sep);
 */
@@ -454,10 +456,12 @@ public class NetworkCalculator {
         String header="";
         String rsq_all = "";
         String mean_all = "";
+        String slope_all= "";
         for(float MU=mu_Low;MU<=mu_High;MU+=0.05f){
             Float V = (Float.valueOf(df.format(MU)));
             String rsq_Line=String.valueOf(V);
             String mean_Line= rsq_Line;
+            String slope_Line= rsq_Line;
             for(float A=alpha_Low;A<=alpha_High;A+=2.0f){
                 if(MU==mu_Low){
                     header = header + "," + A;
@@ -465,22 +469,29 @@ public class NetworkCalculator {
                 GCNMatrix this_Adjacency = Operations.applySigmoid(CurrentMatrix, V, A, threads);
                 this_Adjacency.calculateKs();
                 
-                double RSquared = this_Adjacency.determineScaleFreeCritereon();
+                double[] Returns = this_Adjacency.determineScaleFreeCritereon();
+                Double RSquared = Returns[0];
+                Double Slope = Returns[1];
                 float mean = this_Adjacency.getMeanK();
                 if(Double.isNaN(RSquared)) RSquared=0.0d;
                 RSquared=(Double.valueOf(df.format(RSquared)));
                 mean = (Float.valueOf(df.format(mean)));
-                
+                slope_Line = slope_Line + "," + Slope;
                 rsq_Line = rsq_Line + "," + RSquared;
                 mean_Line = mean_Line + "," + mean;
             }
             rsq_all = rsq_all + rsq_Line + "\n";
             mean_all = mean_all + mean_Line + "\n";
+            slope_all = slope_all + slope_Line + "\n";
         }
         rsq_all = header + "\n" + rsq_all;
         mean_all = header + "\n" + mean_all;
+        slope_all = header + "\n" + slope_all;
         System.out.println("Scale Free Criterion:\nCorrelation to Log-Log model");
         System.out.println(rsq_all);
+        System.out.println();
+        System.out.println("Regression Slope:");
+        System.out.println(slope_all);
         System.out.println();
         System.out.println("Mean node connectivity");
         System.out.println(mean_all);
@@ -672,16 +683,19 @@ public class NetworkCalculator {
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             
             System.err.println("Masking plasticity network based on significance cutoff: " + CUTOFF);
-            Difference.maskOutside(CUTOFF);
+            Difference.maskOutside(0.001f);
             DecimalFormat df = new DecimalFormat("#.###");
             df.setRoundingMode(RoundingMode.HALF_UP);
             Difference.calculateKs();
-            double RSquared = Difference.determineScaleFreeCritereon();
+            double[] Return = Difference.determineScaleFreeCritereon();
+            double RSquared = Return[0];
+            double Slope = Return[1];
             float mean = Difference.getMeanK();
             if(Double.isNaN(RSquared)) RSquared=0.0d;
             RSquared=(Double.valueOf(df.format(RSquared)));
             mean = (Float.valueOf(df.format(mean)));
             System.out.println("Scale Free Criteron of resultant plasticity matrix: " + RSquared);
+            System.out.println("Slope of scale free connectivity: " + Slope);
             System.out.println("Average Connectivity of resultant plasticity matrix: " + mean);
             
             // Clustering

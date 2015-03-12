@@ -456,8 +456,8 @@ class GCNMatrix {
         return dist;
     }
 
-    public double determineScaleFreeCritereon (){
-        double correlation = 0.0d;
+    public double[] determineScaleFreeCritereon (){
+        double[] retval = new double[2];
         double histogram[] = _findKHistogram();
         SimpleRegression regression = new SimpleRegression();
         for(int f=2;f<200;f++){
@@ -468,8 +468,8 @@ class GCNMatrix {
             // Here, break after first zero histogram entry
             double K = (double) f;
             double pK = histogram[f]/N;
-            double logK = Math.log10(K)+Math.log10(Math.log10(K)); // Loglog
-            //double logK = Math.log10(K); // Log
+            //double logK = Math.log10(K)+Math.log10(Math.log10(K)); // Loglog
+            double logK = Math.log10(K); // Log
             //double logK = Math.log10(K) + K; // truncated exp model
             double logpK= Math.log10(pK);
             //System.out.println(f+"," + logK + "," + logpK);
@@ -477,9 +477,12 @@ class GCNMatrix {
         }
         long Num = regression.getN();
         //System.out.println("added " + Num + " observations to model");
-        correlation = regression.getRSquare();
+        double correlation = regression.getRSquare();
+        double slope = regression.getSlope();
         //System.out.println("correlation: " + correlation);
-        return correlation;
+        retval[0] = correlation;
+        retval[1]=slope;
+        return retval;
     }
     
     public float findK(int R, int j) {
