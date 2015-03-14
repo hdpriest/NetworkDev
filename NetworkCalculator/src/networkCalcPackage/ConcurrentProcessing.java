@@ -41,6 +41,9 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
                 case "pcc":
                     value = doWork_pcc(s);
                     break;
+                case "spearman":
+                    value = doWork_spearman(s);
+                    break;
                 case "sigmoid":
                     value = doWork_sigmoid(s);
                     break;
@@ -101,6 +104,51 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
         if(max == min) return false;
         return true;
     }
+    
+    public float[] doWork_spearman(String s) {
+        int i = Integer.parseInt(s);
+        int size = Exp.getNumRows() - i;
+        float[] correlations = new float[size];
+        float[] I_data = Exp.getRowByIndex(i);
+        float DataSize = (float) I_data.length;
+        int[] I_ranks = Operations.getRanks(I_data);
+        if(_checkData(I_data)){
+            for (int j = i; j < Exp.getNumRows(); j++) {
+
+                float correlation = 0.0f;
+                int coord = j - i;
+
+                if (i == j) {
+                    correlation = 1.0f;
+                } else {
+                    float[] J_data = Exp.getRowByIndex(j);
+                    if(_checkData(J_data)){
+                        int[] J_ranks = Operations.getRanks(J_data);
+                        float sum=0.0f;
+                        for(int X=0;X<J_ranks.length;X++){
+                            float diff = (float) (I_ranks[X]-J_ranks[X]);
+                            diff = diff*diff;
+                            sum += diff;
+                        }
+                        float p = (float) 1.0f-( (6.0f*sum) / (DataSize* ( (DataSize*DataSize)-1 ) ) );
+                        correlation=p;
+                    }
+                }
+                correlations[coord] = _getSigmoid(correlation);
+            }
+        }else{
+            for (int j = i; j < Exp.getNumRows(); j++) {
+                int coord = j - i;
+                if(j == i){
+                    correlations[coord] = 1.0f;
+                }else{
+                    correlations[coord] = 0.0f;    
+                }
+            }
+        }
+        return correlations;
+    }
+    
     public float[] doWork_gini(String s) {
         int i = Integer.parseInt(s);
         int size = Exp.getNumRows() - i;
@@ -229,25 +277,39 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
         int i = Integer.parseInt(s);
         int size = D - i;
         float i_k = Adj.findK(i, i);
+        //System.err.println(i_k);
+        float Approx_Cut = 0.05f; 
+/* Approx_Cut: The level below which we assume all entries for i or j (as applied)
+   are zero - in order for i_k <= Approx_Cut == true, the average adjacency edge
+   strength must be equal to i_k/D, where D is the cardinality of the gene set
+   So, this is approximate, but will save much time.     
+*/
         float[] TOM = new float[size];
-        for (int j = i; j < D; j++) {
-            int coord = j - i;
-            float tom = 0.0f;
-            if (i == j) {
-                tom = 1.0f;
-            } else {
-                float product = 0;
-                float j_k = Adj.findK(j, j);
-                for (int u = 0; u < D; u++) {
-                    if ((u != i) && (u != j) && (Adj.testValue(i, u)) && (Adj.testValue(j, u))) {
-                        product += Adj.getValueByEntry(i, u) * Adj.getValueByEntry(j, u);
+        if(i_k >= Approx_Cut){ // if i_k == 0, all a_ij == 0 all TOM(a_in==0)
+            for (int j = i; j < D; j++) {
+                int coord = j - i;
+                float tom = 0.0f;
+                if (i == j) {
+                    tom = 1.0f;
+                } else {
+                    float product = 0;
+                    float j_k = Adj.findK(j, j);
+                    if(j_k <= Approx_Cut) continue; // if j_k == 0, j has no neighbors, can skip all iterations and checks
+                    for (int u = 0; u < D; u++) {
+                        if (u == i) continue;
+                        if (u == j) continue;
+                        if (Adj.testValue(i, u) == false) continue;
+                        if (Adj.testValue(j, u) == false) continue;
+                        //if ((u != i) && (u != j) && (Adj.testValue(i, u)) && (Adj.testValue(j, u))) {
+                            product += Adj.getValueByEntry(i, u) * Adj.getValueByEntry(j, u);
+                        //}
                     }
+                    float k_min = Math.min(i_k, j_k);
+                    float DFIJ = Adj.getValueByEntry(i, j);
+                    tom = ((product + DFIJ) / (k_min + 1 - DFIJ));
                 }
-                float k_min = Math.min(i_k, j_k);
-                float DFIJ = Adj.getValueByEntry(i, j);
-                tom = ((product + DFIJ) / (k_min + 1 - DFIJ));
+                TOM[coord] = tom;
             }
-            TOM[coord] = tom;
         }
         return TOM;
     }

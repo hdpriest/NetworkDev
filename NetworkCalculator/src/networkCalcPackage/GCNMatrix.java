@@ -411,12 +411,8 @@ class GCNMatrix {
     }
 
     public boolean testValue(int i, int j) {
-        boolean res = true;
-        if (_getValueByEntry(i, j) == 0f) {
-            res = false;
-        } else {
-            res = true;
-        }
+        boolean res;
+        res = Math.abs(_getValueByEntry(i, j)) >= 0.01f;
         return res;
     }
 
@@ -460,20 +456,26 @@ class GCNMatrix {
         double[] retval = new double[2];
         double histogram[] = _findKHistogram();
         SimpleRegression regression = new SimpleRegression();
-        for(int f=2;f<200;f++){
+        int datapoints=0;
+        for(int f=2;f<2000;f++){
             //if(histogram[f] == 0.0d) continue;
-            if(histogram[f] == 0.0d) break;
+            if(histogram[f] == 0.0d){
+                //if(zeroes == 20) break;
+                continue;
+            }
             // If histogram[k] k =1 or 2, network is almost certainly too dense
             // After first zero, mostly have 1 or 2 counts at each K. Either bin, or ignore, as these can cause FP high RSQ
             // Here, break after first zero histogram entry
             double K = (double) f;
             double pK = histogram[f]/N;
-            //double logK = Math.log10(K)+Math.log10(Math.log10(K)); // Loglog
-            double logK = Math.log10(K); // Log
+            double logK = Math.log10(K)+Math.log10(Math.log10(K)); // Loglog
+            //double logK = Math.log10(K); // Log
             //double logK = Math.log10(K) + K; // truncated exp model
             double logpK= Math.log10(pK);
+            datapoints++;
             //System.out.println(f+"," + logK + "," + logpK);
             regression.addData(logK,logpK);
+            if (datapoints >= 500) break;
         }
         long Num = regression.getN();
         //System.out.println("added " + Num + " observations to model");

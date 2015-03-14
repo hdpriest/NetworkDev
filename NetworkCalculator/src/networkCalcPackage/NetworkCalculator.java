@@ -390,19 +390,36 @@ public class NetworkCalculator {
         String MatrixOut = Out + "/Adj.matrix.tab";
         CurrentMatrix.printMatrixToFile(MatrixOut, sep);
 */
-        System.err.println("Calculating TOM...\n");
-        CurrentMatrix.calculateKs();
-        CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
+        
 /*
         ThisOut = Out + "/TOM.dist.tab";
         CurrentMatrix.generateDistributionToFile(ThisOut);
         MatrixOut = Out + "/TOM.matrix.tab";
         CurrentMatrix.printMatrixToFile(MatrixOut, sep);
 */
+        /*
+        DecimalFormat df = new DecimalFormat("#.###");
+        df.setRoundingMode(RoundingMode.HALF_UP);
+        CurrentMatrix.calculateKs();
+        double[] Return = CurrentMatrix.determineScaleFreeCritereon();
+        double RSquared = Return[0];
+        double Slope = Return[1];
+        float mean = CurrentMatrix.getMeanK();
+        if(Double.isNaN(RSquared)) RSquared=0.0d;
+        RSquared=(Double.valueOf(df.format(RSquared)));
+        mean = (Float.valueOf(df.format(mean)));
+        System.out.println("Scale Free Criteron of resultant network: " + RSquared);
+        System.out.println("Slope of scale free connectivity: " + Slope);
+        System.out.println("Average Connectivity of resultant network: " + mean);
+        */    
+        System.err.println("Calculating TOM...\n");
+        CurrentMatrix.calculateKs();
+        CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
         
-        String MatrixOut = Out + "/Network.Cytoscape.Raw.tab";
-        CurrentMatrix.printMatrixToCytoscape(MatrixOut, "\t", Mask);
+    //    String MatrixOut = Out + "/Network.Cytoscape.Raw.tab";
+    //    CurrentMatrix.printMatrixToCytoscape(MatrixOut, "\t", Mask);
         System.out.println("Calculating clusters...");
+        
         int MinSize = 50;
         Cluster Clustering = new Cluster(CurrentMatrix, 4);
         String ClustOut = Out+"/Clusters/";
@@ -449,6 +466,7 @@ public class NetworkCalculator {
 
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
         System.err.println("Calculating Initial Similarity...\n");
+        // passthrough, just calculate similarity
         CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", 0.0f, 0.0f, threads);
         //CurrentMatrix.maskMatrix(0.05f);
         DecimalFormat df = new DecimalFormat("#.###");
@@ -466,9 +484,10 @@ public class NetworkCalculator {
                 if(MU==mu_Low){
                     header = header + "," + A;
                 }
+                System.err.println("Mu: "+MU+" Alpha: "+A);
+                System.err.println("Calculating Adjacency...");
                 GCNMatrix this_Adjacency = Operations.applySigmoid(CurrentMatrix, V, A, threads);
                 this_Adjacency.calculateKs();
-                
                 double[] Returns = this_Adjacency.determineScaleFreeCritereon();
                 Double RSquared = Returns[0];
                 Double Slope = Returns[1];
@@ -672,8 +691,10 @@ public class NetworkCalculator {
             
             String ThisOut = out + "/dTOM.dist.tab";
             System.err.println("Calculating final plasticity network...");
+            /*
             NetworkA = Operations.calculateTOM(NetworkA, threads);
             NetworkB = Operations.calculateTOM(NetworkB, threads);
+            */
             GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
             
             Difference.generateDistributionToFile(ThisOut);
@@ -682,10 +703,15 @@ public class NetworkCalculator {
             O3 = out + "/Cytoscape.raw.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             
-            System.err.println("Masking plasticity network based on significance cutoff: " + CUTOFF);
-            Difference.maskOutside(0.001f);
+            //System.err.println("Masking plasticity network based on significance cutoff: " + CUTOFF);
+            //Difference.maskOutside(CUTOFF);
             DecimalFormat df = new DecimalFormat("#.###");
             df.setRoundingMode(RoundingMode.HALF_UP);
+            
+            //Difference = Operations.calculateTOM(Difference, threads);
+            // Clustering
+            
+            Difference.maskAbove(0.0f);
             Difference.calculateKs();
             double[] Return = Difference.determineScaleFreeCritereon();
             double RSquared = Return[0];
@@ -694,13 +720,12 @@ public class NetworkCalculator {
             if(Double.isNaN(RSquared)) RSquared=0.0d;
             RSquared=(Double.valueOf(df.format(RSquared)));
             mean = (Float.valueOf(df.format(mean)));
-            System.out.println("Scale Free Criteron of resultant plasticity matrix: " + RSquared);
+            System.out.println("Metrics for Negative Plasticity matrix:");
+            System.out.println("Scale Free Criteron of resultant plasticity network: " + RSquared);
             System.out.println("Slope of scale free connectivity: " + Slope);
-            System.out.println("Average Connectivity of resultant plasticity matrix: " + mean);
-            
-            // Clustering
+            System.out.println("Average Connectivity of resultant plasticity network: " + mean);
             System.err.println("Clustering negative plasticity...");
-            Difference.maskAbove(0.0f);
+            Difference = Operations.calculateTOM(Difference, threads);
             int MinSize = 50;
             String ClustOut = out+"/Clusters_Neg/";
             Cluster Clustering = new Cluster(Difference, 4);
@@ -709,8 +734,21 @@ public class NetworkCalculator {
             // For some reason, using the same variable and overwriting below did not work
             // Not sure why... even copy constructors don't seem to work. hacking.
             Difference = Operations.calculateDifference(NetworkA, NetworkB);
-            System.err.println("Clustering positive plasticity...");
             Difference.maskBelow(0.0f); // MaskedDif is now the pos matrix
+            Difference.calculateKs();
+            Return = Difference.determineScaleFreeCritereon();
+            RSquared = Return[0];
+            Slope = Return[1];
+            mean = Difference.getMeanK();
+            if(Double.isNaN(RSquared)) RSquared=0.0d;
+            RSquared=(Double.valueOf(df.format(RSquared)));
+            mean = (Float.valueOf(df.format(mean)));
+            System.out.println("Metrics for Positive Plasticity matrix:");
+            System.out.println("Scale Free Criteron of resultant plasticity network: " + RSquared);
+            System.out.println("Slope of scale free connectivity: " + Slope);
+            System.out.println("Average Connectivity of resultant plasticity network: " + mean);
+            System.err.println("Clustering positive plasticity...");
+            Difference = Operations.calculateTOM(Difference, threads);
             ClustOut = out+"/Clusters_Pos/";
             Clustering = new Cluster(Difference, 4);
             Clusters = Clustering.dynamicTreeCut(MinSize);

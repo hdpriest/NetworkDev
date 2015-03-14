@@ -61,6 +61,39 @@ public class Operations {
         return NetB;
     }
 
+    public static int[] getRanks(float[] array) {
+        Map<Integer, Float> map = new HashMap<Integer, Float>(array.length);
+        for (int i = 0; i < array.length; i++) {
+            map.put(i, array[i]);
+        }
+
+        List<Entry<Integer, Float>> l
+                = new ArrayList<Entry<Integer, Float>>(map.entrySet());
+
+        Collections.sort(l, new Comparator<Entry<?, Float>>() {
+            @Override
+            public int compare(Entry<?, Float> e1, Entry<?, Float> e2) {
+                return e2.getValue().compareTo(e1.getValue());
+            }
+        });
+
+        int[] result = new int[array.length];
+        String input = "";
+        String ranks = "";
+        for (int i = 0; i < result.length; i++) {
+            //result[i] = l.get(i).getKey();
+            result[l.get(i).getKey()]=i+1;
+        }
+        /*
+        for (int i = 0; i < result.length; i++) {
+            ranks = ranks + result[i] + "\t";
+            input = input + array[i] + "\t";
+        }
+        System.err.println(ranks+"\n"+input+"\n");
+        */
+        return result;
+    }
+    
     public static int[] getIndicesInOrder(float[] array) {
         Map<Integer, Float> map = new HashMap<Integer, Float>(array.length);
         for (int i = 0; i < array.length; i++) {
@@ -78,10 +111,14 @@ public class Operations {
         });
 
         int[] result = new int[array.length];
+        String input = "";
+        String ranks = "";
         for (int i = 0; i < result.length; i++) {
             result[i] = l.get(i).getKey();
+//            ranks = ranks + l.get(i).getKey() + "\t";
+//            input = input + array[i] + "\t";
         }
-
+//        System.err.println(ranks+"\n"+input+"\n");
         return result;
     }
 
@@ -327,6 +364,8 @@ public class Operations {
                 break;
             case "pcc":
                 Expression.calculateMeans(); // most of a pcc is pre-calculateable;
+                break;
+            case "spearman":
                 break;
             default:
                 explode();
