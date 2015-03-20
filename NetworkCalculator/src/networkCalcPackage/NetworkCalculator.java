@@ -687,9 +687,12 @@ public class NetworkCalculator {
             GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2, corr, "sigmoid", mu2, alpha2, threads);
             NetworkA.calculateKs();
             NetworkB.calculateKs();
-            //float[] rcTOMs = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
-            float[] rcTOMs = Operations.compareNetworksViaAverage(NetworkA, NetworkB);
             String[] names = NetworkA.getRowNames();
+            float[] rcTOMs = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
+            _cTOMsToFile(rcTOMs,names,out,"CrossNetwork.cnTOM.tab");
+            rcTOMs = Operations.compareNetworksViaAverage(NetworkA, NetworkB);
+            _cTOMsToFile(rcTOMs,names,out,"CrossNetwork.mean.deltaAdj.tab");
+            
             
             String ThisOut = out + "/dTOM.dist.tab";
             System.err.println("Calculating final plasticity network...");
@@ -714,9 +717,9 @@ public class NetworkCalculator {
             // Clustering
             float NegCUTOFF = -1.0f * CUTOFF;
             Difference.maskAbove(NegCUTOFF);
-            O3 = out + "/TOM.negPlasticity.cytoscape.raw.tab";
-            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             Difference.calculateKs();
+            O3 = out + "/Adjacency.negPlasticity.cytoscape.raw.tab";
+            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             double[] Return = Difference.determineScaleFreeCritereon();
             double RSquared = Return[0];
             double Slope = Return[1];
@@ -1352,13 +1355,13 @@ public class NetworkCalculator {
         System.err.println("Found " + count + " clusters.");
     }
 
-    private static void _cTOMsToFile(float[] rTOMs, float[] ratios, String[] names, String OutDir) {
-        String Path = OutDir + "/CrossNetwork.TOM.tab";
+    private static void _cTOMsToFile(float[] rTOMs, String[] names, String OutDir, String fileName) {
+        String Path = OutDir + "/" + fileName ;
         try {
             PrintWriter writer = new PrintWriter(Path, "UTF-8");
-            for (int i = 1; i < ratios.length; i++) {
+            for (int i = 1; i < names.length; i++) {
                 int index = i - 1;
-                String line = names[index] + "\t" + rTOMs[index] + "\t" + ratios[i];
+                String line = names[index] + "\t" + rTOMs[index];
                 writer.println(line);
             }
             writer.close();
