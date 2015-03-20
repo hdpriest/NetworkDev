@@ -705,7 +705,7 @@ public class NetworkCalculator {
             Difference.generateDistributionToFile(ThisOut);
             String O3 = out + "/Adjacency.plasticity.cytoscape.sigEdge.tab";
             Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
-            O3 = out + "/Adjacency.plasticity.cytoscape.raw.tab";
+            O3 = out + "/Adjacency.plasticity.cytoscape.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             
             //System.err.println("Masking plasticity network based on significance cutoff: " + CUTOFF);
@@ -718,7 +718,7 @@ public class NetworkCalculator {
             float NegCUTOFF = -1.0f * CUTOFF;
             Difference.maskAbove(NegCUTOFF);
             Difference.calculateKs();
-            O3 = out + "/Adjacency.negPlasticity.cytoscape.raw.tab";
+            O3 = out + "/Adjacency.negPlasticity.cytoscape.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             double[] Return = Difference.determineScaleFreeCritereon();
             double RSquared = Return[0];
@@ -742,7 +742,7 @@ public class NetworkCalculator {
             // Not sure why... even copy constructors don't seem to work. hacking.
             Difference = Operations.calculateDifferenceThreaded(NetworkA, NetworkB,threads);
             Difference.maskBelow(CUTOFF); // MaskedDif is now the pos matrix
-            O3 = out + "/Adjacency.posPlasticity.cytoscape.raw.tab";
+            O3 = out + "/Adjacency.posPlasticity.cytoscape.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             Difference.calculateKs();
             Return = Difference.determineScaleFreeCritereon();
