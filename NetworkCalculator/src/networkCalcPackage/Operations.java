@@ -429,6 +429,67 @@ public class Operations {
         return Adjacency;
     }
 
+    public static GCNMatrix calculateDifferenceThreaded(GCNMatrix mat1, GCNMatrix mat2, int Threads) {
+
+        // prepwork
+        int D = mat1.getNumRows();
+        GCNMatrix Difference = new GCNMatrix(D, D);
+        Difference = Operations.copyNames(mat1.getRowNames(), Difference);
+        
+        // thread prep
+        ExecutorService pool = Executors.newFixedThreadPool(Threads);
+        ExecutorCompletionService<HashMap<String, float[]>> completionService = new ExecutorCompletionService<>(pool);
+        List<Future<HashMap<String, float[]>>> taskList = new ArrayList<Future<HashMap<String, float[]>>>();
+        ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<String>();
+		//System.err.println("Processing adjacency using " + Threads + " threads.");
+
+        //queue prep
+        for (int i = 0; i < D; i++) {
+            String S = String.valueOf(i);
+            queue.add(S);
+        }
+        int Number = D * D;
+        System.err.println("Added "+ Number +" Tasks To Multithreaded Processing Engine");
+        //add the tasks
+        for (int i = 0; i < Threads; i++) {
+            Callable<HashMap<String, float[]>> worker = new ConcurrentProcessing(mat1,mat2, queue, "difference");
+            Future<HashMap<String, float[]>> submit = completionService.submit(worker);
+            taskList.add(submit);
+        }
+        
+        // collect results
+        for (int t = 0; t < Threads; t++) {
+            try {
+                HashMap<String, float[]> hm = completionService.take().get();
+                //System.err.println("obtained result for thread " + t);
+                int r = 0;
+                for (Map.Entry<String, float[]> entry : hm.entrySet()) {
+                    String s = entry.getKey();
+                    int i = Integer.valueOf(s);
+                    int size = D - i;
+                    float[] d = new float[size];
+                    d = entry.getValue();
+                    for (int j = 0; j < d.length; j++) {
+                        int coord = j + i;
+                        Difference.setValueByEntry(d[j], i, coord);
+                        //System.out.println(i+"\t"+j+"\t"+d);
+                        r++;
+                    }
+
+                }
+                //System.err.println("Processed "+ r + " records");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+            //System.err.println("Thread " + t + " complete.");
+        }
+        //System.err.println("Done.");
+        pool.shutdownNow();
+        return Difference;
+    }
+    
     public static GCNMatrix calculateDifference(GCNMatrix mat1, GCNMatrix mat2) {
         int D = mat1.getNumRows();
         GCNMatrix Difference = new GCNMatrix(D, D);
@@ -582,9 +643,9 @@ public class Operations {
             System.arraycopy(cTOMs, 0, TOMpermutations[p], 0, cTOMs.length);
             System.out.println("");
             System.out.println("Calculating Toplogical Overlaps on iteration " + p +"...");
-            CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
-            CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2, threads);
-            GCNMatrix Difference = Operations.calculateDifference(CurrentMatrix1, CurrentMatrix2);
+            //CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
+            //CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2, threads);
+            GCNMatrix Difference = Operations.calculateDifferenceThreaded(CurrentMatrix1, CurrentMatrix2,threads);
             TreeMap<Float, Integer> Distribution = Difference.generateDistribution();
             Perms.add(Distribution);
             //Difference.maskMatrix(0.02f);
@@ -603,9 +664,9 @@ public class Operations {
         Operations._tempPrintPermsToFile(rTOMS, TOMpermutations, out,expF1.getRowNames());
         ret_val = _getSignificantCTOMs(rTOMS, TOMpermutations);
         System.out.println("Calculating Topological Overlaps...");
-        NetworkA = Operations.calculateTOM(NetworkA, threads);
-        NetworkB = Operations.calculateTOM(NetworkB, threads);
-        GCNMatrix rDiff = Operations.calculateDifference(NetworkA, NetworkB);
+        //NetworkA = Operations.calculateTOM(NetworkA, threads);
+        //NetworkB = Operations.calculateTOM(NetworkB, threads);
+        GCNMatrix rDiff = Operations.calculateDifferenceThreaded(NetworkA, NetworkB,threads);
         TreeMap<Float, Integer> Real = rDiff.generateDistribution();
         String permutePathOut = out + "/PermutationDetails.tab";
         PrintWriter writer;

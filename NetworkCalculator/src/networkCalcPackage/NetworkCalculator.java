@@ -384,8 +384,9 @@ public class NetworkCalculator {
         CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", mu, alpha, threads);
         String ThisOut = Out + "/Adjacency.dist.tab";
         CurrentMatrix.generateDistributionToFile(ThisOut);
-        ThisOut = Out + "/Adjacency.cyto.tab";
-        CurrentMatrix.printMatrixToCytoscape(ThisOut, "\t", Mask);
+        String MatrixOut = Out + "/Adjacency.cytoscape.raw.tab";
+        CurrentMatrix.printMatrixToCytoscape(MatrixOut, "\t", Mask);
+    
 /*        
         String MatrixOut = Out + "/Adj.matrix.tab";
         CurrentMatrix.printMatrixToFile(MatrixOut, sep);
@@ -397,7 +398,7 @@ public class NetworkCalculator {
         MatrixOut = Out + "/TOM.matrix.tab";
         CurrentMatrix.printMatrixToFile(MatrixOut, sep);
 */
-        /*
+        
         DecimalFormat df = new DecimalFormat("#.###");
         df.setRoundingMode(RoundingMode.HALF_UP);
         CurrentMatrix.calculateKs();
@@ -411,11 +412,12 @@ public class NetworkCalculator {
         System.out.println("Scale Free Criteron of resultant network: " + RSquared);
         System.out.println("Slope of scale free connectivity: " + Slope);
         System.out.println("Average Connectivity of resultant network: " + mean);
-        */    
+            
         System.err.println("Calculating TOM...\n");
         CurrentMatrix.calculateKs();
         CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
-        
+        MatrixOut = Out + "/TOM.cytoscape.raw.tab";
+        CurrentMatrix.printMatrixToCytoscape(MatrixOut, "\t", Mask);        
     //    String MatrixOut = Out + "/Network.Cytoscape.Raw.tab";
     //    CurrentMatrix.printMatrixToCytoscape(MatrixOut, "\t", Mask);
         System.out.println("Calculating clusters...");
@@ -695,12 +697,12 @@ public class NetworkCalculator {
             NetworkA = Operations.calculateTOM(NetworkA, threads);
             NetworkB = Operations.calculateTOM(NetworkB, threads);
             */
-            GCNMatrix Difference = Operations.calculateDifference(NetworkA, NetworkB);
+            GCNMatrix Difference = Operations.calculateDifferenceThreaded(NetworkA, NetworkB,threads);
             
             Difference.generateDistributionToFile(ThisOut);
-            String O3 = out + "/Cytoscape.sigEdge.tab";
+            String O3 = out + "/Adjacency.plasticity.cytoscape.sigEdge.tab";
             Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
-            O3 = out + "/Cytoscape.raw.tab";
+            O3 = out + "/Adjacency.plasticity.cytoscape.raw.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             
             //System.err.println("Masking plasticity network based on significance cutoff: " + CUTOFF);
@@ -710,8 +712,10 @@ public class NetworkCalculator {
             
             //Difference = Operations.calculateTOM(Difference, threads);
             // Clustering
-            
-            Difference.maskAbove(0.0f);
+            float NegCUTOFF = -1.0f * CUTOFF;
+            Difference.maskAbove(NegCUTOFF);
+            O3 = out + "/TOM.negPlasticity.cytoscape.raw.tab";
+            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             Difference.calculateKs();
             double[] Return = Difference.determineScaleFreeCritereon();
             double RSquared = Return[0];
@@ -733,8 +737,10 @@ public class NetworkCalculator {
             _clustersToFile(Difference, Clusters, MinSize, ClustOut);            
             // For some reason, using the same variable and overwriting below did not work
             // Not sure why... even copy constructors don't seem to work. hacking.
-            Difference = Operations.calculateDifference(NetworkA, NetworkB);
-            Difference.maskBelow(0.0f); // MaskedDif is now the pos matrix
+            Difference = Operations.calculateDifferenceThreaded(NetworkA, NetworkB,threads);
+            Difference.maskBelow(CUTOFF); // MaskedDif is now the pos matrix
+            O3 = out + "/Adjacency.posPlasticity.cytoscape.raw.tab";
+            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             Difference.calculateKs();
             Return = Difference.determineScaleFreeCritereon();
             RSquared = Return[0];
@@ -1042,7 +1048,7 @@ public class NetworkCalculator {
 
         OptionBuilder.withArgName("correlation");
         OptionBuilder.hasArg();
-        OptionBuilder.withDescription("correlation metric to use ('gini' or 'pcc')");
+        OptionBuilder.withDescription("correlation metric to use ('gini','pcc','spearman')");
         Option corr = OptionBuilder.create("c");
 
         OptionBuilder.withArgName("alpha");
@@ -1150,7 +1156,7 @@ public class NetworkCalculator {
 
         OptionBuilder.withArgName("correlation");
         OptionBuilder.hasArg();
-        OptionBuilder.withDescription("correlation metric to use ('gini' or 'pcc')");
+        OptionBuilder.withDescription("correlation metric to use ('gini','pcc' or 'spearman')");
         Option corr = OptionBuilder.create("c");
 
         OptionBuilder.withArgName("alpha low");

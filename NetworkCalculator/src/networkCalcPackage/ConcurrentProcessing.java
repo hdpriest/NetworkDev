@@ -11,6 +11,7 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
     private String amethod;
     private ExpressionFrame Exp;
     private GCNMatrix Adj;
+    private GCNMatrix Adj_b;
     private int D;
     private float M;
     private float A;
@@ -50,6 +51,9 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
                 case "tom":
                     value = doWork_tom(s);
                     break;
+                case "difference":
+                    value = doWork_diff(s);
+                    break;
                 default:
                     noCall();
                     break;
@@ -57,6 +61,14 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
             hm.put(s, value);
         }
         return hm;
+    }
+    
+    public ConcurrentProcessing(GCNMatrix Adjacency_a, GCNMatrix Adjacency_b, ConcurrentLinkedQueue<String> queue, String corr) {
+        this.queue = queue;
+        this.smethod = corr;
+        this.Adj = Adjacency_a;
+        this.Adj_b = Adjacency_b;
+        this.D = Adj.getNumRows();
     }
 
     public ConcurrentProcessing(GCNMatrix Adjacency, ConcurrentLinkedQueue<String> queue, String corr) {
@@ -313,5 +325,20 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
         }
         return TOM;
     }
-
+    public float[] doWork_diff(String s) {
+        int i = Integer.parseInt(s);
+        int size = D - i;
+        float[] Diff = new float[size];
+        for (int j = i; j < D; j++) {
+            int coord = j - i;
+            float diff = 0.0f;
+            if (i == j) {
+                diff = 0.0f;
+            } else {
+                diff = Adj_b.getValueByEntry(i,j) - Adj.getValueByEntry(i,j);
+            }
+            Diff[coord] = diff;
+        }
+        return Diff;
+    }
 }
