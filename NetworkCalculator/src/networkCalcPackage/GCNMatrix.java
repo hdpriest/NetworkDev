@@ -432,6 +432,28 @@ class GCNMatrix {
         }
     }
     
+    public float[] getCurrentAverageEdgeStrength(){
+        int H = DataFrame.length;
+        float[] avg = new float[H];
+        for (int i = 0; i < H; i++) {
+            int r = 0;
+            float thisK = 0f;
+            for (int j = 0; j < DataFrame[i].length; j++) {
+                if (i == j) {
+                } else {
+                    float value = _getValueByEntry(i, j);
+                    if(value == 0.0f){
+                    }else{
+                        r++;
+                        thisK = thisK + value;
+                    }
+                }
+            }
+            avg[i] = thisK / r;
+        }
+        return avg;
+    }
+        
     public float getMeanK (){
         float mean=0.0f;
         for(int i=0;i<k.length;i++){

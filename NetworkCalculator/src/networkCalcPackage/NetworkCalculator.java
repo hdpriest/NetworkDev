@@ -688,11 +688,6 @@ public class NetworkCalculator {
             NetworkA.calculateKs();
             NetworkB.calculateKs();
             String[] names = NetworkA.getRowNames();
-            float[] rcTOMs = Operations.compareNetworksViaTOM(NetworkA, NetworkB);
-            _cTOMsToFile(rcTOMs,names,out,"CrossNetwork.cnTOM.tab");
-            rcTOMs = Operations.compareNetworksViaAverage(NetworkA, NetworkB);
-            _cTOMsToFile(rcTOMs,names,out,"CrossNetwork.mean.deltaAdj.tab");
-            
             
             String ThisOut = out + "/dTOM.dist.tab";
             System.err.println("Calculating final plasticity network...");
@@ -718,6 +713,8 @@ public class NetworkCalculator {
             float NegCUTOFF = -1.0f * CUTOFF;
             Difference.maskAbove(NegCUTOFF);
             Difference.calculateKs();
+            float[] averagePlasticity = Difference.getCurrentAverageEdgeStrength();
+            _cTOMsToFile(averagePlasticity,names,out,"NodePlasticity.neg.tab");
             O3 = out + "/Adjacency.negPlasticity.cytoscape.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             double[] Return = Difference.determineScaleFreeCritereon();
@@ -745,6 +742,8 @@ public class NetworkCalculator {
             O3 = out + "/Adjacency.posPlasticity.cytoscape.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             Difference.calculateKs();
+            averagePlasticity = Difference.getCurrentAverageEdgeStrength();
+            _cTOMsToFile(averagePlasticity,names,out,"NodePlasticity.pos.tab");
             Return = Difference.determineScaleFreeCritereon();
             RSquared = Return[0];
             Slope = Return[1];
