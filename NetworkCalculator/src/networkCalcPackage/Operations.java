@@ -195,47 +195,46 @@ public class Operations {
         int D = Net1.getNumRows();
         float[] cTOMs = new float[D];
         for (int i = 0; i < D; i++) {
-            for (int j = 0; j < D; j++) {
-                float T = 0;
-                if (i == j) {
-                    float sum = 0.0f;
-                    ArrayList<Double> Net1Values = new ArrayList<Double>();
-                    ArrayList<Double> Net2Values = new ArrayList<Double>();
-                    float i_k = Net1.findK(i, i);
-                    float j_k = Net2.findK(j, j);
-                    float a_k = 0.0f;
-                    for (int u = 0; u < D; u++) {
-                        if ((u != i) && (u != j) && ((Net1.testValue(i, u)) || (Net2.testValue(j, u)))) {
-                            float i_v = Net1.getValueByEntry(i, u);
-                            float j_v = Net2.getValueByEntry(j, u);
-                            if((i_v<0.05) && (j_v <0.05)) continue;
-                            Net1Values.add(Double.valueOf(i_v));
-                            Net2Values.add(Double.valueOf(j_v));
-                            a_k += 1.0f;
-                        }
-                    }
-                    if(a_k <= 10.0f)continue;
-                    double[] net1values = new double[Net1Values.size()];
-                    double[] net2values = new double[Net2Values.size()];
-                    int X =0;
-                    for(Double value : Net1Values){
-                    	net1values[X]= (double) value;
-                    	X++;
-                    }
-                    X=0;
-                    for(Double value : Net2Values){
-                    	net2values[X]=(double) value;
-                    	X++;
-                    }
-                    MannWhitneyUTest MWW = new MannWhitneyUTest();
-                    double PofU = MWW.mannWhitneyUTest(net1values, net2values);
-                    System.err.println("node " +i + " MWWUP: " + PofU);
-                    cTOMs[i] = (float) PofU;
-                } else {
+            int j=i;
+            cTOMs[i]=1.0f;
+            ArrayList<Double> Net1Values = new ArrayList<Double>();
+            ArrayList<Double> Net2Values = new ArrayList<Double>();
+            float a_k = 0.0f;
+            for (int u = 0; u < D; u++) {
+                if ((u != i) && (u != j) && ((Net1.testValue(i, u)) && (Net2.testValue(j, u)))) {
+                    float i_v = Net1.getValueByEntry(i, u);
+                    float j_v = Net2.getValueByEntry(j, u);
+                    if((i_v<0.05) && (j_v <0.05)) continue;
+                    Net1Values.add(Double.valueOf(i_v));
+                    Net2Values.add(Double.valueOf(j_v));
+                    a_k += 1.0f;
                 }
-
-                //ReturnFrame.setValueByEntry(T, i, j);
             }
+            if(a_k <= 100.0f)continue;
+            double[] net1values = new double[Net1Values.size()];
+            double[] net2values = new double[Net2Values.size()];
+            int X =0;
+            for(Double value : Net1Values){
+                net1values[X]= (double) value;
+                X++;
+            }
+            X=0;
+            for(Double value : Net2Values){
+                net2values[X]= (double) value;
+                X++;
+            }
+            MannWhitneyUTest MWW = new MannWhitneyUTest();
+            double PofU = MWW.mannWhitneyUTest(net1values, net2values);
+            /*String Net1Val = "Net1\t";
+            String Net2Val = "Net2\t";
+            for(int z=0;z<net2values.length;z++){
+                Net1Val = Net1Val + net1values[z] + "\t";
+                Net2Val = Net2Val + net2values[z] + "\t";
+            }
+            System.out.println(Net1Val);
+            System.out.println(Net2Val);
+            System.out.println("node " +i + " MWWUP: " + PofU);*/
+            cTOMs[i] = (float) PofU;
         }
         return cTOMs;
     }

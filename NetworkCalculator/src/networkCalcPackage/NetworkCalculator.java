@@ -689,15 +689,16 @@ public class NetworkCalculator {
             NetworkB.calculateKs();
             String[] names = NetworkA.getRowNames();
             
-            String ThisOut = out + "/dTOM.dist.tab";
             System.err.println("Calculating final plasticity network...");
+            
+            GCNMatrix Difference = Operations.calculateDifferenceThreaded(NetworkA, NetworkB, threads);
             /*
             NetworkA = Operations.calculateTOM(NetworkA, threads);
-            NetworkB = Operations.calculateTOM(NetworkB, threads);
+            NetworkB = Operations.calculateTOM(NetworkB, threads)
+            float[] MWW = Operations.compareNetworksViaMWW(NetworkA,NetworkB);
+            float[] averagePlasticity = Difference.getCurrentAverageEdgeStrength();
+            _MWWToFile(MWW,averagePlasticity,names,out,"NodePlasticity.MWW.tab");
             */
-            GCNMatrix Difference = Operations.calculateDifferenceThreaded(NetworkA, NetworkB,threads);
-            
-            Difference.generateDistributionToFile(ThisOut);
             String O3 = out + "/Adjacency.plasticity.cytoscape.sigEdge.tab";
             Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
             O3 = out + "/Adjacency.plasticity.cytoscape.tab";
@@ -713,8 +714,7 @@ public class NetworkCalculator {
             float NegCUTOFF = -1.0f * CUTOFF;
             Difference.maskAbove(NegCUTOFF);
             Difference.calculateKs();
-            float[] averagePlasticity = Difference.getCurrentAverageEdgeStrength();
-            _cTOMsToFile(averagePlasticity,names,out,"NodePlasticity.neg.tab");
+
             O3 = out + "/Adjacency.negPlasticity.cytoscape.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             double[] Return = Difference.determineScaleFreeCritereon();
@@ -730,6 +730,8 @@ public class NetworkCalculator {
             System.out.println("Average Connectivity of resultant plasticity network: " + mean);
             System.err.println("Clustering negative plasticity...");
             Difference = Operations.calculateTOM(Difference, threads);
+            O3 = out + "/TOM.negPlasticity.cytoscape.tab";
+            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             int MinSize = 50;
             String ClustOut = out+"/Clusters_Neg/";
             Cluster Clustering = new Cluster(Difference, 4);
@@ -742,8 +744,6 @@ public class NetworkCalculator {
             O3 = out + "/Adjacency.posPlasticity.cytoscape.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             Difference.calculateKs();
-            averagePlasticity = Difference.getCurrentAverageEdgeStrength();
-            _cTOMsToFile(averagePlasticity,names,out,"NodePlasticity.pos.tab");
             Return = Difference.determineScaleFreeCritereon();
             RSquared = Return[0];
             Slope = Return[1];
@@ -757,6 +757,8 @@ public class NetworkCalculator {
             System.out.println("Average Connectivity of resultant plasticity network: " + mean);
             System.err.println("Clustering positive plasticity...");
             Difference = Operations.calculateTOM(Difference, threads);
+            O3 = out + "/TOM.posPlasticity.cytoscape.tab";
+            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             ClustOut = out+"/Clusters_Pos/";
             Clustering = new Cluster(Difference, 4);
             Clusters = Clustering.dynamicTreeCut(MinSize);
@@ -1361,6 +1363,21 @@ public class NetworkCalculator {
             for (int i = 1; i < names.length; i++) {
                 int index = i - 1;
                 String line = names[index] + "\t" + rTOMs[index];
+                writer.println(line);
+            }
+            writer.close();
+        } catch (Exception e) {
+            //
+        }
+
+    }
+    private static void _MWWToFile(float[] rTOMs, float[] average, String[] names, String OutDir, String fileName) {
+        String Path = OutDir + "/" + fileName ;
+        try {
+            PrintWriter writer = new PrintWriter(Path, "UTF-8");
+            for (int i = 1; i < names.length; i++) {
+                int index = i - 1;
+                String line = names[index] + "\t" + rTOMs[index] + "\t" + average[index];
                 writer.println(line);
             }
             writer.close();
