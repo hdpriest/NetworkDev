@@ -583,7 +583,7 @@ public class Operations {
         return Sig;
     }
 
-    public static float[] permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, String corr, float mu1, float mu2, float alpha1, float alpha2, int threads) {
+    public static float permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, String corr, float mu1, float mu2, float alpha1, float alpha2, int threads) {
         int s1 = expF1.getNumColumns();
         int s2 = expF2.getNumColumns();
         int R = expF1.getNumRows();
@@ -595,8 +595,6 @@ public class Operations {
         Integer[][] Sets = new Integer[P][];
         Sets = _getPermutations(s1, s2, P);
         float CUTOFF = 1.0f;
-        float[][] TOMpermutations = new float[P][R];
-        float[] ret_val = new float[R + 1];
         ArrayList<TreeMap<Float, Integer>> Perms = new ArrayList<>();
 
         for (int p = 0; p < P; p++) {
@@ -637,18 +635,9 @@ public class Operations {
             CurrentMatrix2.maskMatrix(0.01f);
             CurrentMatrix1.calculateKs();
             CurrentMatrix2.calculateKs();
-            //float[] cTOMs = Operations.compareNetworksViaTOM(CurrentMatrix1, CurrentMatrix2);
-            float[] cTOMs = Operations.compareNetworksViaAverage(CurrentMatrix1, CurrentMatrix2);
-            System.arraycopy(cTOMs, 0, TOMpermutations[p], 0, cTOMs.length);
-            System.out.println("");
-            System.out.println("Calculating Toplogical Overlaps on iteration " + p +"...");
-            //CurrentMatrix1 = Operations.calculateTOM(CurrentMatrix1, threads);
-            //CurrentMatrix2 = Operations.calculateTOM(CurrentMatrix2, threads);
             GCNMatrix Difference = Operations.calculateDifferenceThreaded(CurrentMatrix1, CurrentMatrix2,threads);
             TreeMap<Float, Integer> Distribution = Difference.generateDistribution();
             Perms.add(Distribution);
-            //Difference.maskMatrix(0.02f);
-            //Operations.generateHistogramHM(Difference, O2, "Cross-network TOM diffs Zm vs Sv", "selfwise TOM", "Count", false);
             System.out.println("Iteration "+ p +" complete.\n");
         }
         System.out.println("Calculating Observed Networks");
@@ -659,12 +648,6 @@ public class Operations {
         NetworkB.maskMatrix(0.01f);
         NetworkA.calculateKs();
         NetworkB.calculateKs();
-        float[] rTOMS = Operations.compareNetworksViaAverage(NetworkA, NetworkB);
-        Operations._tempPrintPermsToFile(rTOMS, TOMpermutations, out,expF1.getRowNames());
-        ret_val = _getSignificantCTOMs(rTOMS, TOMpermutations);
-        System.out.println("Calculating Topological Overlaps...");
-        //NetworkA = Operations.calculateTOM(NetworkA, threads);
-        //NetworkB = Operations.calculateTOM(NetworkB, threads);
         GCNMatrix rDiff = Operations.calculateDifferenceThreaded(NetworkA, NetworkB,threads);
         TreeMap<Float, Integer> Real = rDiff.generateDistribution();
         String permutePathOut = out + "/PermutationDetails.tab";
@@ -672,7 +655,7 @@ public class Operations {
         try {
             writer = new PrintWriter(permutePathOut, "UTF-8");
             writer.println("Cutoff\tAverage False\tTrue\tFDR");
-            for (float c = 0.0f; c < 1.0f; c += 0.01f) {
+            for (float c = 0.0f; c < 2.0f; c += 0.01f) {
                 float C = c;
                 Double Total = 0.0d;
                 for (int a = 0; a < Perms.size(); a++) {
@@ -717,8 +700,7 @@ public class Operations {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        ret_val[0] = CUTOFF;
-        return ret_val;
+        return CUTOFF;
     }
 
     private static Integer[][] _getPermutations(int s1, int s2, int p) {

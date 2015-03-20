@@ -388,17 +388,14 @@ class GCNMatrix {
         TreeMap<Float, Integer> HMHistogram = new TreeMap<Float, Integer>();
         for (int i = 0; i < H; i++) {
             for (int j = i; j < H; j++) {
-                //System.out.println("Val: "+DataFrame[i][j]+"\n");
                 if (_getValueByEntry(i, j) != 0) {
                     try {
-                        Float V = (Float.valueOf(df.format(_getValueByEntry(i, j))));
+                        Float V = Math.abs((Float.valueOf(df.format(_getValueByEntry(i, j)))));
                         if (HMHistogram.containsKey(V)) {
                             Integer I = HMHistogram.get(V);
-                            // System.out.println("Putting " + V+ " and " + I);
                             HMHistogram.put(V, I + 1);
                         } else {
                             HMHistogram.put(V, 1);
-                            // System.out.println("Putting " + V+ " and 1");
                         }
                     } catch (NumberFormatException ex) {
                         System.out.println("Obtain " + _getValueByEntry(i, j) + " from matrix.");

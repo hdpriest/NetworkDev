@@ -263,7 +263,11 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
         if((A == 0.0f) && (M == 0.0f)){
             return V; // passthrough - must be notated in manual as A=0,M=0 =/= sigmoid(V)=V
         }else{
-            return (float) (1.0f / (1 + Math.exp(A * -1 * (Math.abs(V) - M))));
+            float s = (float) (1.0f / (1 + Math.exp(A * -1 * (Math.abs(V) - M))));
+            if(V<0.0f){
+                s=s*-1;
+            }
+            return s;
         }
         
     }
@@ -312,7 +316,11 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
                         if (u == j) continue;
                         if (Adj.testValue(i, u) == false) continue;
                         if (Adj.testValue(j, u) == false) continue;
-                        product += Math.abs(Adj.getValueByEntry(i, u) * Adj.getValueByEntry(j, u));
+                        float this_product = Math.abs(Adj.getValueByEntry(i, u) * Adj.getValueByEntry(j, u));
+                        if(this_product > 1){
+                            this_product=1;
+                        }
+                        product += this_product;
                     }
                     float k_min = Math.min(i_k, j_k);
                     float DFIJ = Math.abs(Adj.getValueByEntry(i, j));

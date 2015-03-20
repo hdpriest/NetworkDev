@@ -619,8 +619,7 @@ public class NetworkCalculator {
             float[] RESULT =  new float[FD_1[0]+1];
             if(permutations >0){
                 System.err.println("Beginning permuation analysis...");
-                RESULT = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, mu1, mu2, alpha1, alpha2, threads);
-                CUTOFF = RESULT[0];
+                CUTOFF = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, mu1, mu2, alpha1, alpha2, threads);
             }
             System.err.println("Permutations done. Obtained Cutoff of dTOM = " + CUTOFF +"\n");
             System.err.println("See "+out+"/PermutationDetails.tab for more details on calculated False Discovery Rates\n");
