@@ -449,7 +449,11 @@ class GCNMatrix {
                     }
                 }
             }
-            avg[i] = thisK / r;
+            if(r==0){
+                avg[i] = 0.0f;
+            }else{
+                avg[i] = thisK / r;    
+            }
         }
         return avg;
     }
