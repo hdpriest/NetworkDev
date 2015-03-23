@@ -3,6 +3,7 @@ package networkCalcPackage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -128,7 +129,12 @@ public class NetworkCalculator {
             formatter.printHelp("java -jar jarfile.jar", options);
             System.exit(0);
         }
-        if (cmd.hasOption("dT")) {
+        if (cmd.hasOption("dnA")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("dpA")) {
         } else {
             formatter.printHelp("java -jar jarfile.jar", options);
             System.exit(0);
@@ -192,7 +198,45 @@ public class NetworkCalculator {
             System.exit(0);
         }
     }
-        
+
+    private static void _checkScalefreeOptions(CommandLine cmd, Options options) {
+        HelpFormatter formatter = new HelpFormatter();
+        if (cmd.hasOption("h")) {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("d1")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("d2")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("t")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("o")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("c")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+        if (cmd.hasOption("t")) {
+        } else {
+            formatter.printHelp("java -jar jarfile.jar", options);
+            System.exit(0);
+        }
+    }    
+    
     private static void _checkConstructOptions(CommandLine cmd, Options options) {
         HelpFormatter formatter = new HelpFormatter();
         if (cmd.hasOption("h")) {
@@ -566,7 +610,7 @@ public class NetworkCalculator {
         System.exit(0);
     }
 
-    private static void permute(String[] args) {
+    private static void permute(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
         String IAM = "Comparison";
         CommandLineParser parser = new BasicParser();
         Options options = buildPermuteOptions();
@@ -631,6 +675,67 @@ public class NetworkCalculator {
         }
     }
     
+    private static void scaleFree(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
+        String IAM = "Comparison";
+        CommandLineParser parser = new BasicParser();
+        Options options = buildScalefreeOptions();
+        String dir1;
+        String dir2;
+        String corr = "pcc";
+        float mu1;
+        float mu2;
+        float alpha1;
+        float alpha2;
+        String out;
+        int threads;
+        int permutations;
+        try {
+            CommandLine cmd = parser.parse(options, args);
+            _checkScalefreeOptions(cmd, options);
+            dir1 = cmd.getOptionValue("d1");
+            dir2 = cmd.getOptionValue("d2");
+            mu1  = Float.parseFloat(cmd.getOptionValue("m1"));
+            mu2  = Float.parseFloat(cmd.getOptionValue("m2"));
+            alpha1=Float.parseFloat(cmd.getOptionValue("a1"));
+            alpha2=Float.parseFloat(cmd.getOptionValue("a2"));
+            corr = cmd.getOptionValue("c");
+            threads = Integer.parseInt(cmd.getOptionValue("t"));
+            out = cmd.getOptionValue("o");
+            Operations.createDirectory(out);
+
+            String Exp1 = dir1 + "/InputExpression.matrix.tab";
+            String Exp2 = dir2 + "/InputExpression.matrix.tab";
+            String sep = "\t";
+            System.err.println("Identifying run parameters...");
+            int[] FD_1 = new int[2];
+            FD_1 = _getFileDimensions(Exp1, sep);
+            int[] FD_2 = new int[2];
+            FD_2 = _getFileDimensions(Exp2, sep);
+
+            if (FD_1[0] == FD_2[0]) {
+            } else {
+                System.err.println("Matrix files are not the same size");
+                System.exit(0);
+            }
+            System.err.println("Comparing Networks...\n\n");
+            System.err.println("Loading original Expression data... (1)");
+            ExpressionFrame ExpF1 = _loadData(Exp1, FD_1, sep);
+            System.err.println("Loading original Expression data... (2)");
+            ExpressionFrame ExpF2 = _loadData(Exp2, FD_2, sep);
+            
+            float[] RESULT =  new float[2];
+            System.err.println("Beginning scale-free analysis...");
+            RESULT = Operations.determineCutoffSF(ExpF1, ExpF2, out, corr, mu1, mu2, alpha1, alpha2, threads);
+            System.err.println("See files in "+out+"/ for more details on calculated scale free criteria\n");
+            System.err.println("Cutoff for negative plasticity: " + RESULT[0]);
+            System.err.println("Cutoff for negative plasticity: " + RESULT[1]);
+        } catch (ParseException exp) {
+            System.err.println("Problem parsing arguments:\n" + exp.getMessage());
+            System.err.println("Exiting...\n");
+            System.exit(0);
+        }
+    }
+    
     private static void compareNetworks(String[] args) {
         String IAM = "Comparison";
         CommandLineParser parser = new BasicParser();
@@ -642,7 +747,8 @@ public class NetworkCalculator {
         float mu2;
         float alpha1;
         float alpha2;
-        float CUTOFF;
+        float CUTOFF_pos;
+        float CUTOFF_neg;
         String out;
         int threads;
         try {
@@ -654,7 +760,8 @@ public class NetworkCalculator {
             mu2  = Float.parseFloat(cmd.getOptionValue("m2"));
             alpha1=Float.parseFloat(cmd.getOptionValue("a1"));
             alpha2=Float.parseFloat(cmd.getOptionValue("a2"));
-            CUTOFF=Float.parseFloat(cmd.getOptionValue("dT"));
+            CUTOFF_pos=Float.parseFloat(cmd.getOptionValue("dpA"));
+            CUTOFF_neg=Float.parseFloat(cmd.getOptionValue("dnA"));
             corr = cmd.getOptionValue("c");
             threads = Integer.parseInt(cmd.getOptionValue("t"));
             out = cmd.getOptionValue("o");
@@ -698,20 +805,17 @@ public class NetworkCalculator {
             float[] averagePlasticity = Difference.getCurrentAverageEdgeStrength();
             _MWWToFile(MWW,averagePlasticity,names,out,"NodePlasticity.MWW.tab");
             */
-            String O3 = out + "/Adjacency.plasticity.cytoscape.sigEdge.tab";
-            Difference.printMatrixToCytoscape(O3, "\t", CUTOFF);
-            O3 = out + "/Adjacency.plasticity.cytoscape.tab";
+            String O3 = out + "/Adjacency.plasticity.cytoscape.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             
             //System.err.println("Masking plasticity network based on significance cutoff: " + CUTOFF);
             //Difference.maskOutside(CUTOFF);
             DecimalFormat df = new DecimalFormat("#.###");
             df.setRoundingMode(RoundingMode.HALF_UP);
-            
             //Difference = Operations.calculateTOM(Difference, threads);
             // Clustering
-            float NegCUTOFF = -1.0f * CUTOFF;
-            Difference.maskAbove(NegCUTOFF);
+
+            Difference.maskAbove(CUTOFF_neg);
             Difference.calculateKs();
 
             O3 = out + "/Adjacency.negPlasticity.cytoscape.tab";
@@ -739,7 +843,7 @@ public class NetworkCalculator {
             // For some reason, using the same variable and overwriting below did not work
             // Not sure why... even copy constructors don't seem to work. hacking.
             Difference = Operations.calculateDifferenceThreaded(NetworkA, NetworkB,threads);
-            Difference.maskBelow(CUTOFF); // MaskedDif is now the pos matrix
+            Difference.maskBelow(CUTOFF_pos); // MaskedDif is now the pos matrix
             O3 = out + "/Adjacency.posPlasticity.cytoscape.tab";
             Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
             Difference.calculateKs();
@@ -776,7 +880,7 @@ public class NetworkCalculator {
         System.exit(0);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
         if (args.length == 0) {
             baseOptions(args);
         } else {
@@ -798,6 +902,9 @@ public class NetworkCalculator {
                     break;
                 case "permute":
                     permute(args);
+                    break;
+                case "scalefree":
+                    scaleFree(args);
                     break;
                 default:
                     baseOptions(args);
@@ -876,6 +983,11 @@ public class NetworkCalculator {
         OptionBuilder.withDescription("perform background permutations to determine significance cutoff");
         Option permute = OptionBuilder.create("permute");
         
+        OptionBuilder.withArgName("scalefree");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Determine plasticity cutoff via conformation to scale free criteria");
+        Option scalefree = OptionBuilder.create("scalefree");
+        
         OptionBuilder.withArgName("compare");
         OptionBuilder.hasArg();
         OptionBuilder.withDescription("compare several network matricies");
@@ -895,6 +1007,7 @@ public class NetworkCalculator {
         options.addOption(determine);
         options.addOption(construct);
         options.addOption(permute);
+        options.addOption(scalefree);
         options.addOption(compare);
         options.addOption(similarity);
         options.addOption(test);
@@ -942,10 +1055,15 @@ public class NetworkCalculator {
         OptionBuilder.withDescription("alpha for network 2");
         Option alpha2 = OptionBuilder.create("a2");
         
-        OptionBuilder.withArgName("delta-TOM");
+        OptionBuilder.withArgName("positive delta-Adjacency");
         OptionBuilder.hasArg();
-        OptionBuilder.withDescription("delta-Topological Overlap Cutoff for Plasticity Determination");
-        Option deltaTOM = OptionBuilder.create("dT");
+        OptionBuilder.withDescription("delta-Adjacency Overlap Cutoff for positive plasticity determination");
+        Option pos_delta_Adj = OptionBuilder.create("dpA");
+        
+        OptionBuilder.withArgName("negative delta-Adjacency");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("delta-Adjacency Overlap Cutoff for negative plasticity determination");
+        Option neg_delta_Adj = OptionBuilder.create("dnA");
 
         OptionBuilder.withArgName("correlation");
         OptionBuilder.hasArg();
@@ -964,7 +1082,8 @@ public class NetworkCalculator {
         options.addOption(mu2);
         options.addOption(alpha1);
         options.addOption(alpha2);
-        options.addOption(deltaTOM);
+        options.addOption(neg_delta_Adj);
+        options.addOption(pos_delta_Adj);
         options.addOption(c);
         options.addOption(output);
         options.addOption(threads);
@@ -1038,8 +1157,69 @@ public class NetworkCalculator {
         options.addOption(permutations);
         return options;
     }
+    
+    private static Options buildScalefreeOptions() {
+        Options options = new Options();
+        Option help = new Option("h", "print this message");
 
+        OptionBuilder.withArgName("matrix1");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Directory containing run files for network 1");
+        Option dir1 = OptionBuilder.create("d1");
 
+        OptionBuilder.withArgName("matrix2");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("Directory containing run files for network 2");
+        Option dir2 = OptionBuilder.create("d2");
+
+        OptionBuilder.withArgName("output");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("output file");
+        Option output = OptionBuilder.create("o");
+
+        OptionBuilder.withArgName("mu1");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("mu for network 1");
+        Option mu1 = OptionBuilder.create("m1");
+
+        OptionBuilder.withArgName("mu2");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("mu for network 2");
+        Option mu2 = OptionBuilder.create("m2");
+        
+        OptionBuilder.withArgName("alpha1");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("alpha for network 1");
+        Option alpha1 = OptionBuilder.create("a1");
+        
+        OptionBuilder.withArgName("alpha2");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("alpha for network 2");
+        Option alpha2 = OptionBuilder.create("a2");
+        
+        OptionBuilder.withArgName("correlation");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("correlation metric used for both networks");
+        Option c = OptionBuilder.create("c");
+        
+        OptionBuilder.withArgName("threads");
+        OptionBuilder.hasArg();
+        OptionBuilder.withDescription("number of processing threads");
+        Option threads = OptionBuilder.create("t");
+
+        options.addOption(help);
+        options.addOption(dir1);
+        options.addOption(dir2);
+        options.addOption(mu1);
+        options.addOption(mu2);
+        options.addOption(alpha1);
+        options.addOption(alpha2);
+        options.addOption(c);
+        options.addOption(output);
+        options.addOption(threads);
+        return options;
+    }
+ 
     private static Options buildConstructOptions() {
         Options options = new Options();
         Option help = new Option("h", "print this message");
