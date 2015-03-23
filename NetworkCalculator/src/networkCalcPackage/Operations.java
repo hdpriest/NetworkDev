@@ -652,11 +652,13 @@ public class Operations {
         TreeMap<Float, Integer> Real = rDiff.generateDistribution();
         String permutePathOut = out + "/PermutationDetails.tab";
         PrintWriter writer;
+        DecimalFormat df = new DecimalFormat("#.######");
+        df.setRoundingMode(RoundingMode.HALF_UP);
         try {
             writer = new PrintWriter(permutePathOut, "UTF-8");
             writer.println("Cutoff\tAverage False\tTrue\tFDR");
             for (float c = 0.0f; c < 2.0f; c += 0.01f) {
-                float C = c;
+                float C = (Float.valueOf(df.format(c)));
                 Double Total = 0.0d;
                 for (int a = 0; a < Perms.size(); a++) {
                     for (Map.Entry<Float, Integer> entry : Perms.get(a).entrySet()) {
@@ -682,6 +684,12 @@ public class Operations {
                     }
                 }
                 double FDR = Average / RealHits;
+                if(Double.isNaN(Average)) Average=0.0d;
+                if(Double.isNaN(RealHits)) RealHits=0.0d;
+                if(Double.isNaN(FDR)) FDR=0.0d;
+                Average = (Double.valueOf(df.format(Average)));
+                RealHits = (Double.valueOf(df.format(RealHits)));
+                FDR = (Double.valueOf(df.format(FDR)));
                 writer.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
                 if (FDR <= 0.05f) {
                     if (CUTOFF == 1) {
@@ -701,6 +709,74 @@ public class Operations {
             e.printStackTrace();
         }
         return CUTOFF;
+    }
+    
+    public static float[] determineCutoffSF(ExpressionFrame expF1, ExpressionFrame expF2, String out, String corr, float mu1, float mu2, float alpha1, float alpha2, int threads) throws FileNotFoundException, UnsupportedEncodingException {
+
+        GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu1, alpha1, threads);
+        GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(expF2, corr, "sigmoid", mu2, alpha2, threads);
+        CurrentMatrix1.calculateKs();
+        CurrentMatrix2.calculateKs();
+        
+        float[] result = new float[2];
+        
+        PrintWriter writer;
+        try{
+            DecimalFormat df = new DecimalFormat("#.###");
+            df.setRoundingMode(RoundingMode.HALF_UP);
+            String permutePathOut = out + "/NegativePermutationDetails.tab";
+            writer= new PrintWriter(permutePathOut, "UTF-8");
+            writer.println("Cutoff\tR-squared\tSlope\tMean Connectivity");    
+            System.err.println("Determining Cutoff for Negative Plasticity.");
+            GCNMatrix Difference = Operations.calculateDifferenceThreaded(CurrentMatrix1, CurrentMatrix2,threads);
+            for(float cutoff=0;cutoff<1.0f;cutoff+=0.01){
+                cutoff = (Float.valueOf(df.format(cutoff)));
+                float this_cutoff = cutoff *-1.0f;
+                Difference.maskAbove(this_cutoff);
+                Difference.calculateKs();
+                double[] Return = Difference.determineScaleFreeCritereon();
+                double RSquared = Return[0];
+                double Slope = Return[1];
+                float mean = Difference.getMeanK();
+                if(Double.isNaN(RSquared)) RSquared=0.0d;
+                RSquared=(Double.valueOf(df.format(RSquared)));
+                mean = (Float.valueOf(df.format(mean)));
+                writer.println(this_cutoff + "\t" + RSquared + "\t" + Slope + "\t" + mean);
+                if(result[0] == 0){
+                    if(RSquared>=0.8) result[0]=cutoff;
+                }
+            }
+            writer.close();
+            permutePathOut = out + "/PositivePermutationDetails.tab";
+            System.err.println("Determining Cutoff for Positive Plasticity.");
+            Difference = Operations.calculateDifferenceThreaded(CurrentMatrix1, CurrentMatrix2,threads);
+            writer= new PrintWriter(permutePathOut, "UTF-8");
+            writer.println("Cutoff\tR-squared\tSlope\tMean Connectivity");    
+            for(float cutoff=0;cutoff<1.0f;cutoff+=0.01){
+                cutoff = (Float.valueOf(df.format(cutoff)));
+                Difference.maskBelow(cutoff);
+                Difference.calculateKs();
+                double[] Return = Difference.determineScaleFreeCritereon();
+                double RSquared = Return[0];
+                double Slope = Return[1];
+                float mean = Difference.getMeanK();
+                if(Double.isNaN(RSquared)) RSquared=0.0d;
+                RSquared=(Double.valueOf(df.format(RSquared)));
+                mean = (Float.valueOf(df.format(mean)));
+                writer.println(cutoff + "\t" + RSquared + "\t" + Slope + "\t" + mean);
+                if(result[1] == 0){
+                    if(RSquared>=0.8) result[1]=cutoff;
+                }
+            }
+            writer.close();
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return result;
     }
 
     private static Integer[][] _getPermutations(int s1, int s2, int p) {

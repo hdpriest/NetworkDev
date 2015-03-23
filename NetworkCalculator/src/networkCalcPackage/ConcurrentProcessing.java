@@ -316,15 +316,15 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
                         if (u == j) continue;
                         if (Adj.testValue(i, u) == false) continue;
                         if (Adj.testValue(j, u) == false) continue;
-                        float this_product = Math.abs(Adj.getValueByEntry(i, u) * Adj.getValueByEntry(j, u));
-                        if(this_product > 1){
-                            this_product=1;
-                        }
+                        float this_product = Math.abs(Adj.getValueByEntry(i, u) * Adj.getValueByEntry(j, u));                        
                         product += this_product;
                     }
                     float k_min = Math.min(i_k, j_k);
                     float DFIJ = Math.abs(Adj.getValueByEntry(i, j));
                     tom = ((product + DFIJ) / (k_min + 1 - DFIJ));
+                }
+                if(tom>1.0f){
+                    tom=1.0f;
                 }
                 TOM[coord] = tom;
             }
