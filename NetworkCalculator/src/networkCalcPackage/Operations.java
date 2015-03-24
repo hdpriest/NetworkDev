@@ -351,7 +351,7 @@ public class Operations {
         return Adjacency;
     }
     
-    public static GCNMatrix calculateAdjacency(ExpressionFrame Expression, String corr, String adj, float mu, float alpha, int Threads) {
+    public static GCNMatrix calculateAdjacency(ExpressionFrame Expression, String corr, String adj, float mu, float alpha, int Threads,boolean signed) {
 
         // prepwork
         int D = Expression.getNumRows();
@@ -387,7 +387,7 @@ public class Operations {
         System.err.println("Added "+ Number +" Tasks To Multithreaded Processing Engine");
         //add the tasks
         for (int i = 0; i < Threads; i++) {
-            Callable<HashMap<String, float[]>> worker = new ConcurrentProcessing(Expression, queue, corr, "sigmoid", mu, alpha);
+            Callable<HashMap<String, float[]>> worker = new ConcurrentProcessing(Expression, queue, corr, "sigmoid", mu, alpha,signed);
             Future<HashMap<String, float[]>> submit = completionService.submit(worker);
             taskList.add(submit);
         }
@@ -583,7 +583,7 @@ public class Operations {
         return Sig;
     }
 
-    public static float permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, String corr, float mu1, float mu2, float alpha1, float alpha2, int threads) {
+    public static float permuteData(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, String corr, float mu1, float mu2, float alpha1, float alpha2, int threads,boolean signed) {
         int s1 = expF1.getNumColumns();
         int s2 = expF2.getNumColumns();
         int R = expF1.getNumRows();
@@ -629,8 +629,8 @@ public class Operations {
                 pF2.addRow(nR2);
             }
             System.out.println("Calculating Adjacencies on iteration " + p +"...");
-            GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1, corr, "sigmoid", pmu, pa, threads);
-            GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2, corr, "sigmoid", pmu, pa, threads);
+            GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1, corr, "sigmoid", pmu, pa, threads,signed);
+            GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2, corr, "sigmoid", pmu, pa, threads,signed);
             CurrentMatrix1.maskMatrix(0.01f);
             CurrentMatrix2.maskMatrix(0.01f);
             CurrentMatrix1.calculateKs();
@@ -642,8 +642,8 @@ public class Operations {
         }
         System.out.println("Calculating Observed Networks");
         System.out.println("Calculating Adjacencies...");
-        GCNMatrix NetworkA = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu1, alpha1, threads);
-        GCNMatrix NetworkB = Operations.calculateAdjacency(expF2, corr, "sigmoid", mu2, alpha2, threads);
+        GCNMatrix NetworkA = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu1, alpha1, threads,signed);
+        GCNMatrix NetworkB = Operations.calculateAdjacency(expF2, corr, "sigmoid", mu2, alpha2, threads,signed);
         NetworkA.maskMatrix(0.01f);
         NetworkB.maskMatrix(0.01f);
         NetworkA.calculateKs();
@@ -687,6 +687,7 @@ public class Operations {
                 if(Double.isNaN(Average)) Average=0.0d;
                 if(Double.isNaN(RealHits)) RealHits=0.0d;
                 if(Double.isNaN(FDR)) FDR=0.0d;
+                if(RealHits == 0.0d) FDR=1.0d;
                 Average = (Double.valueOf(df.format(Average)));
                 RealHits = (Double.valueOf(df.format(RealHits)));
                 FDR = (Double.valueOf(df.format(FDR)));
@@ -712,9 +713,9 @@ public class Operations {
     }
     
     public static float[] determineCutoffSF(ExpressionFrame expF1, ExpressionFrame expF2, String out, String corr, float mu1, float mu2, float alpha1, float alpha2, int threads) throws FileNotFoundException, UnsupportedEncodingException {
-
-        GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu1, alpha1, threads);
-        GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(expF2, corr, "sigmoid", mu2, alpha2, threads);
+        boolean signed=true;
+        GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu1, alpha1, threads,signed);
+        GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(expF2, corr, "sigmoid", mu2, alpha2, threads,signed);
         CurrentMatrix1.calculateKs();
         CurrentMatrix2.calculateKs();
         
@@ -729,7 +730,7 @@ public class Operations {
             writer.println("Cutoff\tR-squared\tSlope\tMean Connectivity");    
             System.err.println("Determining Cutoff for Negative Plasticity.");
             GCNMatrix Difference = Operations.calculateDifferenceThreaded(CurrentMatrix1, CurrentMatrix2,threads);
-            for(float cutoff=0;cutoff<1.0f;cutoff+=0.01){
+            for(float cutoff=0;cutoff<2.0f;cutoff+=0.01){
                 cutoff = (Float.valueOf(df.format(cutoff)));
                 float this_cutoff = cutoff *-1.0f;
                 Difference.maskAbove(this_cutoff);
@@ -752,7 +753,7 @@ public class Operations {
             Difference = Operations.calculateDifferenceThreaded(CurrentMatrix1, CurrentMatrix2,threads);
             writer= new PrintWriter(permutePathOut, "UTF-8");
             writer.println("Cutoff\tR-squared\tSlope\tMean Connectivity");    
-            for(float cutoff=0;cutoff<1.0f;cutoff+=0.01){
+            for(float cutoff=0;cutoff<2.0f;cutoff+=0.01){
                 cutoff = (Float.valueOf(df.format(cutoff)));
                 Difference.maskBelow(cutoff);
                 Difference.calculateKs();

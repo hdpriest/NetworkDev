@@ -15,6 +15,7 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
     private int D;
     private float M;
     private float A;
+    private boolean sign = true;
 
     private void noCall() {
         System.err.println("Threading called with no method. Something went very wrong.");
@@ -78,7 +79,7 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
         this.D = Adj.getNumRows();
     }
 
-    public ConcurrentProcessing(ExpressionFrame expression, ConcurrentLinkedQueue<String> queue, String corr, String adj, float mu, float a) {
+    public ConcurrentProcessing(ExpressionFrame expression, ConcurrentLinkedQueue<String> queue, String corr, String adj, float mu, float a,boolean signed) {
         this.queue = queue;
         this.smethod = corr;
         this.amethod = adj;
@@ -86,6 +87,7 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
         this.M = mu;
         this.A = a;
         this.D = Exp.getNumRows();
+        this.sign = signed;
     }
 
     public ConcurrentProcessing(GCNMatrix Similarity, ConcurrentLinkedQueue<String> queue, String Method, float mu, float a) {
@@ -264,6 +266,15 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
             return V; // passthrough - must be notated in manual as A=0,M=0 =/= sigmoid(V)=V
         }else{
             float s = (float) (1.0f / (1 + Math.exp(A * -1 * (Math.abs(V) - M))));
+            return s;
+        }
+        
+    }
+    private float _getSigmoidSigned(float V) {
+        if((A == 0.0f) && (M == 0.0f)){
+            return V; // passthrough - must be notated in manual as A=0,M=0 =/= sigmoid(V)=V
+        }else{
+            float s = (float) (1.0f / (1 + Math.exp(A * -1 * (Math.abs(V) - M))));
             if(V<0.0f){
                 s=s*-1;
             }
@@ -283,7 +294,11 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
                 adjacency[coord] = 1.0f;
             } else {
                 float value = I_data[j];
-                adjacency[coord] = _getSigmoid(value);
+                if(sign == true){
+                    adjacency[coord] = _getSigmoidSigned(value);
+                }else{
+                    adjacency[coord] = _getSigmoid(value);
+                }
             }
         }
         return adjacency;
@@ -316,15 +331,16 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
                         if (u == j) continue;
                         if (Adj.testValue(i, u) == false) continue;
                         if (Adj.testValue(j, u) == false) continue;
-                        float this_product = Math.abs(Adj.getValueByEntry(i, u) * Adj.getValueByEntry(j, u));                        
+                        float this_iv = Math.abs(Adj.getValueByEntry(i, u));
+                        if(this_iv > 1.0f) this_iv = 1.0f;
+                        float this_jv = Math.abs(Adj.getValueByEntry(j, u));
+                        if(this_jv > 1.0f) this_jv = 1.0f;
+                        float this_product = this_iv * this_jv;                        
                         product += this_product;
                     }
                     float k_min = Math.min(i_k, j_k);
                     float DFIJ = Math.abs(Adj.getValueByEntry(i, j));
                     tom = ((product + DFIJ) / (k_min + 1 - DFIJ));
-                }
-                if(tom>1.0f){
-                    tom=1.0f;
                 }
                 TOM[coord] = tom;
             }

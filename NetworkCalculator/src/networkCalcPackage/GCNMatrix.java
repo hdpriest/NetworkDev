@@ -421,11 +421,36 @@ class GCNMatrix {
                 if (i == j) {
 
                 } else {
-                    thisK += Math.abs(_getValueByEntry(i, j));
+                    float this_val = Math.abs(_getValueByEntry(i, j));
+                    if(this_val > 1.0f) this_val = 1.0f;
+                    thisK += this_val;
                 }
             }
             k[i] = thisK;
             //System.out.println(thisK);
+        }
+    }
+    
+    public void prepareForTOM(){
+        int H = DataFrame.length;
+        for(int i=0;i<H;i++){
+            for(int j=i;j<H;j++){
+                if(i==j){
+                    _setValueByEntry(0.0f,i,j);
+                }else{
+/*                    
+Need to truncate the network
+Looking to identify gene pairs which go from correlated to NOT correlated
+allowing numbers on the interval [-2,-1] or [1,2] allows those 
+pairs that go from strongly correlated to strongly anticorrelated to exist
+this is somewhat non-intuitive
+*/                  
+                    float value = Math.abs(_getValueByEntry(i,j));
+                    if(value>1.0f){
+                        _setValueByEntry(0.0f,i,j);
+                    }
+                }
+            }
         }
     }
     
@@ -480,8 +505,7 @@ class GCNMatrix {
         double histogram[] = _findKHistogram();
         SimpleRegression regression = new SimpleRegression();
         int datapoints=0;
-        for(int f=2;f<2000;f++){
-            //if(histogram[f] == 0.0d) continue;
+        for(int f=2;f<1000;f++){
             if(histogram[f] == 0.0d){
                 //if(zeroes == 20) break;
                 continue;

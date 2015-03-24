@@ -90,7 +90,7 @@ public class NetworkCalculator {
         GCNMatrix CurrentMatrix;
 
         System.err.println("Calculating Similarity\n");
-        CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", mu, alpha, threads);
+        CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", mu, alpha, threads,true);
         File theDir = new File(Out);
         if (!theDir.exists()) {
             System.out.println("creating directory: " + Out);
@@ -425,7 +425,7 @@ public class NetworkCalculator {
 
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
         System.err.println("Calculating Similarity & Adjacency...\nMu : " + mu + "\nAlpha: " + alpha + "\n");
-        CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", mu, alpha, threads);
+        CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", mu, alpha, threads,true);
         String ThisOut = Out + "/Adjacency.dist.tab";
         CurrentMatrix.generateDistributionToFile(ThisOut);
         String MatrixOut = Out + "/Adjacency.cytoscape.raw.tab";
@@ -513,7 +513,7 @@ public class NetworkCalculator {
         GCNMatrix CurrentMatrix = new GCNMatrix(FileDimensions[0], FileDimensions[0]);
         System.err.println("Calculating Initial Similarity...\n");
         // passthrough, just calculate similarity
-        CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", 0.0f, 0.0f, threads);
+        CurrentMatrix = Operations.calculateAdjacency(DataFrame, corr, "sigmoid", 0.0f, 0.0f, threads,true);
         //CurrentMatrix.maskMatrix(0.05f);
         DecimalFormat df = new DecimalFormat("#.###");
         df.setRoundingMode(RoundingMode.HALF_UP);
@@ -663,7 +663,7 @@ public class NetworkCalculator {
             float[] RESULT =  new float[FD_1[0]+1];
             if(permutations >0){
                 System.err.println("Beginning permuation analysis...");
-                CUTOFF = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, mu1, mu2, alpha1, alpha2, threads);
+                CUTOFF = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, mu1, mu2, alpha1, alpha2, threads,true);
             }
             System.err.println("Permutations done. Obtained Cutoff of dTOM = " + CUTOFF +"\n");
             System.err.println("See "+out+"/PermutationDetails.tab for more details on calculated False Discovery Rates\n");
@@ -789,15 +789,19 @@ public class NetworkCalculator {
 
             System.err.println("Calculating Network Plasticity...");
             System.err.println("Calculation adjacencies...");
-            GCNMatrix NetworkA = Operations.calculateAdjacency(ExpF1, corr, "sigmoid", mu1, alpha1, threads);
-            GCNMatrix NetworkB = Operations.calculateAdjacency(ExpF2, corr, "sigmoid", mu2, alpha2, threads);
-            NetworkA.calculateKs();
-            NetworkB.calculateKs();
-            String[] names = NetworkA.getRowNames();
+            GCNMatrix SNetworkA = Operations.calculateAdjacency(ExpF1, corr, "sigmoid", mu1, alpha1, threads,true);
+            GCNMatrix SNetworkB = Operations.calculateAdjacency(ExpF2, corr, "sigmoid", mu2, alpha2, threads,true);
+            GCNMatrix USNetworkA = Operations.calculateAdjacency(ExpF1, corr, "sigmoid", mu1, alpha1, threads,false);
+            GCNMatrix USNetworkB = Operations.calculateAdjacency(ExpF2, corr, "sigmoid", mu2, alpha2, threads,false);
+            SNetworkA.calculateKs();
+            SNetworkB.calculateKs();
+            USNetworkA.calculateKs();
+            USNetworkB.calculateKs();
+            String[] names = SNetworkA.getRowNames();
             
             System.err.println("Calculating final plasticity network...");
             
-            GCNMatrix Difference = Operations.calculateDifferenceThreaded(NetworkA, NetworkB, threads);
+            GCNMatrix SDifference = Operations.calculateDifferenceThreaded(SNetworkA, SNetworkB, threads);
             /*
             NetworkA = Operations.calculateTOM(NetworkA, threads);
             NetworkB = Operations.calculateTOM(NetworkB, threads)
@@ -806,7 +810,7 @@ public class NetworkCalculator {
             _MWWToFile(MWW,averagePlasticity,names,out,"NodePlasticity.MWW.tab");
             */
             String O3 = out + "/Adjacency.plasticity.cytoscape.tab";
-            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
+            SDifference.printMatrixToCytoscape(O3, "\t", 0.01f);
             
             //System.err.println("Masking plasticity network based on significance cutoff: " + CUTOFF);
             //Difference.maskOutside(CUTOFF);
@@ -814,16 +818,16 @@ public class NetworkCalculator {
             df.setRoundingMode(RoundingMode.HALF_UP);
             //Difference = Operations.calculateTOM(Difference, threads);
             // Clustering
-
-            Difference.maskAbove(CUTOFF_neg);
-            Difference.calculateKs();
+            System.err.println("Finding negative plasticity network... cutoff: " + CUTOFF_neg);
+            SDifference.maskAbove(CUTOFF_neg);
+            SDifference.calculateKs();
 
             O3 = out + "/Adjacency.negPlasticity.cytoscape.tab";
-            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
-            double[] Return = Difference.determineScaleFreeCritereon();
+            SDifference.printMatrixToCytoscape(O3, "\t", 0.01f);
+            double[] Return = SDifference.determineScaleFreeCritereon();
             double RSquared = Return[0];
             double Slope = Return[1];
-            float mean = Difference.getMeanK();
+            float mean = SDifference.getMeanK();
             if(Double.isNaN(RSquared)) RSquared=0.0d;
             RSquared=(Double.valueOf(df.format(RSquared)));
             mean = (Float.valueOf(df.format(mean)));
@@ -832,25 +836,29 @@ public class NetworkCalculator {
             System.out.println("Slope of scale free connectivity: " + Slope);
             System.out.println("Average Connectivity of resultant plasticity network: " + mean);
             System.err.println("Clustering negative plasticity...");
-            Difference = Operations.calculateTOM(Difference, threads);
+            GCNMatrix USDifference = Operations.calculateDifferenceThreaded(USNetworkA, USNetworkB, threads); // yeah this is a hack
+            USDifference.maskAbove(CUTOFF_neg);
+            USDifference.calculateKs();
+            USDifference = Operations.calculateTOM(USDifference, threads);
             O3 = out + "/TOM.negPlasticity.cytoscape.tab";
-            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
+            USDifference.printMatrixToCytoscape(O3, "\t", 0.01f);
             int MinSize = 50;
             String ClustOut = out+"/Clusters_Neg/";
-            Cluster Clustering = new Cluster(Difference, 4);
+            Cluster Clustering = new Cluster(USDifference, 4);
             ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
-            _clustersToFile(Difference, Clusters, MinSize, ClustOut);            
+            _clustersToFile(USDifference, Clusters, MinSize, ClustOut);            
             // For some reason, using the same variable and overwriting below did not work
             // Not sure why... even copy constructors don't seem to work. hacking.
-            Difference = Operations.calculateDifferenceThreaded(NetworkA, NetworkB,threads);
-            Difference.maskBelow(CUTOFF_pos); // MaskedDif is now the pos matrix
+            SDifference = Operations.calculateDifferenceThreaded(SNetworkA, SNetworkB,threads);
+            System.err.println("Finding positive plasticity network... cutoff: " + CUTOFF_pos);
+            SDifference.maskBelow(CUTOFF_pos); // MaskedDif is now the pos matrix
             O3 = out + "/Adjacency.posPlasticity.cytoscape.tab";
-            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
-            Difference.calculateKs();
-            Return = Difference.determineScaleFreeCritereon();
+            SDifference.printMatrixToCytoscape(O3, "\t", 0.01f);
+            SDifference.calculateKs();
+            Return = SDifference.determineScaleFreeCritereon();
             RSquared = Return[0];
             Slope = Return[1];
-            mean = Difference.getMeanK();
+            mean = SDifference.getMeanK();
             if(Double.isNaN(RSquared)) RSquared=0.0d;
             RSquared=(Double.valueOf(df.format(RSquared)));
             mean = (Float.valueOf(df.format(mean)));
@@ -859,13 +867,15 @@ public class NetworkCalculator {
             System.out.println("Slope of scale free connectivity: " + Slope);
             System.out.println("Average Connectivity of resultant plasticity network: " + mean);
             System.err.println("Clustering positive plasticity...");
-            Difference = Operations.calculateTOM(Difference, threads);
+            USDifference = Operations.calculateDifferenceThreaded(USNetworkA, USNetworkB, threads);// yeah this is a hack
+            USDifference.calculateKs();
+            USDifference = Operations.calculateTOM(USDifference, threads);
             O3 = out + "/TOM.posPlasticity.cytoscape.tab";
-            Difference.printMatrixToCytoscape(O3, "\t", 0.01f);
+            USDifference.printMatrixToCytoscape(O3, "\t", 0.01f);
             ClustOut = out+"/Clusters_Pos/";
-            Clustering = new Cluster(Difference, 4);
+            Clustering = new Cluster(USDifference, 4);
             Clusters = Clustering.dynamicTreeCut(MinSize);
-            _clustersToFile(Difference, Clusters, MinSize, ClustOut);
+            _clustersToFile(USDifference, Clusters, MinSize, ClustOut);
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
             System.err.println("Exiting...\n");
