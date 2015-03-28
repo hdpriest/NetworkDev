@@ -728,7 +728,7 @@ public class NetworkCalculator {
             RESULT = Operations.determineCutoffSF(ExpF1, ExpF2, out, corr, mu1, mu2, alpha1, alpha2, threads);
             System.err.println("See files in "+out+"/ for more details on calculated scale free criteria\n");
             System.err.println("Cutoff for negative plasticity: " + RESULT[0]);
-            System.err.println("Cutoff for negative plasticity: " + RESULT[1]);
+            System.err.println("Cutoff for positive plasticity: " + RESULT[1]);
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
             System.err.println("Exiting...\n");
@@ -809,7 +809,7 @@ public class NetworkCalculator {
             float[] averagePlasticity = Difference.getCurrentAverageEdgeStrength();
             _MWWToFile(MWW,averagePlasticity,names,out,"NodePlasticity.MWW.tab");
             */
-            String O3 = out + "/Adjacency.plasticity.cytoscape.tab";
+            String O3 = out + "/Adjacency.unmasked.plasticity.cytoscape.tab";
             SDifference.printMatrixToCytoscape(O3, "\t", 0.01f);
             
             //System.err.println("Masking plasticity network based on significance cutoff: " + CUTOFF);
@@ -869,6 +869,7 @@ public class NetworkCalculator {
             System.err.println("Clustering positive plasticity...");
             USDifference = Operations.calculateDifferenceThreaded(USNetworkA, USNetworkB, threads);// yeah this is a hack
             USDifference.calculateKs();
+            USDifference.maskBelow(CUTOFF_pos);
             USDifference = Operations.calculateTOM(USDifference, threads);
             O3 = out + "/TOM.posPlasticity.cytoscape.tab";
             USDifference.printMatrixToCytoscape(O3, "\t", 0.01f);

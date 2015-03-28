@@ -744,7 +744,7 @@ public class Operations {
                 mean = (Float.valueOf(df.format(mean)));
                 writer.println(this_cutoff + "\t" + RSquared + "\t" + Slope + "\t" + mean);
                 if(result[0] == 0){
-                    if(RSquared>=0.8) result[0]=cutoff;
+                    if((RSquared>=0.8)&&(Slope < -0.8)) result[0]=cutoff;
                 }
             }
             writer.close();
@@ -766,7 +766,7 @@ public class Operations {
                 mean = (Float.valueOf(df.format(mean)));
                 writer.println(cutoff + "\t" + RSquared + "\t" + Slope + "\t" + mean);
                 if(result[1] == 0){
-                    if(RSquared>=0.8) result[1]=cutoff;
+                    if((RSquared>=0.8)&&(Slope < -0.8)) result[1]=cutoff;
                 }
             }
             writer.close();

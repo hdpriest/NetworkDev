@@ -266,39 +266,32 @@ public class ConcurrentProcessing implements Callable<HashMap<String, float[]>> 
             return V; // passthrough - must be notated in manual as A=0,M=0 =/= sigmoid(V)=V
         }else{
             float s = (float) (1.0f / (1 + Math.exp(A * -1 * (Math.abs(V) - M))));
-            return s;
-        }
-        
-    }
-    private float _getSigmoidSigned(float V) {
-        if((A == 0.0f) && (M == 0.0f)){
-            return V; // passthrough - must be notated in manual as A=0,M=0 =/= sigmoid(V)=V
-        }else{
-            float s = (float) (1.0f / (1 + Math.exp(A * -1 * (Math.abs(V) - M))));
-            if(V<0.0f){
-                s=s*-1;
+            if(sign != true){
+                
+            }else{
+                if(V<0.0f){
+                    s=s*-1;
+                }
             }
             return s;
         }
         
     }
+    
 
     public float[] doWork_sigmoid(String s) {
         int i = Integer.parseInt(s);
         int size = Adj.getNumRows() - i;
         float[] adjacency = new float[size];
         float[] I_data = Adj.getRowByIndex(i);
+        sign = false;
         for (int j = i; j < Adj.getNumRows(); j++) {
             int coord = j - i;
             if (i == j) {
                 adjacency[coord] = 1.0f;
             } else {
                 float value = I_data[j];
-                if(sign == true){
-                    adjacency[coord] = _getSigmoidSigned(value);
-                }else{
-                    adjacency[coord] = _getSigmoid(value);
-                }
+                adjacency[coord] = _getSigmoid(value);
             }
         }
         return adjacency;
