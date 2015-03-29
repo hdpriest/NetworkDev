@@ -447,7 +447,7 @@ this is somewhat non-intuitive
 */                  
                     float value = Math.abs(_getValueByEntry(i,j));
                     if(value>1.0f){
-                        _setValueByEntry(0.0f,i,j);
+                        _setValueByEntry(1.0f,i,j);
                     }
                 }
             }

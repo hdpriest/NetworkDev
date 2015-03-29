@@ -733,7 +733,8 @@ public class Operations {
             for(float cutoff=0;cutoff<2.0f;cutoff+=0.01){
                 cutoff = (Float.valueOf(df.format(cutoff)));
                 float this_cutoff = cutoff *-1.0f;
-                Difference.maskAbove(this_cutoff);
+                //Difference.maskAbove(this_cutoff);
+                Difference = Operations.findPlasticity(Difference,this_cutoff,CurrentMatrix1,CurrentMatrix2,"negative");
                 Difference.calculateKs();
                 double[] Return = Difference.determineScaleFreeCritereon();
                 double RSquared = Return[0];
@@ -755,7 +756,8 @@ public class Operations {
             writer.println("Cutoff\tR-squared\tSlope\tMean Connectivity");    
             for(float cutoff=0;cutoff<2.0f;cutoff+=0.01){
                 cutoff = (Float.valueOf(df.format(cutoff)));
-                Difference.maskBelow(cutoff);
+                //Difference.maskBelow(cutoff);
+                Difference = Operations.findPlasticity(Difference,cutoff,CurrentMatrix1,CurrentMatrix2,"positive");
                 Difference.calculateKs();
                 double[] Return = Difference.determineScaleFreeCritereon();
                 double RSquared = Return[0];
@@ -780,6 +782,31 @@ public class Operations {
         return result;
     }
 
+    
+    public static GCNMatrix findPlasticity (GCNMatrix Difference, float Cut, GCNMatrix Net1, GCNMatrix Net2, String type){
+        int this_N = Difference.getN();
+        GCNMatrix Plasticity = new GCNMatrix(this_N,this_N);
+        Plasticity = Operations.copyNames(Difference.getRowNames(), Plasticity);
+        for(int i=0;i<this_N;i++){
+            for(int j=i;j<this_N;j++){
+                float d = Math.abs(Difference.getValueByEntry(i,j));
+                if(d < Math.abs(Cut)) continue;
+                float v1 = Net1.getValueByEntry(i,j);
+                float v2 = Net2.getValueByEntry(i,j);
+                if("positive".equals(type)){
+                    if(Math.abs(v2)<Math.abs(v1)) continue;
+                    Plasticity.setValueByEntry(d, i, j);
+                }
+                if("negative".equals(type)){
+                    if(Math.abs(v2)>Math.abs(v1)) continue;
+                    Plasticity.setValueByEntry(d, i, j);
+                }
+                
+            }
+        }
+        return Plasticity;
+    }
+    
     private static Integer[][] _getPermutations(int s1, int s2, int p) {
         Integer[][] Sets = new Integer[p][];
         int m = Math.min(s1, s2);

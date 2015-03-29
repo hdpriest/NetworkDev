@@ -819,7 +819,8 @@ public class NetworkCalculator {
             //Difference = Operations.calculateTOM(Difference, threads);
             // Clustering
             System.err.println("Finding negative plasticity network... cutoff: " + CUTOFF_neg);
-            SDifference.maskAbove(CUTOFF_neg);
+            //SDifference.maskAbove(CUTOFF_neg);
+            SDifference = Operations.findPlasticity(SDifference,CUTOFF_neg,SNetworkA,SNetworkB,"negative");
             SDifference.calculateKs();
 
             O3 = out + "/Adjacency.negPlasticity.cytoscape.tab";
@@ -836,23 +837,25 @@ public class NetworkCalculator {
             System.out.println("Slope of scale free connectivity: " + Slope);
             System.out.println("Average Connectivity of resultant plasticity network: " + mean);
             System.err.println("Clustering negative plasticity...");
-            GCNMatrix USDifference = Operations.calculateDifferenceThreaded(USNetworkA, USNetworkB, threads); // yeah this is a hack
-            USDifference.maskAbove(CUTOFF_neg);
-            USDifference.calculateKs();
-            USDifference = Operations.calculateTOM(USDifference, threads);
+            //GCNMatrix USDifference = Operations.calculateDifferenceThreaded(USNetworkA, USNetworkB, threads); // yeah this is a hack
+            //USDifference.maskAbove(CUTOFF_neg);
+            //USDifference.calculateKs();
+            SDifference.prepareForTOM();
+            SDifference = Operations.calculateTOM(SDifference, threads);
             O3 = out + "/TOM.negPlasticity.cytoscape.tab";
-            USDifference.printMatrixToCytoscape(O3, "\t", 0.01f);
+            SDifference.printMatrixToCytoscape(O3, "\t", 0.01f);
             int MinSize = 50;
             String ClustOut = out+"/Clusters_Neg/";
-            Cluster Clustering = new Cluster(USDifference, 4);
+            Cluster Clustering = new Cluster(SDifference, 4);
             ArrayList<int[]> Clusters = Clustering.dynamicTreeCut(MinSize);
-            _clustersToFile(USDifference, Clusters, MinSize, ClustOut);            
+            _clustersToFile(SDifference, Clusters, MinSize, ClustOut);            
             // For some reason, using the same variable and overwriting below did not work
             // Not sure why... even copy constructors don't seem to work. hacking.
             SDifference = Operations.calculateDifferenceThreaded(SNetworkA, SNetworkB,threads);
             System.err.println("Finding positive plasticity network... cutoff: " + CUTOFF_pos);
-            SDifference.maskBelow(CUTOFF_pos); // MaskedDif is now the pos matrix
+            //SDifference.maskBelow(CUTOFF_pos); // MaskedDif is now the pos matrix
             O3 = out + "/Adjacency.posPlasticity.cytoscape.tab";
+            SDifference = Operations.findPlasticity(SDifference,CUTOFF_pos,SNetworkA,SNetworkB,"positive");
             SDifference.printMatrixToCytoscape(O3, "\t", 0.01f);
             SDifference.calculateKs();
             Return = SDifference.determineScaleFreeCritereon();
@@ -867,16 +870,17 @@ public class NetworkCalculator {
             System.out.println("Slope of scale free connectivity: " + Slope);
             System.out.println("Average Connectivity of resultant plasticity network: " + mean);
             System.err.println("Clustering positive plasticity...");
-            USDifference = Operations.calculateDifferenceThreaded(USNetworkA, USNetworkB, threads);// yeah this is a hack
-            USDifference.calculateKs();
-            USDifference.maskBelow(CUTOFF_pos);
-            USDifference = Operations.calculateTOM(USDifference, threads);
+            //USDifference = Operations.calculateDifferenceThreaded(USNetworkA, USNetworkB, threads);// yeah this is a hack
+            //USDifference.calculateKs();
+            //USDifference.maskBelow(CUTOFF_pos);
+            SDifference.prepareForTOM();
+            SDifference = Operations.calculateTOM(SDifference, threads);
             O3 = out + "/TOM.posPlasticity.cytoscape.tab";
-            USDifference.printMatrixToCytoscape(O3, "\t", 0.01f);
+            SDifference.printMatrixToCytoscape(O3, "\t", 0.01f);
             ClustOut = out+"/Clusters_Pos/";
-            Clustering = new Cluster(USDifference, 4);
+            Clustering = new Cluster(SDifference, 4);
             Clusters = Clustering.dynamicTreeCut(MinSize);
-            _clustersToFile(USDifference, Clusters, MinSize, ClustOut);
+            _clustersToFile(SDifference, Clusters, MinSize, ClustOut);
         } catch (ParseException exp) {
             System.err.println("Problem parsing arguments:\n" + exp.getMessage());
             System.err.println("Exiting...\n");
