@@ -659,13 +659,16 @@ public class NetworkCalculator {
             System.err.println("Loading original Expression data... (2)");
             ExpressionFrame ExpF2 = _loadData(Exp2, FD_2, sep);
             
-            float CUTOFF = 0.0f;
-            float[] RESULT =  new float[FD_1[0]+1];
+            float CUTOFF[] = new float[2];
+            //float CUTOFF = 1.0f;
             if(permutations >0){
                 System.err.println("Beginning permuation analysis...");
-                CUTOFF = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, mu1, mu2, alpha1, alpha2, threads,true);
+                //CUTOFF = Operations.permuteData(ExpF1, ExpF2, permutations, out, corr, mu1, mu2, alpha1, alpha2, threads,true);
+                CUTOFF = Operations.permuteDataSigned(ExpF1, ExpF2, permutations, out, corr, mu1, mu2, alpha1, alpha2, threads,true);
             }
-            System.err.println("Permutations done. Obtained Cutoff of dTOM = " + CUTOFF +"\n");
+            System.err.println("Permutations done.");
+            System.err.println("Obtained Cutoff of negative adjacency <= " + CUTOFF[0] +"\n");
+            System.err.println("Obtained Cutoff of positive adjacency >= " + CUTOFF[1] +"\n");
             System.err.println("See "+out+"/PermutationDetails.tab for more details on calculated False Discovery Rates\n");
             
         } catch (ParseException exp) {
@@ -791,12 +794,8 @@ public class NetworkCalculator {
             System.err.println("Calculation adjacencies...");
             GCNMatrix SNetworkA = Operations.calculateAdjacency(ExpF1, corr, "sigmoid", mu1, alpha1, threads,true);
             GCNMatrix SNetworkB = Operations.calculateAdjacency(ExpF2, corr, "sigmoid", mu2, alpha2, threads,true);
-            GCNMatrix USNetworkA = Operations.calculateAdjacency(ExpF1, corr, "sigmoid", mu1, alpha1, threads,false);
-            GCNMatrix USNetworkB = Operations.calculateAdjacency(ExpF2, corr, "sigmoid", mu2, alpha2, threads,false);
             SNetworkA.calculateKs();
             SNetworkB.calculateKs();
-            USNetworkA.calculateKs();
-            USNetworkB.calculateKs();
             String[] names = SNetworkA.getRowNames();
             
             System.err.println("Calculating final plasticity network...");

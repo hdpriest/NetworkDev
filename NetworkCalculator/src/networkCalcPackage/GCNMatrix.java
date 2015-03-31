@@ -407,6 +407,32 @@ class GCNMatrix {
         return HMHistogram;
     }
 
+    public TreeMap<Float, Integer> generateSignedDistribution() {
+        int H = N;
+        DecimalFormat df = new DecimalFormat("#.##");
+        df.setRoundingMode(RoundingMode.HALF_UP);
+        TreeMap<Float, Integer> HMHistogram = new TreeMap<Float, Integer>();
+        for (int i = 0; i < H; i++) {
+            for (int j = i; j < H; j++) {
+                if (_getValueByEntry(i, j) != 0) {
+                    try {
+                        Float V = Float.valueOf(df.format(_getValueByEntry(i, j)));
+                        if (HMHistogram.containsKey(V)) {
+                            Integer I = HMHistogram.get(V);
+                            HMHistogram.put(V, I + 1);
+                        } else {
+                            HMHistogram.put(V, 1);
+                        }
+                    } catch (NumberFormatException ex) {
+                        System.out.println("Obtain " + _getValueByEntry(i, j) + " from matrix.");
+                        System.exit(1);
+                    }
+                }
+            }
+        }
+        return HMHistogram;
+    }
+
     public boolean testValue(int i, int j) {
         boolean res;
         res = Math.abs(_getValueByEntry(i, j)) >= 0.01f;

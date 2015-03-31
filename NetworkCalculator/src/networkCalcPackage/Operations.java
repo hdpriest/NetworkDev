@@ -712,6 +712,366 @@ public class Operations {
         return CUTOFF;
     }
     
+    public static float[] permuteDataSigned(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, String corr, float mu1, float mu2, float alpha1, float alpha2, int threads,boolean signed) {
+        int s1 = expF1.getNumColumns();
+        int s2 = expF2.getNumColumns();
+        int R = expF1.getNumRows();
+        int M = Math.min(expF1.getNumColumns(), expF2.getNumColumns());
+        float pmu = (mu1+mu2)/2;
+        float pa  = (alpha1+alpha2)/2;
+        int S = s1 + s2;
+        int s = M * 2;
+        Integer[][] Sets = new Integer[P][];
+        Sets = _getPermutations(s1, s2, P);
+        float CUTOFF[] = new float[2];
+        CUTOFF[0]=1.0f;
+        CUTOFF[1]=1.0f;
+        ArrayList<TreeMap<Float, Integer>> NegativePerms = new ArrayList<>();
+        ArrayList<TreeMap<Float, Integer>> PositivePerms = new ArrayList<>();
+
+        for (int p = 0; p < P; p++) {
+            System.out.println("Permutation: " + p + " of " + P);
+            ExpressionFrame pF1 = new ExpressionFrame(R, M);
+            ExpressionFrame pF2 = new ExpressionFrame(R, M);
+            for (int r = 0; r < R; r++) {
+                float[] rF1 = expF1.getRowByIndex(r);
+                float[] rF2 = expF2.getRowByIndex(r);
+                float[] nR1 = new float[M];
+                float[] nR2 = new float[M];
+                for (int m = 0; m < M; m++) {
+                    int ind = Sets[p][m];
+                    if (ind < s1) {
+                        nR1[m] = rF1[ind];
+                    } else if (ind >= s1) {
+                        ind = ind - s1;
+                        nR1[m] = rF2[ind];
+                    }
+                }
+                pF1.addRow(nR1);
+                for (int m = M; m < s; m++) {
+                    int Mind = m - M;
+                    int ind = Sets[p][m];
+                    if (ind < s1) {
+                        nR2[Mind] = rF1[ind];
+                    } else if (ind >= s1) {
+                        ind = ind - s1;
+                        nR2[Mind] = rF2[ind];
+                    }
+                }
+                pF2.addRow(nR2);
+            }
+            System.out.println("Calculating Adjacencies on iteration " + p +"...");
+            GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1, corr, "sigmoid", pmu, pa, threads,signed);
+            GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2, corr, "sigmoid", pmu, pa, threads,signed);
+            CurrentMatrix1.maskMatrix(0.01f);
+            CurrentMatrix2.maskMatrix(0.01f);
+            CurrentMatrix1.calculateKs();
+            CurrentMatrix2.calculateKs();
+            GCNMatrix Difference = Operations.calculateDifferenceThreaded(CurrentMatrix1, CurrentMatrix2,threads);
+            //GCNMatrix Plasticity = Operations.findPlasticity(Difference,0.0f,CurrentMatrix1,CurrentMatrix2,"negative");
+            //TreeMap<Float, Integer> Distribution = Plasticity.generateSignedDistribution();
+            TreeMap<Float, Integer> Distribution = Difference.generateSignedDistribution();
+            NegativePerms.add(Distribution);
+            //Plasticity = Operations.findPlasticity(Difference,0.0f,CurrentMatrix1,CurrentMatrix2,"positive");
+            //Distribution = Plasticity.generateSignedDistribution();
+            Distribution = Difference.generateSignedDistribution();
+            PositivePerms.add(Distribution);
+            System.out.println("Iteration "+ p +" complete.\n");
+        }
+        System.out.println("Calculating Observed Networks");
+        System.out.println("Calculating Adjacencies...");
+        GCNMatrix NetworkA = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu1, alpha1, threads,signed);
+        GCNMatrix NetworkB = Operations.calculateAdjacency(expF2, corr, "sigmoid", mu2, alpha2, threads,signed);
+        NetworkA.maskMatrix(0.01f);
+        NetworkB.maskMatrix(0.01f);
+        NetworkA.calculateKs();
+        NetworkB.calculateKs();
+        GCNMatrix rDiff = Operations.calculateDifferenceThreaded(NetworkA, NetworkB, threads);
+//        GCNMatrix rPlastic = Operations.findPlasticity(rDiff,0.0f,NetworkA, NetworkB, "negative");
+//        TreeMap<Float, Integer> RealNeg = rPlastic.generateSignedDistribution();
+//        rPlastic = Operations.findPlasticity(rDiff,0.0f,NetworkA, NetworkB, "positive");
+//        TreeMap<Float, Integer> RealPos = rPlastic.generateSignedDistribution();
+        TreeMap<Float, Integer> RealNeg = rDiff.generateSignedDistribution();
+//        rPlastic = Operations.findPlasticity(rDiff,0.0f,NetworkA, NetworkB, "positive");
+        TreeMap<Float, Integer> RealPos = rDiff.generateSignedDistribution();
+        
+        String permutePathOut = out + "/PermutationDetails.tab";
+        PrintWriter writer;
+        DecimalFormat df = new DecimalFormat("#.######");
+        df.setRoundingMode(RoundingMode.HALF_UP);
+        try {
+            writer = new PrintWriter(permutePathOut, "UTF-8");
+            writer.println("Cutoff\tAverage False\tTrue\tFDR");
+            for (float c = -2.0f; c < 0.0f; c += 0.01f) {
+                float C = (Float.valueOf(df.format(c)));
+                Double Total = 0.0d;
+                for (int a = 0; a < NegativePerms.size(); a++) {
+                    for (Map.Entry<Float, Integer> entry : NegativePerms.get(a).entrySet()) {
+                        Float A = entry.getKey();
+                        Double value = Double.valueOf(entry.getValue());
+                        if (A <= C){
+                            Total += value;
+                        }
+                    }
+                }
+                // Total holds all instances of adj value > C across all perms
+                Double Average = Total / NegativePerms.size();
+                Double RealHits = 0.0d;
+                for (Map.Entry<Float, Integer> entry : RealNeg.entrySet()) {
+                    Float A = entry.getKey();
+                    Double value = Double.valueOf(entry.getValue());
+                    if (A <= C) {
+                        RealHits += value;
+                    }
+                }
+                double FDR = Average / RealHits;
+                
+                if(Double.isNaN(Average)) Average=0.0d;
+                if(Double.isNaN(RealHits)) RealHits=0.0d;
+                if(Double.isNaN(FDR)) FDR=0.0d;
+                if(RealHits == 0.0d) FDR=1.0d;
+                Average = (Double.valueOf(df.format(Average)));
+                RealHits = (Double.valueOf(df.format(RealHits)));
+                FDR = (Double.valueOf(df.format(FDR)));
+                writer.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
+                if ((FDR >= 0.05f) && (FDR != 1.0f)) {
+                    if (CUTOFF[0] == 1.0f) {
+                        CUTOFF[0] = C-0.01f;
+                    } else {
+
+                    }
+                }
+            }
+            for (float c = 0.0f; c < 2.0f; c += 0.01f) {
+                float C = (Float.valueOf(df.format(c)));
+                Double Total = 0.0d;
+                for (int a = 0; a < PositivePerms.size(); a++) {
+                    for (Map.Entry<Float, Integer> entry : PositivePerms.get(a).entrySet()) {
+                        Float A = entry.getKey();
+                        Double value = Double.valueOf(entry.getValue());
+                        if (A >= C){
+                            Total += value;
+                        }
+                    }
+                }
+                // Total holds all instances of adj value > C across all perms
+                Double Average = Total / PositivePerms.size();
+                Double RealHits = 0.0d;
+                for (Map.Entry<Float, Integer> entry : RealPos.entrySet()) {
+                    Float A = entry.getKey();
+                    Double value = Double.valueOf(entry.getValue());
+                    if (A >= C) {
+                        RealHits += value;
+                    }
+                }
+                double FDR = Average / RealHits;
+                
+                if(Double.isNaN(Average)) Average=0.0d;
+                if(Double.isNaN(RealHits)) RealHits=0.0d;
+                if(Double.isNaN(FDR)) FDR=0.0d;
+                if(RealHits == 0.0d) FDR=1.0d;
+                Average = (Double.valueOf(df.format(Average)));
+                RealHits = (Double.valueOf(df.format(RealHits)));
+                FDR = (Double.valueOf(df.format(FDR)));
+                writer.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
+                if (FDR <= 0.05f) {
+                    if (CUTOFF[1] == 1.0f) {
+                        CUTOFF[1] = C;
+                    } else {
+
+                    }
+                }
+            }
+            
+            writer.close();
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return CUTOFF;
+    }
+ /*
+        public static float[] permuteDataSigned(ExpressionFrame expF1, ExpressionFrame expF2, int P, String out, String corr, float mu1, float mu2, float alpha1, float alpha2, int threads,boolean signed) {
+        int s1 = expF1.getNumColumns();
+        int s2 = expF2.getNumColumns();
+        int R = expF1.getNumRows();
+        int M = Math.min(expF1.getNumColumns(), expF2.getNumColumns());
+        float pmu = (mu1+mu2)/2;
+        float pa  = (alpha1+alpha2)/2;
+        int S = s1 + s2;
+        int s = M * 2;
+        Integer[][] Sets = new Integer[P][];
+        Sets = _getPermutations(s1, s2, P);
+        float CUTOFF[] = new float[2];
+        CUTOFF[0]=1.0f;
+        CUTOFF[1]=1.0f;
+        ArrayList<TreeMap<Float, Integer>> NegativePerms = new ArrayList<>();
+        ArrayList<TreeMap<Float, Integer>> PositivePerms = new ArrayList<>();
+
+        for (int p = 0; p < P; p++) {
+            System.out.println("Permutation: " + p + " of " + P);
+            ExpressionFrame pF1 = new ExpressionFrame(R, M);
+            ExpressionFrame pF2 = new ExpressionFrame(R, M);
+            for (int r = 0; r < R; r++) {
+                float[] rF1 = expF1.getRowByIndex(r);
+                float[] rF2 = expF2.getRowByIndex(r);
+                float[] nR1 = new float[M];
+                float[] nR2 = new float[M];
+                for (int m = 0; m < M; m++) {
+                    int ind = Sets[p][m];
+                    if (ind < s1) {
+                        nR1[m] = rF1[ind];
+                    } else if (ind >= s1) {
+                        ind = ind - s1;
+                        nR1[m] = rF2[ind];
+                    }
+                }
+                pF1.addRow(nR1);
+                for (int m = M; m < s; m++) {
+                    int Mind = m - M;
+                    int ind = Sets[p][m];
+                    if (ind < s1) {
+                        nR2[Mind] = rF1[ind];
+                    } else if (ind >= s1) {
+                        ind = ind - s1;
+                        nR2[Mind] = rF2[ind];
+                    }
+                }
+                pF2.addRow(nR2);
+            }
+            System.out.println("Calculating Adjacencies on iteration " + p +"...");
+            GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(pF1, corr, "sigmoid", pmu, pa, threads,signed);
+            GCNMatrix CurrentMatrix2 = Operations.calculateAdjacency(pF2, corr, "sigmoid", pmu, pa, threads,signed);
+            CurrentMatrix1.maskMatrix(0.01f);
+            CurrentMatrix2.maskMatrix(0.01f);
+            CurrentMatrix1.calculateKs();
+            CurrentMatrix2.calculateKs();
+            GCNMatrix Difference = Operations.calculateDifferenceThreaded(CurrentMatrix1, CurrentMatrix2,threads);
+            GCNMatrix Plasticity = Operations.findPlasticity(Difference,0.0f,CurrentMatrix1,CurrentMatrix2,"negative");
+            TreeMap<Float, Integer> Distribution = Plasticity.generateSignedDistribution();
+            NegativePerms.add(Distribution);
+            Plasticity = Operations.findPlasticity(Difference,0.0f,CurrentMatrix1,CurrentMatrix2,"positive");
+            Distribution = Plasticity.generateSignedDistribution();
+            PositivePerms.add(Distribution);
+            System.out.println("Iteration "+ p +" complete.\n");
+        }
+        System.out.println("Calculating Observed Networks");
+        System.out.println("Calculating Adjacencies...");
+        GCNMatrix NetworkA = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu1, alpha1, threads,signed);
+        GCNMatrix NetworkB = Operations.calculateAdjacency(expF2, corr, "sigmoid", mu2, alpha2, threads,signed);
+        NetworkA.maskMatrix(0.01f);
+        NetworkB.maskMatrix(0.01f);
+        NetworkA.calculateKs();
+        NetworkB.calculateKs();
+        GCNMatrix rDiff = Operations.calculateDifferenceThreaded(NetworkA, NetworkB, threads);
+        GCNMatrix rPlastic = Operations.findPlasticity(rDiff,0.0f,NetworkA, NetworkB, "negative");
+        TreeMap<Float, Integer> RealNeg = rPlastic.generateSignedDistribution();
+        rPlastic = Operations.findPlasticity(rDiff,0.0f,NetworkA, NetworkB, "positive");
+        TreeMap<Float, Integer> RealPos = rPlastic.generateSignedDistribution();
+        
+        String permutePathOut = out + "/PermutationDetails.tab";
+        PrintWriter writer;
+        DecimalFormat df = new DecimalFormat("#.######");
+        df.setRoundingMode(RoundingMode.HALF_UP);
+        try {
+            writer = new PrintWriter(permutePathOut, "UTF-8");
+            writer.println("Cutoff\tAverage False\tTrue\tFDR");
+            for (float c = -2.0f; c < 0.0f; c += 0.01f) {
+                float C = (Float.valueOf(df.format(c)));
+                Double Total = 0.0d;
+                for (int a = 0; a < NegativePerms.size(); a++) {
+                    for (Map.Entry<Float, Integer> entry : NegativePerms.get(a).entrySet()) {
+                        Float A = entry.getKey();
+                        Double value = Double.valueOf(entry.getValue());
+                        if (A <= C){
+                            Total += value;
+                        }
+                    }
+                }
+                // Total holds all instances of adj value > C across all perms
+                Double Average = Total / NegativePerms.size();
+                Double RealHits = 0.0d;
+                for (Map.Entry<Float, Integer> entry : RealNeg.entrySet()) {
+                    Float A = entry.getKey();
+                    Double value = Double.valueOf(entry.getValue());
+                    if (A <= C) {
+                        RealHits += value;
+                    }
+                }
+                double FDR = Average / RealHits;
+                
+                if(Double.isNaN(Average)) Average=0.0d;
+                if(Double.isNaN(RealHits)) RealHits=0.0d;
+                if(Double.isNaN(FDR)) FDR=0.0d;
+                if(RealHits == 0.0d) FDR=1.0d;
+                Average = (Double.valueOf(df.format(Average)));
+                RealHits = (Double.valueOf(df.format(RealHits)));
+                FDR = (Double.valueOf(df.format(FDR)));
+                writer.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
+                if ((FDR >= 0.05f) && (FDR != 1.0f)) {
+                    if (CUTOFF[0] == 1.0f) {
+                        CUTOFF[0] = C-0.01f;
+                    } else {
+
+                    }
+                }
+            }
+            for (float c = 0.0f; c < 2.0f; c += 0.01f) {
+                float C = (Float.valueOf(df.format(c)));
+                Double Total = 0.0d;
+                for (int a = 0; a < PositivePerms.size(); a++) {
+                    for (Map.Entry<Float, Integer> entry : PositivePerms.get(a).entrySet()) {
+                        Float A = entry.getKey();
+                        Double value = Double.valueOf(entry.getValue());
+                        if (A >= C){
+                            Total += value;
+                        }
+                    }
+                }
+                // Total holds all instances of adj value > C across all perms
+                Double Average = Total / PositivePerms.size();
+                Double RealHits = 0.0d;
+                for (Map.Entry<Float, Integer> entry : RealPos.entrySet()) {
+                    Float A = entry.getKey();
+                    Double value = Double.valueOf(entry.getValue());
+                    if (A >= C) {
+                        RealHits += value;
+                    }
+                }
+                double FDR = Average / RealHits;
+                
+                if(Double.isNaN(Average)) Average=0.0d;
+                if(Double.isNaN(RealHits)) RealHits=0.0d;
+                if(Double.isNaN(FDR)) FDR=0.0d;
+                if(RealHits == 0.0d) FDR=1.0d;
+                Average = (Double.valueOf(df.format(Average)));
+                RealHits = (Double.valueOf(df.format(RealHits)));
+                FDR = (Double.valueOf(df.format(FDR)));
+                writer.println(C + "\t" + Average + "\t" + RealHits + "\t" + FDR);
+                if (FDR <= 0.05f) {
+                    if (CUTOFF[1] == 1.0f) {
+                        CUTOFF[1] = C;
+                    } else {
+
+                    }
+                }
+            }
+            
+            writer.close();
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return CUTOFF;
+    }
+   
+    */   
     public static float[] determineCutoffSF(ExpressionFrame expF1, ExpressionFrame expF2, String out, String corr, float mu1, float mu2, float alpha1, float alpha2, int threads) throws FileNotFoundException, UnsupportedEncodingException {
         boolean signed=true;
         GCNMatrix CurrentMatrix1 = Operations.calculateAdjacency(expF1, corr, "sigmoid", mu1, alpha1, threads,signed);
@@ -799,6 +1159,7 @@ public class Operations {
                 }
                 if("negative".equals(type)){
                     if(Math.abs(v2)>Math.abs(v1)) continue;
+                    d = d*-1.0f;
                     Plasticity.setValueByEntry(d, i, j);
                 }
                 
