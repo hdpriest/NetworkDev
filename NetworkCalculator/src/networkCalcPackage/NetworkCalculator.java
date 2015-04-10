@@ -850,6 +850,7 @@ public class NetworkCalculator {
             _clustersToFile(SDifference, Clusters, MinSize, ClustOut);            
             // For some reason, using the same variable and overwriting below did not work
             // Not sure why... even copy constructors don't seem to work. hacking.
+            SDifference = null;
             SDifference = Operations.calculateDifferenceThreaded(SNetworkA, SNetworkB,threads);
             System.err.println("Finding positive plasticity network... cutoff: " + CUTOFF_pos);
             //SDifference.maskBelow(CUTOFF_pos); // MaskedDif is now the pos matrix
