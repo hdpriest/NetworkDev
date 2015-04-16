@@ -505,7 +505,15 @@ this is somewhat non-intuitive
         }
         return avg;
     }
-        
+ 
+    public float getMaxK (){
+        float max=Float.NEGATIVE_INFINITY;
+        for(int i=0;i<k.length;i++){
+            if(k[i]>max) max=k[i];
+        }
+        return max;
+    }
+    
     public float getMeanK (){
         float mean=0.0f;
         for(int i=0;i<k.length;i++){

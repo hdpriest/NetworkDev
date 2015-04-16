@@ -450,13 +450,14 @@ public class NetworkCalculator {
         double RSquared = Return[0];
         double Slope = Return[1];
         float mean = CurrentMatrix.getMeanK();
+        float max = CurrentMatrix.getMaxK();
         if(Double.isNaN(RSquared)) RSquared=0.0d;
         RSquared=(Double.valueOf(df.format(RSquared)));
         mean = (Float.valueOf(df.format(mean)));
         System.out.println("Scale Free Criteron of resultant network: " + RSquared);
         System.out.println("Slope of scale free connectivity: " + Slope);
         System.out.println("Average Connectivity of resultant network: " + mean);
-            
+        System.out.println("Maximum per-node Connectivity of resultant network: " + max);    
         System.err.println("Calculating TOM...\n");
         CurrentMatrix.calculateKs();
         CurrentMatrix = Operations.calculateTOM(CurrentMatrix, threads);
